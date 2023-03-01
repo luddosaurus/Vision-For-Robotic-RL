@@ -1,2 +1,2 @@
-# AI-meets-Collaborative-Robots
+# Vision for Robotic RL
 Thesis Code
