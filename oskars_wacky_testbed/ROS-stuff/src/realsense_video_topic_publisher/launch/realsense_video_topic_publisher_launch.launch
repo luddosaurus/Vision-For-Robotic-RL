@@ -1,0 +1,4 @@
+<launch>
+<node pkg="realsense_video_topic_publisher" type="realsense_video_topic_publisher_script.py" name="realsense_video_topic_publisher_node" output="screen">
+</node>
+</launch>
