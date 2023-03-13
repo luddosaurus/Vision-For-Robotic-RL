@@ -146,7 +146,7 @@ def main():
 
                 height, width, _ = image.shape
                 black_image = np.zeros((height, width, 3), np.uint8)
-                black_image[:] = (0, 0, 0)
+                # black_image[:] = (0, 0, 0)
 
                 box = results[0].boxes.boxes[0]
 
@@ -180,7 +180,7 @@ def main():
 
                 # cv2.imshow('mask', mask)
                 shape = segment.shape
-                print(shape)
+                # print(shape)
                 for line in segment:
                     line[0] = line[0] * width
                     line[1] = line[1] * height
