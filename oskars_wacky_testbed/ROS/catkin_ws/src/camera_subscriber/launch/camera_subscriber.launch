@@ -1,0 +1,4 @@
+<launch>
+<node pkg="camera_subscriber" type="camera_subscriber_script.py" name="camera_subscriber_node" output="screen">
+</node>
+</launch>
