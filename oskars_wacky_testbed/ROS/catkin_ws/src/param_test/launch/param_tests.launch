@@ -1,0 +1,9 @@
+<launch>
+    <node pkg="param_test" type="param_tests_script.py" name="param_test_node_1" output="screen">
+        <param name="this_param_1" type="string" value="param_1_string"/>
+    </node>
+    <node pkg="param_test" type="param_tests_script.py" name="param_test_node_2" output="screen">
+        <param name="this_param_2" type="string" value="param_2_string"/>
+    </node>
+
+</launch>
