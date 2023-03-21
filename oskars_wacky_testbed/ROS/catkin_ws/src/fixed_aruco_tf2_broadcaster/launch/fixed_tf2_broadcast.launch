@@ -1,6 +1,6 @@
 <launch>
 <node pkg="fixed_aruco_tf2_broadcaster" type="fixed_tf2_broadcast_left_aruco.py" name="fixed_tf2_broadcaster_left" output="screen">
 </node>
-<node pkg="fixed_aruco_tf2_broadcaster" type="fixed_tf2_broadcast_right_aruco.py" name="fixed_tf2_broadcaster_right" output="screen">
-</node>
+<!-- <node pkg="fixed_aruco_tf2_broadcaster" type="fixed_tf2_broadcast_right_aruco.py" name="fixed_tf2_broadcaster_right" output="screen"> -->
+<!-- </node> -->
 </launch>
