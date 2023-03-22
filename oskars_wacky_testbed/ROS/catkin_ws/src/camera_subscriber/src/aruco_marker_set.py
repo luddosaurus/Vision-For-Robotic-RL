@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import tf.transformations as tr
 
 
 class MarkerSet(object):
@@ -24,7 +25,7 @@ class MarkerSet(object):
     def get_camera_distance_to_markers_via_transform(self):
         distances = dict()
         for i in range(0, len(self.ids)):
-            print(f'one print: {len(self.ids)} - {i}')
+            # print(f'one print: {len(self.ids)} - {i}')
             rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,
                                                                             self.matrix_coefficients,
                                                                             self.distortion_coefficients)
@@ -33,6 +34,15 @@ class MarkerSet(object):
 
             distances[self.ids[i][0]] = tvec[0][0][2]
         return distances
+
+    def get_aruco_poses(self):
+        poses = list()
+        for i in range(0, len(self.ids)):
+            rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,
+                                                                            self.matrix_coefficients,
+                                                                            self.distortion_coefficients)
+            poses.append((self.ids[i], rvec, tvec, marker_points))
+        return poses
 
     def get_center_of_every_marker(self):
         centers = dict()
@@ -168,3 +178,26 @@ class MarkerSet(object):
         cY = int((topLeft[1] + bottomRight[1]) / 2.0)
 
         return cX, cY
+
+    def transform_aruco_to_camera(self, rvec, tvec):
+        R, _ = cv2.Rodrigues(rvec)
+        neg_r_t = -R.T
+        tvec_2 = tvec.reshape((1, 3))
+        tvec_t = tvec_2.T
+        # # tvec_t.reshape((3, 1))
+        # print(neg_r_t.shape)
+        # print(tvec)
+        test = np.dot(-R.T, tvec_t)
+        T_marker_camera = np.hstack((R.T, test))
+
+        # print(T_marker_camera.shape)
+        bottom_row = np.array([0, 0, 0, 1])
+        T_marker_camera = np.vstack((T_marker_camera, bottom_row))
+
+        T_camera_marker = np.linalg.inv(T_marker_camera)
+        camera_pos_marker = T_camera_marker[:3, 3]
+
+        # rot_mat = T_camera_marker[:4, :3]
+        q = tr.quaternion_from_matrix(T_camera_marker)
+        print(f'q: {q}')
+        return camera_pos_marker, q

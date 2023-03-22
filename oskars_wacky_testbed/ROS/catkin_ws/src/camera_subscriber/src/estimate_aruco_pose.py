@@ -20,3 +20,18 @@ def estimate_pose(image, aruco_dict_type, matrix_coefficients, distortion_coeffi
 
     return image, distances, centers
 
+
+def transform_aruco_to_camera(image, aruco_dict_type, matrix_coefficients, distortion_coefficients, marker_size):
+    gray_scale_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
+    parameters = cv2.aruco.DetectorParameters()
+
+    corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray_scale_image, cv2.aruco_dict, parameters=parameters)
+
+    if len(corners) > 0:
+        marker_set = MarkerSet(corners, ids, marker_size, matrix_coefficients, distortion_coefficients, image)
+        image = marker_set.draw_markers_with_axes()
+
+        poses = marker_set.get_aruco_poses()
+        for pose in poses:
+            print(f'{pose[0]}: {marker_set.transform_aruco_to_camera(pose[1], pose[2])}')
