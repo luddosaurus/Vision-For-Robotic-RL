@@ -1,5 +1,6 @@
 from cv2 import aruco as aruco
 import cv2
+import numpy as np
 
 
 class ARHelper:
@@ -21,7 +22,10 @@ class ARHelper:
             dictionary=self.marker_dict,
             parameters=self.param_markers
         )
-        marked_image = aruco.drawDetectedMarkers(image=img, corners=marker_corners, ids=marker_ids)
+        marked_image = aruco.drawDetectedMarkers(
+            image=img,
+            corners=marker_corners,
+            ids=marker_ids)
 
         if debug:
             print(marker_corners)
@@ -29,28 +33,15 @@ class ARHelper:
         return marked_image, marker_corners, marker_ids
 
     @staticmethod
-    def draw_vectors(img, marker_corners, marker_ids, matrix, distortion):
+    def find_center(corners, marker_ids):
 
-        marker_size = 0.05
-        axis_length = 0.02
-        if len(marker_corners) > 0:
-            for i in range(0, len(marker_ids)):
-                rotation_vec, translation_vec, marker_points = aruco.estimatePoseSingleMarkers(
-                    corners=marker_corners[i],
-                    markerLength=0.05,
-                    cameraMatrix=matrix,
-                    distCoeffs=distortion
-                )
-                if rotation_vec is not None:
-                    print("Rotation: ", rotation_vec)
-                    # todo fix multiple markers
-                    # z - blue , y - green, x - red
-                    cv2.drawFrameAxes(
-                        image=img,
-                        cameraMatrix=matrix,
-                        distCoeffs=distortion,
-                        rvec=rotation_vec,
-                        tvec=translation_vec,
-                        length=axis_length)
+        centers = []
+        for index in range(0, len(marker_ids)):
+            points_arr = np.array(corners[index])
+            center = np.mean(points_arr, axis=(0, 1)).astype(int)
+            centers.append(center)
 
-        return img
+        return centers
+
+
+

@@ -1,20 +1,21 @@
 #! /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/ludde-sandbox/venv/bin/python
 
 import cv2
-
 from cv_bridge import CvBridge, CvBridgeError
-# from estimate_aruco_pose import estimate_pose
-from params import *
 import numpy as np
-from utils.ARHelper import ARHelper
+
 import rospy
 from sensor_msgs.msg import Image
 
+from utils.ARHelper import ARHelper
+from params_remote import *
+from utils.photoshop import *
 
 # Init
-ah = ARHelper(marker_size_m)
+arhelper = ARHelper(marker_size_m)
 with np.load(calibration_path) as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
+print("Camera Subscriber launched with parameters:")
 print(intrinsic_camera, distortion)
 
 
@@ -25,25 +26,30 @@ class RealsenseVideoSubscriber(object):
 
     def callback(self, image):
         try:
-            original_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
+            image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
 
-            # image, corners, ids = ah.find_markers(image)
-            # if ids is not None:
-            #     image = ah.draw_vectors(
-            #         img=image,
-            #         marker_corners=corners,
-            #         marker_ids=ids,
-            #         matrix=intrinsic_camera,
-            #         distortion=distortion
-            #     )
-
-            cv2.imshow('image', original_image)
-            cv2.waitKey(0)
         except CvBridgeError as e:
             print(e)
-        #  image, distances, centers = estimate_pose(original_image,
-        #                                          cv2.aruco.DICT_4X4_50,
-        #                                          intrinsic_camera, distortion, marker_size_m)
+
+        # Find ArUco Markers
+        image, corners, ids = arhelper.find_markers(image)
+
+        # Draw Vectors
+        if ids is not None:
+            # image = draw_vectors(
+            #     img=image,
+            #     marker_corners=corners,
+            #     marker_ids=ids,
+            #     matrix=intrinsic_camera,
+            #     distortion=distortion
+            # )
+
+            centers = arhelper.find_center(corners, ids)
+            paint_dots(image, centers)
+
+        # Display Image
+        cv2.imshow('image', image)
+        cv2.waitKey(0)
 
 
 def main():
