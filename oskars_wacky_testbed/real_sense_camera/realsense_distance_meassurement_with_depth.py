@@ -1,32 +1,22 @@
 import cv2
-from cv2 import aruco
+
 import numpy as np
 import pyrealsense2 as rs
 from aruco_marker_set import MarkerSet
 
-config = rs.config()
-pipeline = rs.pipeline()
-
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, 30)
-
-# Get device product line for setting a supporting resolution
-pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-pipeline_profile = config.resolve(pipeline_wrapper)
-device = pipeline_profile.get_device()
-device_product_line = str(device.get_info(rs.camera_info.product_line))
-
-arucoDict = cv2.aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 
 arucoParams = cv2.aruco.DetectorParameters()
 
 
 def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
+    dictionary = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
     parameters = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(dictionary, parameters)
 
-    corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
+    corners, ids, rejected_img_points = detector.detectMarkers(gray)
+
     # cv2.calibrateHandEye
 
     marker_size_cm = 0.034
@@ -55,6 +45,15 @@ with np.load('./calib_data_2_new/MultiMatrix.npz') as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
 print(intrinsic_camera, distortion)
 
+config = rs.config()
+pipeline = rs.pipeline()
+
+# Get device product line for setting a supporting resolution
+pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+pipeline_profile = config.resolve(pipeline_wrapper)
+device = pipeline_profile.get_device()
+device_product_line = str(device.get_info(rs.camera_info.product_line))
+
 found_rgb = False
 for s in device.sensors:
     if s.get_info(rs.camera_info.name) == 'RGB Camera':
@@ -64,15 +63,30 @@ if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
 # Start streaming
-pipeline.start(config)
+profile = pipeline.start(config)
+
+# Getting the depth sensor's depth scale (see rs-align example for explanation)
+depth_sensor = profile.get_device().first_depth_sensor()
+depth_scale = depth_sensor.get_depth_scale()
+print("Depth Scale is: ", depth_scale)
+
+# Create an align object
+# rs.align allows us to perform alignment of depth frames to others frames
+# The "align_to" is the stream type to which we plan to align depth frames.
+align_to = rs.stream.color
+align = rs.align(align_to)
 
 try:
     while True:
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        aligned_frames = align.process(frames)
+        depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
         if not depth_frame or not color_frame:
             continue
 
@@ -88,6 +102,7 @@ try:
 
         # If depth and color resolutions are different, resize color image to match depth image for display
         if depth_colormap_dim != color_colormap_dim:
+            print("RESHAPING FOR SOME REASON")
             # resized_depth = cv2.resize(depth_colormap, dsize=(color_colormap_dim[1], color_colormap_dim[0]),
             #                            interpolation=cv2.INTER_AREA)
             # color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
@@ -95,11 +110,15 @@ try:
                                              interpolation=cv2.INTER_AREA)
             color_image = cv2.cvtColor(resized_color_image, cv2.COLOR_RGB2BGR)
 
-        output, distances, centers = pose_estimation(color_image, aruco.DICT_4X4_50, intrinsic_camera, distortion)
+        output, distances, centers = pose_estimation(color_image, cv2.aruco.DICT_4X4_50, intrinsic_camera, distortion)
         if len(centers) != 0:
-            distance_to_4 = depth_frame.get_distance(centers[4][0], centers[4][1])
-            print(f'depth measurement - {distance_to_4}')
-            print(f'aruco based - {distances[4]}')
+            for key in distances.keys():
+                distance_to_point = depth_frame.get_distance(centers[key][0], centers[key][1])
+                cv2.circle(output, centers[key], 20, (255, 100, 100), -1)
+                cv2.circle(depth_colormap, centers[key], 20, (255, 100, 100), -1)
+                print(f'aruco based {key} - {distances[key]}')
+                print(f'depth measurement {key} - {distance_to_point}')
+            print('----------------------------------------------------')
 
         images = np.hstack((output, depth_colormap))
 

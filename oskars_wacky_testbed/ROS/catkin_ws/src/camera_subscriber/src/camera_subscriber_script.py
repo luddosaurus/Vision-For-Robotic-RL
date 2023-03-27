@@ -10,7 +10,7 @@ import rospy
 from sensor_msgs.msg import Image
 
 with np.load(
-        '/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/ROS/catkin_ws/src/camera_subscriber/src/calib_data_2_new/MultiMatrix.npz') as X:
+        '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/ROS/catkin_ws/src/camera_subscriber/src/calib_data_2_new/MultiMatrix.npz') as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
 print(intrinsic_camera, distortion)
 

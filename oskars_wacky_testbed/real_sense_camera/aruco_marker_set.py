@@ -24,27 +24,24 @@ class MarkerSet(object):
     def get_camera_distance_to_markers_via_transform(self):
         distances = dict()
         for i in range(0, len(self.ids)):
-            rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,
-                                                                            self.matrix_coefficients,
-                                                                            self.distortion_coefficients)
+            rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,self.matrix_coefficients,self.distortion_coefficients)
+
             cv2.drawFrameAxes(self.image, self.matrix_coefficients, self.distortion_coefficients, rvec, tvec,
                               self.marker_size / 2)
 
-            distances[self.ids[0][i]] = tvec[0][0][2]
+            distances[self.ids[i][0]] = tvec[0][0][2]
         return distances
 
     def get_center_of_every_marker(self):
         centers = dict()
         for i in range(0, len(self.ids)):
             center = self.find_center(mark_corners=self.corners[i].reshape((4, 2)))
-            centers[self.ids[0][i]] = center
+            centers[self.ids[i][0]] = center
         return centers
 
     def estimate_pose_of_markers(self):
         for i in range(0, len(self.ids)):
-            rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,
-                                                                            self.matrix_coefficients,
-                                                                            self.distortion_coefficients)
+            rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(self.corners[i], self.marker_size,self.matrix_coefficients,self.distortion_coefficients)
             cv2.drawFrameAxes(self.image, self.matrix_coefficients, self.distortion_coefficients, rvec, tvec,
                               self.marker_size / 2)
 

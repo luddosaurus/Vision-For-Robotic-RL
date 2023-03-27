@@ -19,27 +19,27 @@ class FixedTFBroadcaster:
             t_left.header.frame_id = "panda_hand"
             t_left.header.stamp = rospy.Time.now()
             t_left.child_frame_id = "left_aruco"
-            t_left.transform.translation.x = 3.6
-            t_left.transform.translation.y = 6.1
-            t_left.transform.translation.z = 4.3
+            t_left.transform.translation.x = 0.036
+            t_left.transform.translation.y = 0.055
+            t_left.transform.translation.z = 0.04
 
-            t_left.transform.rotation.x = 0.0
-            t_left.transform.rotation.y = 0.0
-            t_left.transform.rotation.z = 0.0
-            t_left.transform.rotation.w = 1.0
+            t_left.transform.rotation.x = -0.5
+            t_left.transform.rotation.y = 0.5
+            t_left.transform.rotation.z = -0.5
+            t_left.transform.rotation.w = 0.5
 
             t_right = geometry_msgs.msg.TransformStamped()
             t_right.header.frame_id = "panda_hand"
             t_right.header.stamp = rospy.Time.now()
             t_right.child_frame_id = "right_aruco"
-            t_right.transform.translation.x = 3.6
-            t_right.transform.translation.y = -6.1
-            t_right.transform.translation.z = 4.3
+            t_right.transform.translation.x = 0.036
+            t_right.transform.translation.y = -0.055
+            t_right.transform.translation.z = 0.04
 
-            t_right.transform.rotation.x = 0.0
-            t_right.transform.rotation.y = 0.0
-            t_right.transform.rotation.z = 0.0
-            t_right.transform.rotation.w = 1.0
+            t_right.transform.rotation.x = -0.5
+            t_right.transform.rotation.y = 0.5
+            t_right.transform.rotation.z = -0.5
+            t_right.transform.rotation.w = 0.5
 
             tfm_left = tf2_msgs.msg.TFMessage([t_left])
             tfm_right = tf2_msgs.msg.TFMessage([t_right])
