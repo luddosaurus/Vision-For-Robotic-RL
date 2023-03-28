@@ -19,6 +19,39 @@ print("Camera Subscriber launched with parameters:")
 print(intrinsic_camera, distortion)
 
 
+# Y=down, X=right and Z=towards
+def pixel_to_camera(u, v, camera_matrix, dist_coeffs):
+    # Define the camera matrix and distortion coefficients
+
+    camera_matrix = np.array(camera_matrix)
+    dist_coeffs = np.array(dist_coeffs)
+    print("camera matrix", camera_matrix.shape)
+    print("camera matrix", camera_matrix.dtype)
+    print("distortion", dist_coeffs.shape)
+    print("distortion", dist_coeffs.dtype)
+    # Convert the pixel coordinate (u, v) to a homogeneous 2D point
+    # uv_point = np.array([[u, v, 1]], dtype=np.float32).T
+    uv_point = np.array([[[u, v]]], dtype=np.float32)
+    print("point", uv_point)
+    print("point", u)
+    print("point", v)
+    print("point", uv_point.shape)
+    print("point", uv_point.dtype)
+
+    # remove distortion of point
+    undistorted_point = cv2.undistortPoints(uv_point, camera_matrix, dist_coeffs)
+    x = undistorted_point[0, 0, 0]
+    y = undistorted_point[0, 0, 1]
+
+    # convert the undistorted pixel coordinates to homogeneous 2D coordinates
+    undistorted_hom = np.array([[x, y, 1]], dtype=np.float32).T
+
+    # compute the homogeneous 3D coordinates X = Pinv*x
+    camera_point = np.dot(np.linalg.inv(camera_matrix), undistorted_hom)
+
+    return camera_point
+
+
 class RealsenseVideoSubscriber(object):
     def __init__(self):
         self.cv_bridge = CvBridge()
@@ -46,6 +79,11 @@ class RealsenseVideoSubscriber(object):
 
             centers = arhelper.find_center(corners, ids)
             paint_dots(image, centers)
+            print(centers)
+            for u, v in centers:
+                print((u,v))
+                camera_point = pixel_to_camera(u, v, intrinsic_camera, distortion)
+                print(u, " ", v," -> ", camera_point)
 
         # Display Image
         cv2.imshow('image', image)

@@ -1,5 +1,5 @@
 import cv2
-
+from cv2 import aruco
 # Handle all the drawings on the images
 
 
