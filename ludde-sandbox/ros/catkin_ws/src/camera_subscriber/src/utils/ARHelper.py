@@ -22,6 +22,7 @@ class ARHelper:
             dictionary=self.marker_dict,
             parameters=self.param_markers
         )
+
         marked_image = aruco.drawDetectedMarkers(
             image=img,
             corners=marker_corners,
@@ -35,13 +36,13 @@ class ARHelper:
     @staticmethod
     def find_center(corners, marker_ids):
 
-        centers = []
-        for index in range(0, len(marker_ids)):
-            points_arr = np.array(corners[index])
-            center = np.mean(points_arr, axis=(0, 1)).astype(int)
-            centers.append(center)
+        # centers = []
+        # for index in range(0, len(marker_ids)):
+        points_arr = np.array(corners)
+        center = np.mean(points_arr, axis=(0, 1)).astype(int)
+        # centers.append(center)
 
-        return centers
+        return center
 
 
 
