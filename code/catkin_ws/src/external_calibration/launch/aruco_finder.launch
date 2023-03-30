@@ -1,7 +1,7 @@
 <launch>
     <node
             pkg="aruco_finder"
-            type="finder.py"
+            type="aruco_finder.py"
             name="aruco_finder_node"
             output="screen">
     </node>

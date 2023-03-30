@@ -15,7 +15,7 @@ arhelper = ARHelper(marker_size_m)
 with np.load(calibration_path) as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
 
-print("Camera Subscriber launched with parameters:")
+print("ArUcoFinder launched with parameters:")
 print(intrinsic_camera, distortion)
 
 
@@ -41,22 +41,24 @@ class ArUcoFinder(object):
         # Find ArUco Markers
         image, corners, ids = arhelper.find_markers(image)
 
-        # Find Camera Coordinates
-        for index in range(0, len(ids)):
-            r_vec, t_vec, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
-                corners=corners,
-                markerLength=marker_size_m,
-                cameraMatrix=intrinsic_camera,
-                distCoeffs=distortion)
+        if ids is not None:
 
-            center_point = arhelper.find_center(corners[index], ids[index])
-            camera_point = t_vec[index].flatten()
-            self.image_points.append(center_point)
-            self.world_points.append(camera_point)
+            # Find Camera Coordinates
+            for index in range(0, len(ids)):
+                r_vec, t_vec, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
+                    corners=corners,
+                    markerLength=marker_size_m,
+                    cameraMatrix=intrinsic_camera,
+                    distCoeffs=distortion)
 
-        # Display Image
-        cv2.imshow('image', image)
-        cv2.waitKey(0)
+                center_point = arhelper.find_center(corners[index], ids[index])
+                camera_point = t_vec[index].flatten()
+                self.image_points.append(center_point)
+                self.world_points.append(camera_point)
+
+            # Display Image
+            cv2.imshow('image', image)
+            cv2.waitKey(0)
 
 
 def main():
