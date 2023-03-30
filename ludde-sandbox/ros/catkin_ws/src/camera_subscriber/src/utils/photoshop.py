@@ -1,6 +1,8 @@
 import cv2
 from cv2 import aruco
-# Handle all the drawings on the images
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def paint_dots(image, coordinates):
@@ -35,3 +37,28 @@ def draw_vectors(img, marker_corners, marker_ids, matrix, distortion):
                     length=axis_length)
 
     return img
+
+
+def plot_3d_points_and_vector(points, vector):
+    # create a 3D figure
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # plot the 3D points
+    points = np.array(points)
+    x, y, z = points[:, 0], points[:, 1], points[:, 2]
+    ax.scatter(x, y, z, c='r', marker='o')
+
+    # plot the 3D vector
+    p, v = vector
+    v = np.array(v)
+    v /= np.linalg.norm(v)  # normalize the vector
+    ax.quiver(p[0], p[1], p[2], v[0], v[1], v[2], length=1.0, color='g')
+
+    # add labels to the axes
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    # show the plot
+    plt.show()

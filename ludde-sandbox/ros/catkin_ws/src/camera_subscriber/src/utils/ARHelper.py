@@ -44,5 +44,23 @@ class ARHelper:
 
         return center
 
+    @staticmethod
+    def get_camera_pose(camera_matrix, distortion_coefficients, image_points, world_points):
 
+        image_points = np.array(image_points, dtype=np.float64)
+        world_points = np.array(world_points, dtype=np.float64)
+
+
+        # undistort image points
+        # image_points = cv2.undistortPoints(image_points,
+        #                                   camera_matrix,
+        #                                   distortion_coefficients)
+
+        # estimate camera pose
+        retval, rvec, tvec, inliers = cv2.solvePnPRansac(world_points,
+                                          image_points,
+                                          camera_matrix,
+                                          distortion_coefficients)
+
+        return tvec, rvec
 
