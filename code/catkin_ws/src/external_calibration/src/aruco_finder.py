@@ -1,12 +1,22 @@
 #! /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
+# Standard
 import numpy as np
 
+# OpenCV
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
+
+# ROS
 import rospy
 from sensor_msgs.msg import Image
+import tf2_ros
+import tf2_msgs.msg
+import geometry_msgs.msg
+from tf.transformations import quaternion_from_matrix
 
+
+# Local
 from utils.ARHelper import ARHelper
 from params.params_remote import *
 
@@ -27,10 +37,41 @@ class ArUcoFinder(object):
     def __init__(self):
         self.cv_bridge = CvBridge()
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.callback)
+        self.pub_aruco_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=10)
 
-    def publish(self, camera_point):
-        pass
+    @staticmethod
+    def invert_transform(translation, rotation):
+        rotation_mat, _ = cv2.Rodrigues(rotation)
+        # Change to ArUco to Camera
+        inv_rotation = rotation_mat.T
+        inv_translation = -np.dot(inv_rotation, translation)
+        # Convert to Quaternion
+        quaternion = quaternion_from_matrix(rotation_mat)
 
+        return inv_translation, quaternion
+
+    # Publish TF with camera point translation and rotation
+    def publish(self, translation, rotation, aruco_id):
+        translation, rotation = self.invert_transform(translation, rotation)
+        transform_stamped_msg = geometry_msgs.msg.TransformStamped()
+
+        # Info
+        transform_stamped_msg.header.stamp = rospy.Time.now()
+        transform_stamped_msg.header.frame_id = "ArUco"
+        transform_stamped_msg.child_frame_id = "Number " + str(aruco_id)
+
+        # Data
+        transform_stamped_msg.transform.translation.x = translation[0]
+        transform_stamped_msg.transform.translation.y = translation[1]
+        transform_stamped_msg.transform.translation.z = translation[2]
+        transform_stamped_msg.transform.rotation.x = rotation[0][0]
+        transform_stamped_msg.transform.rotation.y = rotation[1][0]
+        transform_stamped_msg.transform.rotation.z = rotation[2][0]
+        transform_stamped_msg.transform.rotation.w = rotation[3][0]
+
+        self.pub_aruco_tf.publish(transform_stamped_msg)
+
+    # Finds the ArUco:s location in the camera 3D space
     def callback(self, image):
         try:
             image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
@@ -43,7 +84,7 @@ class ArUcoFinder(object):
 
         if ids is not None:
 
-            # Find Camera Coordinates
+            # Find Camera Coordinates 3D
             for index in range(0, len(ids)):
                 r_vec, t_vec, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
                     corners=corners,
