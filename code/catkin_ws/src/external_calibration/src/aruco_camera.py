@@ -68,9 +68,6 @@ class ArUcoFinder(object):
 
         translation, rotation = self.invert_transform(translation, rotation)
 
-        print("Translation", translation)
-        print("Rotation", rotation)
-
         # Message
         transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
@@ -118,10 +115,7 @@ class ArUcoFinder(object):
                 camera_point = translation.flatten()
                 self.image_points.append(center_point)
                 self.world_points.append(camera_point)
-                # print("center", center_point)
-                # print("camera", camera_point)
-                # print("id", aruco_id)
-                # print("corners", corner_points)
+
                 self.publish(translation, rotation, aruco_id)
             # Display Image
             cv2.imshow('image', image)
@@ -129,7 +123,7 @@ class ArUcoFinder(object):
 
 
 def main():
-    rospy.init_node('aruco_finder_node')
+    rospy.init_node('aruco_camera_node')
     aruco_finder = ArUcoFinder()
 
     try:
