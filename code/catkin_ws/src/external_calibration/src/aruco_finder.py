@@ -42,6 +42,8 @@ class ArUcoFinder(object):
 
     @staticmethod
     def invert_transform(translation, rotation):
+        # invert and change to quaternion
+
         rotation_mat, _ = cv2.Rodrigues(rotation)
 
         # Change frame from Camera to ArUco, to ArUco to Camera
@@ -54,9 +56,12 @@ class ArUcoFinder(object):
 
         # Convert to Quaternion
         quaternion = tf.quaternion_from_matrix(embedded_rotation)
-        print("q", quaternion)
 
-        return inv_translation, quaternion
+        # Normalize the quaternion because it's important
+        q_norm = np.linalg.norm(quaternion)
+        q_normalized = quaternion / q_norm
+
+        return inv_translation, q_normalized
 
     # Publish TF with camera point translation and rotation
     def publish(self, translation, rotation, aruco_id):
@@ -120,7 +125,7 @@ class ArUcoFinder(object):
                 self.publish(translation, rotation, aruco_id)
             # Display Image
             cv2.imshow('image', image)
-            cv2.waitKey(0)
+            cv2.waitKey(1)
 
 
 def main():
