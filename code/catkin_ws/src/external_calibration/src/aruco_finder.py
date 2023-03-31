@@ -1,4 +1,6 @@
 #! /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
+# /home/oskar/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
+# /home/lab/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 # Standard
 import numpy as np
@@ -13,12 +15,11 @@ from sensor_msgs.msg import Image
 import tf2_ros
 import tf2_msgs.msg
 import geometry_msgs.msg
-from tf.transformations import quaternion_from_matrix
-
+import tf.transformations as tf
 
 # Local
 from utils.ARHelper import ARHelper
-from params.params_remote import *
+from params.calibration_remote import *
 
 # Init
 arhelper = ARHelper(marker_size_m)
@@ -42,24 +43,31 @@ class ArUcoFinder(object):
     @staticmethod
     def invert_transform(translation, rotation):
         rotation_mat, _ = cv2.Rodrigues(rotation)
-        # Change to ArUco to Camera
-        inv_rotation = rotation_mat.T
-        inv_translation = -np.dot(inv_rotation, translation)
+
+        # Change frame from Camera to ArUco, to ArUco to Camera
+        inv_rotation = np.transpose(rotation_mat)
+        inv_translation = np.matmul(-inv_rotation, translation.T)
+
+        # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
+        embedded_rotation = np.eye(4)
+        embedded_rotation[:3, :3] = rotation
+
         # Convert to Quaternion
-        quaternion = quaternion_from_matrix(rotation_mat)
+        quaternion = tf.quaternion_from_matrix(embedded_rotation)
+        print("q", quaternion)
 
         return inv_translation, quaternion
 
     # Publish TF with camera point translation and rotation
     def publish(self, translation, rotation, aruco_id):
-        print("Translation", translation)
-        print("Rotation", rotation)
 
         translation, rotation = self.invert_transform(translation, rotation)
-        transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
         print("Translation", translation)
         print("Rotation", rotation)
+
+        # Message
+        transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
         # Info
         transform_stamped_msg.header.stamp = rospy.Time.now()
@@ -70,12 +78,13 @@ class ArUcoFinder(object):
         transform_stamped_msg.transform.translation.x = translation[0]
         transform_stamped_msg.transform.translation.y = translation[1]
         transform_stamped_msg.transform.translation.z = translation[2]
-        transform_stamped_msg.transform.rotation.x = rotation[0][0]
-        transform_stamped_msg.transform.rotation.y = rotation[1][0]
-        transform_stamped_msg.transform.rotation.z = rotation[2][0]
-        transform_stamped_msg.transform.rotation.w = rotation[3][0]
+        transform_stamped_msg.transform.rotation.x = rotation[0]
+        transform_stamped_msg.transform.rotation.y = rotation[1]
+        transform_stamped_msg.transform.rotation.z = rotation[2]
+        transform_stamped_msg.transform.rotation.w = rotation[3]
 
-        self.pub_aruco_tf.publish(transform_stamped_msg)
+        tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
+        self.pub_aruco_tf.publish(tfm)
 
     # Finds the ArUco:s location in the camera 3D space
     def callback(self, image):
