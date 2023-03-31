@@ -52,8 +52,14 @@ class ArUcoFinder(object):
 
     # Publish TF with camera point translation and rotation
     def publish(self, translation, rotation, aruco_id):
+        print("Translation", translation)
+        print("Rotation", rotation)
+
         translation, rotation = self.invert_transform(translation, rotation)
         transform_stamped_msg = geometry_msgs.msg.TransformStamped()
+
+        print("Translation", translation)
+        print("Rotation", rotation)
 
         # Info
         transform_stamped_msg.header.stamp = rospy.Time.now()
@@ -85,18 +91,24 @@ class ArUcoFinder(object):
         if ids is not None:
 
             # Find Camera Coordinates 3D
-            for index in range(0, len(ids)):
-                r_vec, t_vec, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
-                    corners=corners,
-                    markerLength=marker_size_m,
-                    cameraMatrix=intrinsic_camera,
-                    distCoeffs=distortion)
 
-                center_point = arhelper.find_center(corners[index], ids[index])
-                camera_point = t_vec[index].flatten()
+            r_vecs, t_vecs, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
+                corners=corners,
+                markerLength=marker_size_m,
+                cameraMatrix=intrinsic_camera,
+                distCoeffs=distortion)
+
+            for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
+
+                center_point = arhelper.find_center(corner_points, aruco_id)
+                camera_point = translation.flatten()
                 self.image_points.append(center_point)
                 self.world_points.append(camera_point)
-
+                # print("center", center_point)
+                # print("camera", camera_point)
+                # print("id", aruco_id)
+                # print("corners", corner_points)
+                self.publish(translation, rotation, aruco_id)
             # Display Image
             cv2.imshow('image', image)
             cv2.waitKey(0)
