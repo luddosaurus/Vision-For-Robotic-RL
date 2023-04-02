@@ -8,7 +8,14 @@
     <node
             pkg="external_calibration"
             type="aruco_arm.py"
-            name="aruco_hand_broadcaster"
+            name="aruco_hand_node"
             output="screen">
     </node>
+    <node
+            pkg="external_calibration"
+            type="transform_connector.py"
+            name="aruco_connector_node"
+            output="screen">
+    </node>
+
 </launch>

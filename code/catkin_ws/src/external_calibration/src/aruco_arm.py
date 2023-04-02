@@ -50,7 +50,7 @@ class ArucoHandBroadcaster:
 
 
 if __name__ == '__main__':
-    rospy.init_node('aruco_hand_broadcaster')
+    rospy.init_node('aruco_hand_node')
     tfb = ArucoHandBroadcaster()
 
     rospy.spin()
