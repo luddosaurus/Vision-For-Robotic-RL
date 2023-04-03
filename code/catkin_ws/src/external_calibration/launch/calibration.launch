@@ -5,17 +5,17 @@
             name="aruco_camera_node"
             output="screen">
     </node>
-    <node
-            pkg="external_calibration"
-            type="aruco_arm.py"
-            name="aruco_hand_node"
-            output="screen">
-    </node>
-    <node
-            pkg="external_calibration"
-            type="aruco_connector.py"
-            name="aruco_connector_node"
-            output="screen">
-    </node>
+<!--     <node -->
+<!--             pkg="external_calibration" -->
+<!--             type="aruco_arm.py" -->
+<!--             name="aruco_hand_node" -->
+<!--             output="screen"> -->
+<!--     </node> -->
+<!--     <node -->
+<!--             pkg="external_calibration" -->
+<!--             type="aruco_connector.py" -->
+<!--             name="aruco_connector_node" -->
+<!--             output="screen"> -->
+<!--     </node> -->
 
 </launch>

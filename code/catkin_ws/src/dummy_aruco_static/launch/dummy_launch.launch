@@ -1,0 +1,8 @@
+<launch>
+    <node
+            pkg="dummy_aruco_static"
+            type="fixed_tf2_broadcast_left_aruco.py"
+            name="fixed_tf2_broadcaster_left"
+            output="screen">
+    </node>
+</launch>

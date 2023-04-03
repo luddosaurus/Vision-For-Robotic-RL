@@ -1,4 +1,4 @@
-#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 # /home/oskar/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 # /home/lab/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
@@ -75,8 +75,15 @@ class ArUcoFinder(object):
         # Info
         # todo this is the camera coords from aruco, so maybe a better name
         transform_stamped_msg.header.stamp = rospy.Time.now()
-        transform_stamped_msg.header.frame_id = "ArUco"
-        transform_stamped_msg.child_frame_id = "number_" + str(aruco_id)
+        # transform_stamped_msg.header.frame_id = "ArUco"
+        # transform_stamped_msg.child_frame_id = "number_" + str(aruco_id)
+        if aruco_id == 0:
+            transform_stamped_msg.header.frame_id = "left_aruco"
+
+        elif aruco_id == 1:
+            transform_stamped_msg.header.frame_id = "right_aruco"
+        transform_stamped_msg.child_frame_id = f"camera_{aruco_id}"
+
 
         # Data
         transform_stamped_msg.transform.translation.x = translation[0]
