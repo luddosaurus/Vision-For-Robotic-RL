@@ -9,22 +9,7 @@ import tf2_msgs.msg
 import geometry_msgs.msg
 import tf.transformations as tf
 
-
-def publish(transform, pub):
-    # Message
-    transform_stamped_msg = geometry_msgs.msg.TransformStamped()
-
-    # Info
-    transform_stamped_msg.header.stamp = rospy.Time.now()
-    transform_stamped_msg.header.frame_id = "camera"
-    transform_stamped_msg.child_frame_id = "position"
-
-    # Data
-    transform_stamped_msg.transform.translation = transform.translation
-    transform_stamped_msg.transform.rotation = transform.rotation
-
-    tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
-    pub.publish(tfm)
+from utils.TFPublish import *
 
 
 # Broadcast Transform: Base -> Camera
@@ -44,7 +29,7 @@ if __name__ == '__main__':
             rate.sleep()
             continue
 
-
+        publish(publisher=pub_aruco_tf, transform=trans, parent_name="world", child_name="camera_position")
         print(trans)
 
         rate.sleep()
