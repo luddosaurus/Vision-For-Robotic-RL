@@ -1,4 +1,5 @@
-#! /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+# /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 import rospy
 import tf2_ros
@@ -25,10 +26,10 @@ class ArucoHandBroadcaster:
             t_left.transform.translation.y = left_y
             t_left.transform.translation.z = left_z
 
-            t_left.transform.rotation.x = 0.0
-            t_left.transform.rotation.y = 0.0
-            t_left.transform.rotation.z = 0.0
-            t_left.transform.rotation.w = 1.0
+            t_left.transform.rotation.x = left_rotation_x
+            t_left.transform.rotation.y = left_rotation_y
+            t_left.transform.rotation.z = left_rotation_z
+            t_left.transform.rotation.w = left_rotation_w
 
             t_right = geometry_msgs.msg.TransformStamped()
             t_right.header.frame_id = frame_name
@@ -38,10 +39,10 @@ class ArucoHandBroadcaster:
             t_right.transform.translation.y = right_y
             t_right.transform.translation.z = right_z
 
-            t_right.transform.rotation.x = 0.0
-            t_right.transform.rotation.y = 0.0
-            t_right.transform.rotation.z = 0.0
-            t_right.transform.rotation.w = 1.0
+            t_right.transform.rotation.x = right_rotation_x
+            t_right.transform.rotation.y = right_rotation_y
+            t_right.transform.rotation.z = right_rotation_z
+            t_right.transform.rotation.w = right_rotation_w
 
             tfm_left = tf2_msgs.msg.TFMessage([t_left])
             tfm_right = tf2_msgs.msg.TFMessage([t_right])
