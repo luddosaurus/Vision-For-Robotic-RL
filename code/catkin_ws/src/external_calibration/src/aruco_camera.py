@@ -75,7 +75,7 @@ class ArUcoFinder(object):
         # todo this is the camera coords from aruco, so maybe a better name
         transform_stamped_msg.header.stamp = rospy.Time.now()
         transform_stamped_msg.header.frame_id = "ArUco"
-        transform_stamped_msg.child_frame_id = "Number " + str(aruco_id)
+        transform_stamped_msg.child_frame_id = "number_" + str(aruco_id)
 
         # Data
         transform_stamped_msg.transform.translation.x = translation[0]

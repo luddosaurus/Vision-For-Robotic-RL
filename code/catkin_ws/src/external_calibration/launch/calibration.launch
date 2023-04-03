@@ -13,7 +13,7 @@
     </node>
     <node
             pkg="external_calibration"
-            type="transform_connector.py"
+            type="aruco_connector.py"
             name="aruco_connector_node"
             output="screen">
     </node>

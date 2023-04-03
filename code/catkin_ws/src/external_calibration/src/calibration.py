@@ -5,8 +5,9 @@ import rospy
 import math
 import tf2_ros
 
+# Transform: Base -> Camera
 if __name__ == '__main__':
-    rospy.init_node('aruco_connector_node')
+    rospy.init_node('calibration_node')
 
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
