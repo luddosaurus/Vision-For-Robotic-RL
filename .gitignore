@@ -54,3 +54,7 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+# misc
+misc.xml
+Vision-For-Robotics-Rl.iml
