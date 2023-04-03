@@ -5,25 +5,45 @@ import rospy
 
 import math
 import tf2_ros
+import tf2_msgs.msg
+import geometry_msgs.msg
+import tf.transformations as tf
 
-# Transform: Base -> Camera
+
+def publish(transform, pub):
+    # Message
+    transform_stamped_msg = geometry_msgs.msg.TransformStamped()
+
+    # Info
+    transform_stamped_msg.header.stamp = rospy.Time.now()
+    transform_stamped_msg.header.frame_id = "camera"
+    transform_stamped_msg.child_frame_id = "position"
+
+    # Data
+    transform_stamped_msg.transform.translation = transform.translation
+    transform_stamped_msg.transform.rotation = transform.rotation
+
+    tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
+    pub.publish(tfm)
+
+
+# Broadcast Transform: Base -> Camera
 if __name__ == '__main__':
     rospy.init_node('calibration_node')
 
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
+    pub_aruco_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=10)
 
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
         try:
-            trans = tfBuffer.lookup_transform('panda_hand', 'left_aruco', rospy.Time())
-            # todo
-            # aruco from arm = aruco from camera, with static transform?
-            # transform base -> aruco -> camera
-
+            trans = tfBuffer.lookup_transform('world', 'camera_from_aruco_[0]', rospy.Time())
+            publish(trans, pub_aruco_tf)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rate.sleep()
             continue
+
 
         print(trans)
 

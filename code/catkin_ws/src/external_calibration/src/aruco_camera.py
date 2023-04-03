@@ -76,7 +76,7 @@ class ArUcoFinder(object):
         # Info
         transform_stamped_msg.header.stamp = rospy.Time.now()
         transform_stamped_msg.header.frame_id = f"aruco_{aruco_id}"
-        transform_stamped_msg.child_frame_id = f"aruco_{aruco_id}_to_camera"
+        transform_stamped_msg.child_frame_id = f"camera_from_aruco_{aruco_id}"
 
         # Data
         transform_stamped_msg.transform.translation.x = translation[0]

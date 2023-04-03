@@ -11,11 +11,11 @@
              name="aruco_hand_node"
              output="screen">
      </node>
-<!--     <node -->
-<!--             pkg="external_calibration" -->
-<!--             type="aruco_connector.py" -->
-<!--             name="aruco_connector_node" -->
-<!--             output="screen"> -->
-<!--     </node> -->
+     <node
+             pkg="external_calibration"
+             type="calibration.py"
+             name="calibration_node"
+             output="screen">
+     </node>
 
 </launch>
