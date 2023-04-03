@@ -14,7 +14,7 @@ from utils.TFPublish import *
 
 # Broadcast Transform: Base -> Camera
 if __name__ == '__main__':
-    rospy.init_node('calibration_node')
+    rospy.init_node('external_camera_node')
 
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)

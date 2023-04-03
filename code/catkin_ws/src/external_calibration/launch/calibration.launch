@@ -13,8 +13,8 @@
      </node>
      <node
              pkg="external_calibration"
-             type="calibration.py"
-             name="calibration_node"
+             type="external_camera.py"
+             name="external_camera_node"
              output="screen">
      </node>
 
