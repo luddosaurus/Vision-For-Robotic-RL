@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from cv2 import aruco as aruco
+
 import pyrealsense2 as rs
 from aruco_marker_set import MarkerSet
 
@@ -83,7 +83,10 @@ def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
     marker_size_cm = 3.4
     if len(corners) > 0:
         markerSet = MarkerSet(corners, ids, marker_size_cm, matrix_coefficients, distortion_coefficients, frame)
-        frame = markerSet.calc_distance_from_each_area_version()
+
+        frame = markerSet.draw_markers_with_axes()
+        distances = markerSet.get_camera_distance_to_markers_via_transform()
+        #frame = markerSet.calc_distance_from_each_area_version()
 
         # for i in range(0, len(ids)): marker_size_cm = 3.4 rvec, tvec, markerPoints =
         # cv2.aruco.estimatePoseSingleMarkers(corners[i], marker_size_cm, matrix_coefficients, distortion_coefficients)

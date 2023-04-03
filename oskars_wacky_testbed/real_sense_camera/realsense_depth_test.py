@@ -11,7 +11,7 @@ print("Environment Ready")
 # cfg.enable_device_from_file("../object_detection.bag")
 # profile = pipe.start(cfg)
 config = rs.config()
-pipe = rs.pipeline(config)
+pipe = rs.pipeline()
 
 # Get device product line for setting a supporting resolution
 pipeline_wrapper = rs.pipeline_wrapper(pipe)

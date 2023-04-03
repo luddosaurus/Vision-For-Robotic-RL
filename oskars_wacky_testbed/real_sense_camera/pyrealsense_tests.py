@@ -909,8 +909,8 @@ def point_cloud_opengl():
 
 
 def main():
-    # align_depth_to_color()
-    point_cloud_opencv()
+    align_depth_to_color()
+    #point_cloud_opencv()
 
     #------------------------------does not work!------------------------
     # point_cloud_opengl()
