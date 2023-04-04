@@ -54,7 +54,7 @@ class ArUcoFinder(object):
 
         # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
         embedded_rotation = np.eye(4)
-        embedded_rotation[:3, :3] = rotation
+        embedded_rotation[:3, :3] = inv_rotation
 
         # Convert to Quaternion
         quaternion = tf.quaternion_from_matrix(embedded_rotation)
@@ -112,7 +112,6 @@ class ArUcoFinder(object):
                 distCoeffs=distortion)
 
             for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
-
                 center_point = arhelper.find_center(corner_points, aruco_id)
                 camera_point = translation.flatten()
                 self.image_points.append(center_point)
@@ -120,7 +119,7 @@ class ArUcoFinder(object):
 
                 self.publish(translation, rotation, aruco_id)
             # Display Image
-            cv2.imshow('image', image)
+            cv2.imshow('image', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             cv2.waitKey(1)
 
 

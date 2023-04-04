@@ -1,5 +1,12 @@
+from ..model.my_aruco import *
 
 # Params for Panda Hand to attached ArUco Offset
+
+ar = ArUco(aruco_id=0,
+           translation=(0.036, 0.055, 0.04),
+           rotation=(0.5, -0.5, 0.5, -0.5)
+           )
+ar.say_hello()
 
 frame_name = "panda_hand"
 
@@ -24,3 +31,34 @@ right_rotation_w = 0.5
 right_rotation_x = -0.5
 right_rotation_y = 0.5
 right_rotation_z = -0.5
+
+arm_arucos = [ArUco(aruco_id=0,
+                    translation=(0.036, 0.055, 0.04),
+                    rotation=(0.5, -0.5, 0.5, -0.5)
+                    ),
+              ArUco(
+                  aruco_id=1,
+                  translation=(0.036, -0.055, 0.04),
+                  rotation=(0.5, -0.5, 0.5, -0.5)
+              )
+              ]
+
+[0.446, -0.304, 0.037]
+
+table_arucos = [ArUco(
+    aruco_id=6,
+    translation=(0.446, -0.304, -0.015),
+    rotation=(0.7071, 0.0, 0.0, 0.7071)
+), ArUco(
+    aruco_id=7,
+    translation=(0.443, -0.407, -0.015),
+    rotation=(0.7071, 0.0, 0.0, 0.7071)
+), ArUco(
+    aruco_id=8,
+    translation=(0.154, -0.307, -0.015),
+    rotation=(0.7071, 0.0, 0.0, 0.7071)
+), ArUco(
+    aruco_id=9,
+    translation=(0.152, 404, -0.015),
+    rotation=(0.7071, 0.0, 0.0, 0.7071)
+), ]

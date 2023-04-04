@@ -2,10 +2,11 @@
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 import rospy
-import tf2_ros
 import tf2_msgs.msg
 import geometry_msgs.msg
+from code.catkin_ws.src.external_calibration.src.model.my_aruco import *
 from params.panda_hand_aruco import *
+
 
 
 class ArucoHandBroadcaster:
@@ -47,6 +48,7 @@ class ArucoHandBroadcaster:
             tfm_left = tf2_msgs.msg.TFMessage([t_left])
             tfm_right = tf2_msgs.msg.TFMessage([t_right])
             self.pub_tf_left.publish(tfm_left)
+            # self.pub_tf_right.publish(tfm_left)
             self.pub_tf_right.publish(tfm_right)
 
 

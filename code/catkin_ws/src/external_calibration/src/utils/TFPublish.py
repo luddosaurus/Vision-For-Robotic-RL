@@ -30,7 +30,7 @@ def publish(publisher, parent_name, child_name, translation, rotation):
     publisher.publish(tfm)
 
 
-def publish(publisher, transform, parent_name, child_name):
+def publish_static_transform(publisher, transform, parent_name, child_name):
     # Message
     transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
@@ -39,9 +39,17 @@ def publish(publisher, transform, parent_name, child_name):
     transform_stamped_msg.header.frame_id = parent_name
     transform_stamped_msg.child_frame_id = child_name
 
+    transform = transform.transform
     # Data
-    transform_stamped_msg.transform.translation = transform.translation
-    transform_stamped_msg.transform.rotation = transform.rotation
+    transform_stamped_msg.transform.translation.x = transform.translation.x
+    transform_stamped_msg.transform.translation.y = transform.translation.y
+    transform_stamped_msg.transform.translation.z = transform.translation.z
 
-    tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
-    publisher.publish(tfm)
+    transform_stamped_msg.transform.rotation.x = transform.rotation.x
+    transform_stamped_msg.transform.rotation.y = transform.rotation.y
+    transform_stamped_msg.transform.rotation.z = transform.rotation.z
+    transform_stamped_msg.transform.rotation.w = transform.rotation.w
+
+    # tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
+    publisher.sendTransform(transform_stamped_msg)
+    # publisher.publish(tfm)
