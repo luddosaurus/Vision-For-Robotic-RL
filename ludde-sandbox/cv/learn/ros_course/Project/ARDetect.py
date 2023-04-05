@@ -83,7 +83,7 @@ class ARDetect():
         coordinates = np.zeros((4, 2), dtype="int")
 
         if (var):
-            # Parameters sort model 1
+            # Parameters sort model_old 1
             s = pts.sum(axis=1)
             coordinates[0] = pts[np.argmin(s)]
             coordinates[3] = pts[np.argmax(s)]
@@ -93,7 +93,7 @@ class ARDetect():
             coordinates[2] = pts[np.argmax(diff)]
 
         else:
-            # Parameters sort model 2
+            # Parameters sort model_old 2
             s = pts.sum(axis=1)
             coordinates[0] = pts[np.argmin(s)]
             coordinates[2] = pts[np.argmax(s)]

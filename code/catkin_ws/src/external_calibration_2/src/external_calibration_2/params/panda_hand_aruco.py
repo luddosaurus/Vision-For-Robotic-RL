@@ -1,13 +1,8 @@
 #! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-from ..model.my_aruco import ArUco
+from external_calibration_2.model.my_aruco import ArUco
 
 # Params for Panda Hand to attached ArUco Offset
 
-ar = ArUco(aruco_id=0,
-           translation=(0.036, 0.055, 0.04),
-           rotation=(0.5, -0.5, 0.5, -0.5)
-           )
-ar.say_hello()
 
 frame_name = "panda_hand"
 

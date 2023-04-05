@@ -20,8 +20,11 @@ import geometry_msgs.msg
 import tf.transformations as tf
 
 # Local
-from utils.ARHelper import ARHelper
-from params.calibration import *
+from external_calibration_2.utils.ARHelper import ARHelper
+# from external_calibration_2.params.panda_hand_aruco import *
+from external_calibration_2.params.calibration import *
+
+# from params.calibration import *
 
 # Init
 arhelper = ARHelper(marker_size_m)

@@ -100,9 +100,9 @@ def get_camera_image(frame):
 
 
 def main():
-    # load model
+    # load model_old
     model = YOLO('yolov8s-seg.pt')
-    # model.train(data="coco128-seg.yaml", epochs=100, imgsz=640)
+    # model_old.train(data="coco128-seg.yaml", epochs=100, imgsz=640)
     # camera setup
 
     pipeline = rs.pipeline()
