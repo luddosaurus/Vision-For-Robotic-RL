@@ -5,7 +5,8 @@
 import rospy
 import tf2_msgs.msg
 import geometry_msgs.msg
-from params.panda_hand_aruco import *
+
+from external_calibration.params.panda_hand_aruco import *
 
 
 class ArucoHandBroadcaster:

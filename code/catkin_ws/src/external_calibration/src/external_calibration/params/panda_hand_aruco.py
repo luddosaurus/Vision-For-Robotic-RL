@@ -1,5 +1,5 @@
 #! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-from ..model.my_aruco import ArUco
+from external_calibration.model.my_aruco import ArUco
 
 # Params for Panda Hand to attached ArUco Offset
 

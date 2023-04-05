@@ -5,25 +5,17 @@
 # /home/lab/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 # Standard
-import numpy as np
 
 # OpenCV
-import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
 # ROS
-import rospy
-from sensor_msgs.msg import Image
-import tf2_ros
 import tf2_msgs.msg
-import geometry_msgs.msg
-import tf.transformations as tf
 
 # Local
-from utils.ARHelper import ARHelper
-from params.calibration_remote import *
-from utils.TFPublish import *
-from utils.MathHelper import *
+from code.catkin_ws.src.external_calibration.src.external_calibration.utils.ARHelper import ARHelper
+from code.catkin_ws.src.external_calibration.src.external_calibration.utils.TFPublish import *
+from code.catkin_ws.src.external_calibration.src.external_calibration.utils.MathHelper import *
 
 # Init
 arhelper = ARHelper(marker_size_m)
