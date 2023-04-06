@@ -5,8 +5,10 @@
 from external_calibration.utils.TFPublish import *
 import geometry_msgs
 import tf
+import tf2_ros
 from tf.transformations import quaternion_matrix
 import numpy as np
+from external_calibration.params.panda_hand_aruco import table_arucos, arm_arucos
 
 
 # def get_numpy_from_transform(transform):
@@ -72,9 +74,34 @@ if __name__ == '__main__':
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
         try:
-            trans_from_0 = tfBuffer.lookup_transform('world', 'camera_from_aruco_[0]', rospy.Time())
-            trans_from_1 = tfBuffer.lookup_transform('world', 'camera_from_aruco_[1]', rospy.Time())
-            avg_transform = calculate_average_transform([trans_from_0, trans_from_1])
+            transformations = list()
+            aruco_list = arm_arucos + table_arucos
+            for aruco in aruco_list:
+                # create a tf listener
+                tf_listener = tf.TransformListener()
+
+                # define the source and target frames
+                source_frame = 'world'
+                target_frame = f'camera_from_{aruco.get_name()}'
+
+                # define a timeout for the lookup operation
+                timeout = rospy.Duration(1.0)
+                # exists = True
+                # try:
+                #     # check if a transform exists from source_frame to target_frame
+                #     exists, _, _ = tf_listener.waitForTransform(target_frame, source_frame, rospy.Time(), timeout)
+                # except tf.Exception as ex:
+                #     # the transform does not exist
+                #     print(f"No transform exists from {source_frame} to {target_frame}: {ex}")
+                #     continue
+                # if exists:
+                if tfBuffer.can_transform(target_frame, source_frame, rospy.Time(), timeout):
+                    transform = tfBuffer.lookup_transform('world', f'camera_from_{aruco.get_name()}', rospy.Time())
+                    print(transform)
+                    transformations.append(transform)
+
+
+            avg_transform = calculate_average_transform(transformations)
             # publish(trans, pub_aruco_tf)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rate.sleep()

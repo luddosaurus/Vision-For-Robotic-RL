@@ -42,17 +42,17 @@ arm_arucos = [ArUco(aruco_id=0,
 table_arucos = [ArUco(
     aruco_id=6,
     translation=(0.446, -0.304, -0.015),
-    rotation=(0.7071, 0.0, 0.0, 0.7071)
+    rotation=(0.0, 0.0, 0.7071, 0.7071)
 ), ArUco(
     aruco_id=7,
-    translation=(0.443, -0.407, -0.015),
-    rotation=(0.7071, 0.0, 0.0, 0.7071)
+    translation=(0.443, 0.407, -0.015),
+    rotation=(0.0, 0.0, 0.7071, 0.7071)
 ), ArUco(
     aruco_id=8,
     translation=(0.154, -0.307, -0.015),
-    rotation=(0.7071, 0.0, 0.0, 0.7071)
+    rotation=(0.0, 0.0, 0.7071, 0.7071)
 ), ArUco(
     aruco_id=9,
-    translation=(0.152, 404, -0.015),
-    rotation=(0.7071, 0.0, 0.0, 0.7071)
+    translation=(0.152, 0.404, -0.015),
+    rotation=(0.0, 0.0, 0.7071, 0.7071)
 ), ]

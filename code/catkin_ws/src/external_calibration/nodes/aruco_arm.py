@@ -70,5 +70,6 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         rospy.sleep(0.1)
         tfb.spawn_static_aruco_markers("panda_hand", arm_arucos)
+        tfb.spawn_static_aruco_markers("world", table_arucos)
 
     rospy.spin()
