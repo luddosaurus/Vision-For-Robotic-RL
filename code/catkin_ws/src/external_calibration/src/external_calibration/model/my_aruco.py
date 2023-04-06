@@ -9,5 +9,5 @@ class ArUco(object):
         self.translation_x, self.translation_y, self.translation_z = translation
         self.rotation_x, self.rotation_y, self.rotation_z, self.rotation_w = rotation
 
-    def say_hello(self):
-        print("Hello!")
+    def get_name(self):
+        return f'aruco_[{self.aruco_id}]'

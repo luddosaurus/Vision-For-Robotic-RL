@@ -7,8 +7,7 @@ import geometry_msgs.msg
 import tf.transformations as tf
 
 
-def publish(publisher, parent_name, child_name, translation, rotation):
-
+def publish_transform(publisher, parent_name, child_name, translation, rotation):
     # Message
     transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
@@ -30,7 +29,7 @@ def publish(publisher, parent_name, child_name, translation, rotation):
     publisher.publish(tfm)
 
 
-def publish_static_transform(publisher, transform, parent_name, child_name):
+def publish_static_transform(publisher, parent_name, child_name, translation, rotation):
     # Message
     transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
@@ -39,7 +38,29 @@ def publish_static_transform(publisher, transform, parent_name, child_name):
     transform_stamped_msg.header.frame_id = parent_name
     transform_stamped_msg.child_frame_id = child_name
 
-    transform = transform.transform
+    # Data
+    transform_stamped_msg.transform.translation.x = translation[0]
+    transform_stamped_msg.transform.translation.y = translation[1]
+    transform_stamped_msg.transform.translation.z = translation[2]
+    transform_stamped_msg.transform.rotation.x = rotation[0]
+    transform_stamped_msg.transform.rotation.y = rotation[1]
+    transform_stamped_msg.transform.rotation.z = rotation[2]
+    transform_stamped_msg.transform.rotation.w = rotation[3]
+
+    # tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
+    publisher.sendTransform(transform_stamped_msg)
+
+
+def publish_static_transform_with_transform(publisher, transform_stamped, parent_name, child_name):
+    # Message
+    transform_stamped_msg = geometry_msgs.msg.TransformStamped()
+
+    # Info
+    transform_stamped_msg.header.stamp = rospy.Time.now()
+    transform_stamped_msg.header.frame_id = parent_name
+    transform_stamped_msg.child_frame_id = child_name
+
+    transform = transform_stamped.transform
     # Data
     transform_stamped_msg.transform.translation.x = transform.translation.x
     transform_stamped_msg.transform.translation.y = transform.translation.y

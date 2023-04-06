@@ -1,8 +1,8 @@
-#! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-# /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/oskar/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/lab/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
+
 
 # Standard
 import numpy as np
@@ -76,8 +76,8 @@ class ArUcoFinder(object):
         # Info
         transform_stamped_msg.header.stamp = rospy.Time.now()
         # transform_stamped_msg.header.frame_id = f"aruco_{aruco_id}"
-        transform_stamped_msg.header.frame_id = "left_aruco" if aruco_id == 0 else "right_aruco"
-        # transform_stamped_msg.header.frame_id = f"aruco_{aruco_id}"
+        # transform_stamped_msg.header.frame_id = "left_aruco" if aruco_id == 0 else "right_aruco"
+        transform_stamped_msg.header.frame_id = f"aruco_{aruco_id}"
         transform_stamped_msg.child_frame_id = f"camera_from_aruco_{aruco_id}"
 
         # Data
@@ -118,11 +118,12 @@ class ArUcoFinder(object):
                 camera_point = translation.flatten()
                 self.image_points.append(center_point)
                 self.world_points.append(camera_point)
-
                 self.publish(translation, rotation, aruco_id)
-            # Display Image
-            cv2.imshow('image', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            cv2.waitKey(1)
+
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # Display Image
+        cv2.imshow('image', image)
+        cv2.waitKey(1)
 
 
 def main():

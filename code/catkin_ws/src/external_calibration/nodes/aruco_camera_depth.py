@@ -1,8 +1,7 @@
-#! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-# /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+#/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/oskar/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/lab/somewhere/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 # Standard
 
@@ -66,7 +65,7 @@ class ArUcoFinder(object):
                 # change to aruco to camera
                 translation, rotation = invert_transform(translation, rotation)
 
-                publish(
+                publish_transform(
                     publisher=self.pub_aruco_tf,
                     parent_name=f"aruco_{aruco_id}",
                     child_name=f"camera_from_aruco_{aruco_id}",
