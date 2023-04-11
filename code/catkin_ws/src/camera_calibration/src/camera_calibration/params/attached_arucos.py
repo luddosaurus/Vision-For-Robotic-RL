@@ -3,7 +3,7 @@
 
 from camera_calibration.model.aruco import ArUco
 
-# Params for ArUco Offset
+# Params for ArUco Offset in meters
 
 arm_parent_frame = "panda_hand"
 arm_arucos = [

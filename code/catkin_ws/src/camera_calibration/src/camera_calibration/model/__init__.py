@@ -1,1 +1,1 @@
-__all__ = ["aruco.py"]
+__all__ = ["aruco"]

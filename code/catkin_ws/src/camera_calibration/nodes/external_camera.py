@@ -3,13 +3,13 @@
 # /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
 # /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
-from camera_calibration.utils.TFPublish import *
 import geometry_msgs
 import tf
 import tf2_ros
 from tf.transformations import quaternion_matrix
 import numpy as np
 from camera_calibration.params.attached_arucos import table_arucos, arm_arucos
+from camera_calibration.utils.TFPublish import *
 
 
 def calculate_average_transform(transforms):

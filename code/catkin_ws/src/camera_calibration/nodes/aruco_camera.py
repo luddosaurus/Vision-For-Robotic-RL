@@ -35,8 +35,6 @@ print(intrinsic_camera, distortion)
 
 # Finds ArUco:s from images and broadcast the tf (ArUco to Camera)
 class ArUcoFinder(object):
-    world_points = []
-    image_points = []
 
     def __init__(self):
         self.cv_bridge = CvBridge()
@@ -58,7 +56,6 @@ class ArUcoFinder(object):
         if ids is not None:
 
             # Find Camera Coordinates 3D
-
             r_vecs, t_vecs, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
                 corners=corners,
                 markerLength=marker_size_m,

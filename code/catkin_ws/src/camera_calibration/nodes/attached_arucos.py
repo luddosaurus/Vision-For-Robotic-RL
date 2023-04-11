@@ -5,7 +5,7 @@
 import rospy
 import tf2_ros
 
-from camera_calibration.params.panda_hand_aruco import *
+from camera_calibration.params.attached_arucos import *
 from camera_calibration.utils.TFPublish import publish_static_transform
 
 

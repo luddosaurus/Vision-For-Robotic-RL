@@ -1,1 +1,1 @@
-__all__ = ["calibration", "attached_arucos.py"]
+__all__ = ["calibration", "attached_arucos"]
