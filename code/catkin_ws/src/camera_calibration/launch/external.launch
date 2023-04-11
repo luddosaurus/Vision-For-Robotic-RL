@@ -1,0 +1,21 @@
+<launch>
+    <node
+            pkg="camera_calibration"
+            type="aruco_camera.py"
+            name="aruco_camera_node"
+            output="screen">
+    </node>
+     <node
+             pkg="camera_calibration"
+             type="attached_arucos.py"
+             name="attached_aruco_broadcaster"
+             output="screen">
+     </node>
+     <node
+             pkg="camera_calibration"
+             type="external_camera.py"
+             name="external_camera_node"
+             output="screen">
+     </node>
+
+</launch>
