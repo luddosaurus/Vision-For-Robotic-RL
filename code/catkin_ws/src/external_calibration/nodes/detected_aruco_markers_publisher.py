@@ -25,7 +25,7 @@ class DetectedArucoPublisher(object):
     def __init__(self):
         self.cv_bridge = CvBridge()
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.callback)
-        self.publisher = rospy.Publisher('/detected_marker_ids', UInt8MultiArray, queue_size=10)
+        self.publisher = rospy.Publisher('/detected_aruco_marker_ids', UInt8MultiArray, queue_size=10)
         self.ar_helper = ARHelper(marker_size=marker_size_m)
 
     def callback(self, image):
