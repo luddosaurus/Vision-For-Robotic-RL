@@ -1,5 +1,9 @@
 import pyrealsense2 as rs
 
+COLOR_WIDTH = 1920
+COLOR_HEIGHT = 1080
+
+
 class ExtractParameters(object):
     def __init__(self):
         self.pipeline = rs.pipeline()
@@ -11,8 +15,8 @@ class ExtractParameters(object):
         self.device = self.wrapper_profile.get_device()
 
         self.product_line = str(self.device.get_info(rs.camera_info.product_line))
-        
-        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+        self.config.enable_stream(rs.stream.color, COLOR_WIDTH, COLOR_HEIGHT, rs.format.bgr8, 30)
 
         self.profile = self.pipeline.start(self.config)
 
@@ -21,6 +25,7 @@ class ExtractParameters(object):
             if s.stream_name() == 'Color':
                 v = s.as_video_stream_profile()
                 print(v.get_intrinsics())
+
 
 def main():
     pipeline = rs.pipeline()
@@ -32,8 +37,8 @@ def main():
     device = wrapper_profile.get_device()
 
     product_line = str(device.get_info(rs.camera_info.product_line))
-    
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    config.enable_stream(rs.stream.color, COLOR_WIDTH, COLOR_HEIGHT, rs.format.bgr8, 30)
 
     profile = pipeline.start(config)
 
@@ -41,6 +46,7 @@ def main():
         if s.stream_name() == 'Color':
             v = s.as_video_stream_profile()
             print(v.get_intrinsics())
+
 
 if __name__ == '__main__':
     main()

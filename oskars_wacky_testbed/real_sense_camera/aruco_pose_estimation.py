@@ -6,6 +6,7 @@ from aruco_marker_set import MarkerSet
 
 pipeline = rs.pipeline()
 config = rs.config()
+config.enable_stream(rs.stream.color, 720, 480, rs.format.bgr8, 30)
 
 # Get device product line for setting a supporting resolution
 pipeline_wrapper = rs.pipeline_wrapper(pipeline)
