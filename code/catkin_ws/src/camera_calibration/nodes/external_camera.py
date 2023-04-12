@@ -109,7 +109,7 @@ class StaticCameraPositionEstimator(object):
                 rate.sleep()
 
         if len(transformations) > 0:
-            print(f'{marker_ids} - {datetime.now()}')
+
             avg_transform = self.calculate_average_transform(transformations)
             publish_static_stamped_transform(publisher=self.pub_aruco_tf,
                                              transform_stamped=avg_transform,
