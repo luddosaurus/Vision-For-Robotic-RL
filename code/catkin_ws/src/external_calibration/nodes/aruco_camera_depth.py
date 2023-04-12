@@ -1,6 +1,5 @@
 #! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
-#/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-
+# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 # Standard

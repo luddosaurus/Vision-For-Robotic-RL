@@ -1,5 +1,5 @@
-#! /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+# /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
 # /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 import rospy

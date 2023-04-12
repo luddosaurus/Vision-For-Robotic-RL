@@ -19,7 +19,7 @@ def invert_transform(translation, rotation, turn_into_quaternion=True):
 
     # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
     embedded_rotation = np.eye(4)
-    embedded_rotation[:3, :3] = rotation
+    embedded_rotation[:3, :3] = inv_rotation
 
     # Convert to Quaternion
     quaternion = tf.quaternion_from_matrix(embedded_rotation)

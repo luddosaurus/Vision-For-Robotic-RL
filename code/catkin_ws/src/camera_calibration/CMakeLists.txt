@@ -12,3 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 # Add Python Source code
 catkin_python_setup()
+
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)

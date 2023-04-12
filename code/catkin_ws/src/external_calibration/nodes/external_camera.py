@@ -1,6 +1,7 @@
 #! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
 # /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 # /home/dat14lja/Desktop/Thesis/Vision-For-Robotic-RL/code/venv/bin/python
+
 import rospy
 from external_calibration.utils.TFPublish import *
 import geometry_msgs
@@ -97,8 +98,8 @@ class StaticCameraPositionEstimator(object):
                     #     print(f"No transform exists from {source_frame} to {target_frame}: {ex}")
                     #     continue
                     # if exists:
-                    if tfBuffer.can_transform(target_frame, source_frame, rospy.Time(), timeout):
-                        transform = tfBuffer.lookup_transform('world', f'camera_from_{aruco.get_name()}', rospy.Time())
+                    if self.tfBuffer.can_transform(target_frame, source_frame, rospy.Time(), timeout):
+                        transform = self.tfBuffer.lookup_transform('world', f'camera_from_{aruco.get_name()}', rospy.Time())
                         print(transform)
                         transformations.append(transform)
 
@@ -108,7 +109,7 @@ class StaticCameraPositionEstimator(object):
                 rate.sleep()
                 continue
 
-            publish_static_transform_with_transform(publisher=pub_aruco_tf, transform_stamped=avg_transform,
+            publish_static_transform_with_transform(publisher=self.pub_aruco_tf, transform_stamped=avg_transform,
                                                     parent_name="world",
                                                     child_name="camera_position")
             # print(trans_from_0)

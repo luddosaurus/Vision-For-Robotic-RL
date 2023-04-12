@@ -1,5 +1,3 @@
-#! /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
-# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 # ArUco container with ID, and offset
 class ArUco(object):
