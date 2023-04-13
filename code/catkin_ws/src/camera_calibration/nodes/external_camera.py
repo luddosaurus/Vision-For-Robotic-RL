@@ -10,8 +10,11 @@ import tf
 import tf2_ros
 from tf.transformations import quaternion_matrix
 import numpy as np
-from datetime import datetime
-from external_calibration.params.panda_hand_aruco import table_arucos, arm_arucos
+from time import time
+
+
+from camera_calibration.params.attached_arucos import table_arucos, arm_arucos
+from camera_calibration.utils.MathHelper import riemannian_mean
 
 
 # def get_numpy_from_transform(transform):
@@ -71,6 +74,8 @@ class StaticCameraPositionEstimator(object):
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
         self.marker_subscriber = rospy.Subscriber('/detected_aruco_marker_ids', UInt8MultiArray, self.marker_callback)
+        self.transformations = list()
+        self.start_time = time()
 
     def marker_callback(self, message):
         # marker_ids = message.data
@@ -104,17 +109,22 @@ class StaticCameraPositionEstimator(object):
             # if self.tfBuffer.can_transform(target_frame, source_frame, rospy.Time(), timeout):
             try:
                 transform = self.tfBuffer.lookup_transform(source_frame, target_frame, rospy.Time())
-                transformations.append(transform)
+                self.transformations.append(transform)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 rate.sleep()
 
-        if len(transformations) > 0:
-
-            avg_transform = self.calculate_average_transform(transformations)
+        # if len(self.transformations) > 0 and time() - self.start_time > 10:
+        if len(self.transformations) > 0:
+            self.start_time = time()
+            avg_transform = self.create_average_transform_stamped_message(self.transformations)
             publish_static_stamped_transform(publisher=self.pub_aruco_tf,
                                              transform_stamped=avg_transform,
                                              parent_name="world",
                                              child_name="camera_position")
+            rospy.sleep(1)
+            if len(self.transformations) > 30:
+                self.transformations.pop(0)
+            # self.transformations = list()
         # publish(trans, pub_aruco_tf)
 
         # print(trans_from_0)
@@ -158,6 +168,27 @@ class StaticCameraPositionEstimator(object):
         avg_transform.transform.rotation.y = q[1]
         avg_transform.transform.rotation.z = q[2]
         avg_transform.transform.rotation.w = q[3]
+
+        return avg_transform
+
+    def create_average_transform_stamped_message(self, transformations):
+
+        # convert average matrix back to TransformStamped message
+        avg_transform = geometry_msgs.msg.TransformStamped()
+        avg_transform.header.stamp = transformations[0].header.stamp  # use timestamp of first transform
+        avg_transform.header.frame_id = transformations[0].header.frame_id  # use frame ID of first transform
+        avg_transform.child_frame_id = transformations[-1].child_frame_id  # use child frame ID of last transform
+
+        mean_translation, mean_rotation = riemannian_mean(transformations)
+
+        avg_transform.transform.translation.x = mean_translation[0]
+        avg_transform.transform.translation.y = mean_translation[1]
+        avg_transform.transform.translation.z = mean_translation[2]
+
+        avg_transform.transform.rotation.x = mean_rotation[0]
+        avg_transform.transform.rotation.y = mean_rotation[1]
+        avg_transform.transform.rotation.z = mean_rotation[2]
+        avg_transform.transform.rotation.w = mean_rotation[3]
 
         return avg_transform
 
