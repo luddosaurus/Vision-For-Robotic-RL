@@ -63,7 +63,6 @@ class ArUcoFinder(object):
                 markerLength=marker_size_m,
                 cameraMatrix=intrinsic_camera,
                 distCoeffs=distortion)
-            
 
             for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
                 center_point = arhelper.find_center(corner_points, aruco_id)
