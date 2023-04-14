@@ -20,7 +20,7 @@ class ARHelper:
         marker_corners, marker_ids, rejected = aruco.detectMarkers(
             image=gray_image,
             dictionary=self.marker_dict,
-            parameters=self.param_markers
+            parameters=self.param_markers,
         )
 
         marked_image = aruco.drawDetectedMarkers(
