@@ -55,6 +55,8 @@ class ArUcoFinder(object):
 
         if ids is not None:
 
+            # todo make sure it's the right id / marker_size
+
             # Find Camera Coordinates 3D
             r_vecs, t_vecs, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
                 corners=corners,

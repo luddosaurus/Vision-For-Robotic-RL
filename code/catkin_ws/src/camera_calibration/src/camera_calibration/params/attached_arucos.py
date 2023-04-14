@@ -6,6 +6,7 @@ from camera_calibration.model.aruco import ArUco
 # Params for ArUco Offset in meters
 
 arm_parent_frame = "panda_hand"
+arm_aruco_size = 0.034
 arm_arucos = [
     ArUco(
         aruco_id=0,
@@ -20,6 +21,7 @@ arm_arucos = [
 ]
 
 table_parent_frame = "world"
+table_aruco_size = 0.034
 table_arucos = [ArUco(
     aruco_id=6,
     translation=(0.446, -0.304, -0.015),
