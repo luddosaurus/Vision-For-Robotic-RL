@@ -4,10 +4,11 @@ from cv2 import aruco as aruco
 import os
 import pyrealsense2 as rs
 
-#Setup
+# Setup
 pipeline = rs.pipeline()
 config = rs.config()
-CHESS_BOARD_DIM = (5,8)
+
+CHESS_BOARD_DIM = (7, 10)
 image_counter = 0
 
 # Get device product line for setting a supporting resolution
@@ -15,11 +16,12 @@ pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 pipeline_profile = config.resolve(pipeline_wrapper)
 device = pipeline_profile.get_device()
 device_product_line = str(device.get_info(rs.camera_info.product_line))
-
+config.enable_stream(rs.stream.color, 1920, 1080, rs.format.rgb8, 30)
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 found_rgb = False
 
 # checking if  images dir is exist not, if not then create images directory
-image_dir_path = "./images_real_sense"
+image_dir_path = "./images_real_sense_1920"
 
 CHECK_DIR = os.path.isdir(image_dir_path)
 # if directory does not exist create
@@ -35,9 +37,10 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 marker_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
 param_markers = aruco.DetectorParameters()
 
+
 def detect_checker_board(image, grayImage, criteria, boardDimension):
     ret, corners = cv2.findChessboardCorners(grayImage, boardDimension)
-    
+
     if ret == True:
         corners1 = cv2.cornerSubPix(grayImage, corners, (3, 3), (-1, -1), criteria)
         image = cv2.drawChessboardCorners(image, boardDimension, corners1, ret)
@@ -84,15 +87,21 @@ try:
             2,
             cv2.LINE_AA,
         )
+        # Get the image dimensions
+        height, width = bgr_color_image.shape[:2]
 
-        cv2.imshow("Capture window", bgr_color_image)
+        # Downscale the image by 50%
+        new_width = int(width / 2)
+        new_height = int(height / 2)
+
+        cv2.imshow("Capture window", cv2.resize(bgr_color_image, (new_width, new_height)))
 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
         # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
         # depth_colormap_dim = depth_colormap.shape
         # color_colormap_dim = rgb_color_image.shape
-        
+
         # images = np.hstack((recolored_image, depth_image))
         # cv2.imshow("stuff", images)
 
@@ -101,7 +110,7 @@ try:
         #     resized_color_image = cv2.resize(color_image, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
         #     recolored_image = cv2.cvtColor(resized_color_image, cv2.COLOR_RGB2BGR)
         #     # images = np.hstack((recolored_image, depth_colormap))
-            
+
         # else:
         #     images = np.hstack((color_image, depth_colormap))
 

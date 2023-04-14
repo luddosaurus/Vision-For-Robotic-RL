@@ -1,4 +1,5 @@
-
+#! /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
+# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 from camera_calibration.model.aruco import ArUco
 

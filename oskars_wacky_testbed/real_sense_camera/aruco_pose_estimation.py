@@ -6,7 +6,7 @@ from aruco_marker_set import MarkerSet
 
 pipeline = rs.pipeline()
 config = rs.config()
-config.enable_stream(rs.stream.color, 720, 480, rs.format.bgr8, 30)
+# config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
 # Get device product line for setting a supporting resolution
 pipeline_wrapper = rs.pipeline_wrapper(pipeline)
@@ -87,7 +87,7 @@ def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
 
         frame = markerSet.draw_markers_with_axes()
         distances = markerSet.get_camera_distance_to_markers_via_transform()
-        #frame = markerSet.calc_distance_from_each_area_version()
+        # frame = markerSet.calc_distance_from_each_area_version()
 
         # for i in range(0, len(ids)): marker_size_cm = 3.4 rvec, tvec, markerPoints =
         # cv2.aruco.estimatePoseSingleMarkers(corners[i], marker_size_cm, matrix_coefficients, distortion_coefficients)
@@ -109,6 +109,7 @@ arucoParams = cv2.aruco.DetectorParameters()
 
 with np.load('./calib_data_2_new/MultiMatrix.npz') as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
+    print(f'intrinsic: {intrinsic_camera}\ndistortion: {distortion}')
 
 for s in device.sensors:
     if s.get_info(rs.camera_info.name) == 'RGB Camera':
