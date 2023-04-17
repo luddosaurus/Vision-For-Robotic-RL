@@ -13,7 +13,7 @@
     </node>
     <node
             pkg="camera_calibration"
-            type="external_camera.py"
+            type="external_camera_seperate_arucos.py"
             name="external_camera_node"
             output="screen">
     </node>

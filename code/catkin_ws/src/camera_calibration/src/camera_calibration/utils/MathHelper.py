@@ -47,7 +47,7 @@ def riemannian_mean(transformations):
             np.array([stamped_transform.transform.translation.x,
                       stamped_transform.transform.translation.y,
                       stamped_transform.transform.translation.z]))
-
+    # print(len(translations))
     clean_translations, clean_rotations = remove_outliers(np.array(translations), np.array(rotations))
 
     return riemannian_mean_translation(clean_translations), riemannian_mean_rotation(clean_rotations)
@@ -83,6 +83,7 @@ def riemannian_mean_rotation(quaternions):
 
 
 def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
+
     # Compute the mean and standard deviation of the two lists
     rotational_vectors_mean = np.mean(rotational_vectors, axis=0)
     translational_vectors_mean = np.mean(translational_vectors, axis=0)
@@ -94,21 +95,31 @@ def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
     rotational_vectors_zscores = np.abs((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
     translational_vectors_zscores = np.abs(
         (translational_vectors - translational_vectors_mean) / translational_vectors_std)
+
     # plot_rotational_vectors_zscore(rotational_vectors_zscores)
+    to_remove = list()
+    for i, (entry_r, entry_t) in enumerate(zip(rotational_vectors_zscores, translational_vectors_zscores)):
+        for value_r, value_t in zip(entry_r, entry_t):
+            if value_r > threshold or value_t > threshold:
+                to_remove.append(i)
 
-    # Remove the elements with a Z-score greater than the threshold
-    rotational_vectors_indices = np.where(rotational_vectors_zscores > threshold)
-    translational_vectors_indices = np.where(translational_vectors_zscores > threshold)
-
-    set1 = set(np.array(rotational_vectors_indices).flatten())
-    set2 = set(np.array(translational_vectors_indices).flatten())
-    indices = np.array(list(set1.union(set2)))
+    # # Remove the elements with a Z-score greater than the threshold
+    # rotational_vectors_indices = np.where(rotational_vectors_zscores > threshold)
+    # translational_vectors_indices = np.where(translational_vectors_zscores > threshold)
+    # # print(rotational_vectors_indices, " - ", len(rotational_vectors_indices))
+    # # print("--------------------------------------------------------------")
+    # # print(translational_vectors_indices, " - ", len(translational_vectors_indices))
+    #
+    # set1 = set(np.array(rotational_vectors_indices).flatten())
+    # set2 = set(np.array(translational_vectors_indices).flatten())
+    # indices = np.array(list(set1.union(set2)))
+    # print(indices)
 
     # if len()
     # indices = rotational_vectors_indices.union(translational_vectors_indices)
-    if len(indices) != 0:
-        rotational_vectors_clean = np.delete(rotational_vectors, indices, axis=0)
-        translational_vectors_clean = np.delete(translational_vectors, indices, axis=0)
+    if len(to_remove) != 0:
+        rotational_vectors_clean = np.delete(rotational_vectors, to_remove, axis=0)
+        translational_vectors_clean = np.delete(translational_vectors, to_remove, axis=0)
 
         return translational_vectors_clean, rotational_vectors_clean
     return translational_vectors, rotational_vectors

@@ -1,7 +1,6 @@
-#! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
+# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 # /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
-
-# /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
 
 import rospy
 import tf2_ros
@@ -15,7 +14,6 @@ class AttachedArucoBroadcaster:
     def __init__(self):
         self.pub_tf_static = tf2_ros.StaticTransformBroadcaster()
 
-        #
 
     def spawn_static_aruco_markers(self, parent_frame_name, aruco_list):
         for aruco in aruco_list:
@@ -30,6 +28,7 @@ class AttachedArucoBroadcaster:
 if __name__ == '__main__':
     rospy.init_node('attached_aruco_broadcaster')
     tfb = AttachedArucoBroadcaster()
+    # todo update each aruco
     while not rospy.is_shutdown():
         rospy.sleep(0.1)
         tfb.spawn_static_aruco_markers(arm_parent_frame, arm_arucos)
