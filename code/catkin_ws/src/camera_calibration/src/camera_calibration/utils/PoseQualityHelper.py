@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+
 class PoseQualityHelper:
 
     def measure_pose_consistency(transforms):
