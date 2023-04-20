@@ -20,7 +20,7 @@ device_product_line = str(device.get_info(rs.camera_info.product_line))
 found_rgb = False
 
 
-with np.load('./calib_data_2/MultiMatrix.npz') as X:
+with np.load('./calib_data_2/MultiMatrix_720.npz') as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix','distCoef','rVector','tVector')]
 
 

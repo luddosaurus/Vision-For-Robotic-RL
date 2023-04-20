@@ -93,7 +93,7 @@ class StaticCameraPositionEstimator(object):
 
             # define the source and target frames
             source_frame = 'world'
-            target_frame = f'camera_from_aruco_[{aruco}]'
+            target_frame = f'aruco_to_camera_[{aruco}]'
 
             # define a timeout for the lookup operation
             # timeout = rospy.Duration(1.0)

@@ -3,8 +3,6 @@
 # /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 
-
-
 # Standard
 import numpy as np
 
@@ -21,8 +19,8 @@ import tf.transformations as tf
 
 # Local
 from camera_calibration.utils.ARHelper import ARHelper
-from camera_calibration.utils.TFPublish import *
-from camera_calibration.utils.MathHelper import *
+from camera_calibration.utils.TFPublish import publish_transform
+from camera_calibration.utils.MathHelper import invert_transform, rotation_vector_to_quaternions
 from camera_calibration.params.calibration import marker_size_m, calibration_path
 
 # Init
@@ -42,6 +40,7 @@ class ArUcoFinder(object):
         # todo add depth here
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.callback)
         self.pub_aruco_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=10)
+        self.aruco_to_camera = False
 
     # Finds the ArUco:s location in the camera 3D space
     def callback(self, image):
@@ -68,14 +67,18 @@ class ArUcoFinder(object):
             for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
                 center_point = arhelper.find_center(corner_points, aruco_id)
                 camera_point = translation.flatten()
-
-                # change to aruco to camera
-                translation, rotation = invert_transform(translation, rotation)
-
+                if self.aruco_to_camera:
+                    # change to aruco to camera
+                    translation, rotation = invert_transform(translation, rotation)
+                else:
+                    rotation = rotation_vector_to_quaternions(rotation)
+                    translation = np.reshape(translation, (3, 1))
+                transform_name = f"aruco_to_camera_{aruco_id}" if self.aruco_to_camera else f"camera_to_aruco_{aruco_id}"
+                aruco_name = f"aruco_{aruco_id}"
                 publish_transform(
                     publisher=self.pub_aruco_tf,
-                    parent_name=f"aruco_{aruco_id}",
-                    child_name=f"camera_from_aruco_{aruco_id}",
+                    parent_name=transform_name,
+                    child_name=aruco_name,
                     translation=translation,
                     rotation=rotation
                 )

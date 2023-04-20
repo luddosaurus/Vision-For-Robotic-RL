@@ -5,11 +5,11 @@ import os
 
 marker_size_m = 0.034
 calibration_path_lab = '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src' \
-                       '/camera_calibration/src/intrinsic_camera_calibration_data/MultiMatrix.npz'
+                       '/camera_calibration/src/intrinsic_camera_calibration_data/MultiMatrix_720.npz'
 calibration_path_remote = '/home/dat14lja/thesis/Vision-For-Robotic-RL/code/catkin_ws/src/camera_calibration/src' \
-                          '/intrinsic_camera_calibration_data/MultiMatrix.npz'
+                          '/intrinsic_camera_calibration_data/MultiMatrix_720.npz'
 calibration_path_laptop = '/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src' \
-                          '/camera_calibration/src/intrinsic_camera_calibration_data/MultiMatrix.npz'
+                          '/camera_calibration/src/intrinsic_camera_calibration_data/MultiMatrix_720.npz'
 calibration_path = ""
 
 if os.path.exists(calibration_path_lab):

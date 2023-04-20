@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # todo update each aruco
     while not rospy.is_shutdown():
         rospy.sleep(0.1)
-        tfb.spawn_static_aruco_markers(arm_parent_frame, arm_arucos)
+        # tfb.spawn_static_aruco_markers(arm_parent_frame, arm_arucos)
         tfb.spawn_static_aruco_markers(table_parent_frame, table_arucos)
 
     rospy.spin()

@@ -28,6 +28,9 @@ class HandEyeCalibrator:
         for i in range(len(robot_poses)):
             Ai = np.eye(3) - robot_poses[i][:3, :3]
             Bi = robot_poses[i][:3, 3] - np.dot(Ai, camera_poses[i][:3, 3])
+
+            Bi = np.reshape(Bi, (3,1))
+
             A[3 * i:3 * i + 3, :] = Ai
             B[3 * i:3 * i + 3, :] = Bi
 
@@ -37,10 +40,12 @@ class HandEyeCalibrator:
         q = np.linalg.solve(ATA, ATB)
         q /= np.linalg.norm(q)
         t = np.zeros((3, 1))
+        print(q)
         for i in range(len(robot_poses)):
-            t += np.dot(robot_poses[i][:3, :3],
-                        camera_poses[i][:3, 3] - np.dot(cv2.Rodrigues(q)[0],
-                        camera_poses[i][:3, :3].T.dot(robot_poses[i][:3, 3])))
+            print(robot_poses[0][3, :3].shape)
+            t += np.dot(robot_poses[i][3, :3],
+                        camera_poses[i][3, :3] - np.dot(cv2.Rodrigues(q)[0],
+                        camera_poses[i][3, :3].T.dot(robot_poses[i][3, :3])))
         t /= len(robot_poses)
 
         # Convert the quaternion and translation to a homogeneous transformation matrix
