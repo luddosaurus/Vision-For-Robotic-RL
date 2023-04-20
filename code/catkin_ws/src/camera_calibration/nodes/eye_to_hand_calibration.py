@@ -60,7 +60,7 @@ class EyeToHandEstimator(object):
 
     def solve(self):
 
-        # fixed = camera, attached = aruco. Should be right..
+        # fixed = camera, attached = aruco. in the example it's the other way around but should not matter?
         rot_fixed2attached, tran_fixed2attached = self.transform_to_matrices(self.transforms_camera2aruco)
         rot_hand2world, tran_hand2world = self.transform_to_matrices(self.transforms_hand2world)
 
@@ -72,7 +72,6 @@ class EyeToHandEstimator(object):
             method=cv2.CALIB_HAND_EYE_TSAI
         )
         print(rot_attached2hand, tran_attached2hand)
-
 
     @staticmethod
     def transform_to_matrices(transforms):
