@@ -1,7 +1,7 @@
 import pyrealsense2 as rs
 
-COLOR_WIDTH = 1920
-COLOR_HEIGHT = 1080
+COLOR_WIDTH = 1280
+COLOR_HEIGHT = 720
 
 
 class ExtractParameters(object):

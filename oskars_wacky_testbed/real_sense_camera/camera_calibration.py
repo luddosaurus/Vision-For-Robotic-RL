@@ -11,8 +11,10 @@ from extract_realsense_parameters import ExtractParameters
 
 chessboardSize = (7, 10)
 size_of_chessboard_squares_mm = 15
-calib_data_path = '/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/calib_data_1920'
-image_path = '/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/images_real_sense_1920/*.png'
+IMAGE_FOLDER_NAME = "images_real_sense_1280"
+CALIB_DATA_NAME = "calib_data_1280"
+calib_data_path = f'/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/{CALIB_DATA_NAME}'
+image_path = f'/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/{IMAGE_FOLDER_NAME}/*.png'
 
 CHECK_DIR = os.path.isdir(calib_data_path)
 
