@@ -26,6 +26,7 @@ def invert_transform(translation, rotation, turn_into_quaternion=True):
     else:
         return inv_translation, inv_rotation
 
+
 def rotation_vector_to_quaternions(rotation_vector):
     # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
     embedded_rotation = np.eye(4)
@@ -39,6 +40,7 @@ def rotation_vector_to_quaternions(rotation_vector):
     q_normalized = quaternion / q_norm
 
     return q_normalized
+
 
 def riemannian_mean(transformations):
     translations = list()

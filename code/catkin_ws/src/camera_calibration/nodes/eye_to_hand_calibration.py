@@ -24,6 +24,7 @@ import cv2
 # get base-ee, put in list B
 # sync A and B so that A[i].time = B[i].time
 # AX = XB . solve ee-aruco offset
+
 class EyeToHandEstimator(object):
     def __init__(self):
         self.tfBuffer = tf2_ros.Buffer()
@@ -32,15 +33,9 @@ class EyeToHandEstimator(object):
         self.listener = tf.TransformListener()
         # self.marker_subscriber = rospy.Subscriber('/detected_aruco_marker_ids', UInt8MultiArray, self.marker_callback)
         # self.tf_subscriber = rospy.Subscriber('/tf', TFMessage, self.callback)
-        self.world_to_panda_hand_transforms = []
-        self.camera_to_aruco_transforms = []
+        self.transforms_hand2world = []
+        self.transforms_camera2aruco = []
         self.start_time = time()
-
-        # todo
-        # Get world-ee frames
-        # Get camera-aruco frames done!
-        # Sync frames
-        # AX = XB ish
 
     def collect_transforms(self):
         rate = rospy.Rate(1)
@@ -48,34 +43,39 @@ class EyeToHandEstimator(object):
         aruco = "aruco_[0]"
         world = "world"
         hand = "panda_hand"
-        while len(self.camera_to_aruco_transforms) < 5:
+        while len(self.transforms_camera2aruco) < 5:
             # let the tfs start publishing
             rate.sleep()
 
-            transform_camera_to_aruco = self.get_transform(camera, aruco)
+            camera2aruco = self.get_transform_between(camera, aruco)
+            hand2world = self.get_transform_between(hand, world)
 
-            transform_world_to_panda_hand = self.get_transform(world, hand)
             input()
-            print(transform_camera_to_aruco)
-            print(transform_world_to_panda_hand)
-            if transform_world_to_panda_hand is not None and transform_camera_to_aruco is not None:
-                self.camera_to_aruco_transforms.append(transform_camera_to_aruco)
-                self.world_to_panda_hand_transforms.append(transform_camera_to_aruco)
-            print(len(self.camera_to_aruco_transforms))
+            print(camera2aruco)
+            print(hand2world)
+            if hand2world is not None and camera2aruco is not None:
+                self.transforms_camera2aruco.append(camera2aruco)
+                self.transforms_hand2world.append(hand2world)
+            print(len(self.transforms_camera2aruco))
 
     def solve(self):
-        camera_matrices = TFTransformer.stamped_transforms_to_matrices(self.camera_to_aruco_transforms)
-        panda_hand_matrices = TFTransformer.stamped_transforms_to_matrices(self.world_to_panda_hand_transforms)
 
-        rot_cam, tran_cam = self.transform_to_matrices(self.camera_to_aruco_transforms)
-        rot_hand, tran_hand = self.transform_to_matrices(self.world_to_panda_hand_transforms)
+        # fixed = camera, attached = aruco. Should be right..
+        rot_fixed2attached, tran_fixed2attached = self.transform_to_matrices(self.transforms_camera2aruco)
+        rot_hand2world, tran_hand2world = self.transform_to_matrices(self.transforms_hand2world)
 
-        rot, tran = cv2.calibrateHandEye(rot_hand, tran_hand, rot_cam, tran_cam)
-        print(rot, tran)
-        # something = HandEyeCalibrator.hand_eye_calibration(panda_hand_matrices, camera_matrices)
-        # print(something)
+        rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
+            R_gripper2base=rot_hand2world,
+            t_gripper2base=tran_hand2world,
+            R_target2cam=rot_fixed2attached,
+            t_target2cam=tran_fixed2attached,
+            method=cv2.CALIB_HAND_EYE_TSAI
+        )
+        print(rot_attached2hand, tran_attached2hand)
 
-    def transform_to_matrices(self, transforms):
+
+    @staticmethod
+    def transform_to_matrices(transforms):
         rotation_matrices = []
         translations = []
         for transform in transforms:
@@ -94,7 +94,7 @@ class EyeToHandEstimator(object):
             translations.append(translation)
         return rotation_matrices, translations
 
-    def get_transform(self, source_frame, target_frame):
+    def get_transform_between(self, source_frame, target_frame):
         try:
             transform = self.tfBuffer.lookup_transform(source_frame, target_frame, rospy.Time())
             return transform
@@ -113,34 +113,3 @@ if __name__ == '__main__':
         print('Shutting down.')
 
 
-def randomness():
-    while not rospy.is_shutdown():
-        try:
-            (base_to_ee_translation, base_to_ee_rotation) = listener.lookupTransform(
-                'base_frame', 'end_effector_frame', rospy.Time(0))
-
-            # (camera_to_aruco_translation, camera_to_aruco_rotation) = listener.lookupTransform(
-            #     'camera_frame', 'aruco_[0]', rospy.Time(0))
-
-            base_to_ee_transforms.append((base_to_ee_translation, base_to_ee_rotation))
-            camera_to_aruco_transforms.append((camera_to_aruco_translation, camera_to_aruco_rotation))
-
-            rospy.sleep(0.01)
-
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            continue
-
-    synchronized_transforms = []
-
-    for base_to_ee_transform in base_to_ee_transforms:
-        # Find the closest camera to aruco transform by time stamp
-        closest_camera_to_aruco_transform = min(
-            camera_to_aruco_transforms,
-            key=lambda x: abs(x[0].to_sec() - base_to_ee_transform[0].to_sec()))
-
-        # Append the synchronized transform
-        synchronized_transforms.append((
-            base_to_ee_transform[0],
-            base_to_ee_transform[1],
-            closest_camera_to_aruco_transform[0],
-            closest_camera_to_aruco_transform[1]))
