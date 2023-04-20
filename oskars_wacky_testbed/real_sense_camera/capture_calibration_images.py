@@ -16,12 +16,14 @@ pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 pipeline_profile = config.resolve(pipeline_wrapper)
 device = pipeline_profile.get_device()
 device_product_line = str(device.get_info(rs.camera_info.product_line))
-config.enable_stream(rs.stream.color, 1920, 1080, rs.format.rgb8, 30)
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+# config.enable_stream(rs.stream.color, 1920, 1080, rs.format.rgb8, 30)
+# config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 30)
+config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)
 found_rgb = False
 
 # checking if  images dir is exist not, if not then create images directory
-image_dir_path = "./images_real_sense_1920"
+image_dir_path = "./images_real_sense_1280"
 
 CHECK_DIR = os.path.isdir(image_dir_path)
 # if directory does not exist create
