@@ -4,15 +4,6 @@ from scipy.sparse.linalg import lsqr
 from camera_calibration.utils.TFTransformer import TFTransformer
 import cv2
 
-# Samla n transforms när armen rör sig
-# Sluta samla
-#
-# Repeat until camera-position and aruco-offset doesn't change
-#     Least square estimation på camera-from-arucos
-#     Update camera-position
-#     Least square estimation på aruco-from-hand?
-#     Update aruco-offset
-
 
 def estimate_camera_position(aruco_to_camera_transforms):
     transform_matrices \
