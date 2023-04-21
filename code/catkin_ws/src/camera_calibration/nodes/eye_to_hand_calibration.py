@@ -14,7 +14,7 @@ from tf.transformations import quaternion_matrix
 import numpy as np
 from time import time
 from camera_calibration.utils.TFTransformer import TFTransformer
-from camera_calibration.utils.HandEyeCalibrator import HandEyeCalibrator
+
 import cv2
 
 
@@ -36,19 +36,22 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
+        self.num_images_to_capture = 15
 
     def collect_transforms(self):
         rate = rospy.Rate(1)
-        camera = "camera_to_aruco_[0]"
+        # camera = "camera_to_aruco_[0]"
+        camera = "aruco_to_camera_[0]"
         aruco = "aruco_[0]"
         world = "world"
         hand = "panda_hand"
-        while len(self.transforms_camera2aruco) < 5:
+        while len(self.transforms_camera2aruco) < self.num_images_to_capture:
             # let the tfs start publishing
             rate.sleep()
 
-            camera2aruco = self.get_transform_between(camera, aruco)
-            hand2world = self.get_transform_between(hand, world)
+            #
+            camera2aruco = self.get_transform_between(origin=aruco, to=camera)
+            hand2world = self.get_transform_between(origin=world, to=hand)
 
             input()
             print(camera2aruco)
@@ -93,11 +96,12 @@ class EyeToHandEstimator(object):
             translations.append(translation)
         return rotation_matrices, translations
 
-    def get_transform_between(self, source_frame, target_frame):
+    def get_transform_between(self, origin, to):
         try:
-            transform = self.tfBuffer.lookup_transform(source_frame, target_frame, rospy.Time())
+            transform = self.tfBuffer.lookup_transform(origin, to, rospy.Time())
             return transform
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print(f"Oopsie! No transform between {origin} and {to} D:")
             return None
 
 

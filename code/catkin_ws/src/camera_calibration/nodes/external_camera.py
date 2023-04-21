@@ -111,6 +111,7 @@ class StaticCameraPositionEstimator(object):
                 transform = self.tfBuffer.lookup_transform(source_frame, target_frame, rospy.Time())
                 self.transformations.append(transform)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+
                 rate.sleep()
 
         # if len(self.transformations) > 0 and time() - self.start_time > 10:

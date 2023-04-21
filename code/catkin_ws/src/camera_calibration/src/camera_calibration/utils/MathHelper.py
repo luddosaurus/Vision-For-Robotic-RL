@@ -89,7 +89,10 @@ def riemannian_mean_rotation(quaternions):
 
 
 def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
-
+    # might be problem here
+    # if translational_vectors.shape[0] == 0 or rotational_vectors.shape[0] == 0:
+    #     print("so triggered :D")
+    #     return translational_vectors, rotational_vectors
     # Compute the mean and standard deviation of the two lists
     rotational_vectors_mean = np.mean(rotational_vectors, axis=0)
     translational_vectors_mean = np.mean(translational_vectors, axis=0)
@@ -98,9 +101,13 @@ def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
     translational_vectors_std = np.std(translational_vectors, axis=0)
 
     # Compute the Z-scores of each element in the two lists
-    rotational_vectors_zscores = np.abs((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
-    translational_vectors_zscores = np.abs(
-        (translational_vectors - translational_vectors_mean) / translational_vectors_std)
+
+    if not np.isin(translational_vectors_std, 0).any() or not np.isin(rotational_vectors_std, 0).any():
+        rotational_vectors_zscores = np.abs((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
+        translational_vectors_zscores = np.abs(
+            (translational_vectors - translational_vectors_mean) / translational_vectors_std)
+    else:
+        return translational_vectors, rotational_vectors
 
     # plot_rotational_vectors_zscore(rotational_vectors_zscores)
     to_remove = list()

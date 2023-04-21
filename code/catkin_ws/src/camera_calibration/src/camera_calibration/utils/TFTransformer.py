@@ -29,6 +29,26 @@ class TFTransformer:
         return stamped_transform
 
     @staticmethod
+    def vectors_to_stamped_transform(translation_vector, rotation_vector, parent_frame, child_frame):
+        stamp = rospy.Time.now()
+
+        translation = Vector3()
+
+        translation.x, translation.y, translation.z = translation_vector.flatten()  # [0], translation_vector[1], translation_vector[2]
+        rotation = Quaternion()
+        rotation.x, rotation.y, rotation.z, rotation.w \
+            = rotation_vector
+
+        stamped_transform = TransformStamped()
+        stamped_transform.header.stamp = stamp
+        stamped_transform.header.frame_id = parent_frame
+        stamped_transform.child_frame_id = child_frame
+        stamped_transform.transform.translation = translation
+        stamped_transform.transform.rotation = rotation
+
+        return stamped_transform
+
+    @staticmethod
     def stamped_transforms_to_matrices(stamped_transforms):
         matrices = []
         for stamped_transform in stamped_transforms:
