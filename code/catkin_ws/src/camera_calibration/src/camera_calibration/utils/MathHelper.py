@@ -18,7 +18,8 @@ def invert_transform(translation, rotation, turn_into_quaternion=True):
 
     # Change frame from Camera to ArUco, to ArUco to Camera
     inv_rotation = np.transpose(rotation_mat)
-    inv_translation = np.matmul(-inv_rotation, translation.T)
+
+    inv_translation = np.matmul(-inv_rotation, translation)
 
     q_normalized = rotation_vector_to_quaternions(rotation)
 

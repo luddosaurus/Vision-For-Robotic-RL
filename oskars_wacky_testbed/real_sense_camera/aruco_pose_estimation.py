@@ -74,14 +74,17 @@ ARUCO_DICT = {
 
 
 def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
+    marker_size_cm = 3.4
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
-    parameters = cv2.aruco.DetectorParameters()
+    # cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
+    cv2.aruco_dict = cv2.aruco.Dictionary_get(aruco_dict_type)
+    parameters = cv2.aruco.DetectorParameters_create()
 
     corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
+
     # cv2.calibrateHandEye
 
-    marker_size_cm = 3.4
+
     if len(corners) > 0:
         markerSet = MarkerSet(corners, ids, marker_size_cm, matrix_coefficients, distortion_coefficients, frame)
 
