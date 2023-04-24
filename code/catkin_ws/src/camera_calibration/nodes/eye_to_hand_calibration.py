@@ -36,20 +36,25 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 15
+        self.num_images_to_capture = 5
 
     def collect_transforms(self):
         rate = rospy.Rate(1)
         # camera = "camera_to_aruco_[0]"
-        camera = "aruco_to_camera_[0]"
-        aruco = "aruco_[0]"
+        camera = "charuco_to_camera"
+        aruco = "charuco"
         world = "world"
         hand = "panda_hand"
         while len(self.transforms_camera2aruco) < self.num_images_to_capture:
             # let the tfs start publishing
             rate.sleep()
 
-            #
+            # Attached to gripper
+            # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
+            # hand2world = self.get_transform_between(origin=hand, to=world)
+
+
+            # Base to Camera
             camera2aruco = self.get_transform_between(origin=aruco, to=camera)
             hand2world = self.get_transform_between(origin=world, to=hand)
 

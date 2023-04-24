@@ -33,6 +33,7 @@ class DetectedArucoPublisher(object):
         try:
             original_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
         except CvBridgeError as e:
+
             print(e)
 
         image, _, marker_ids = self.ar_helper.find_markers(original_image)

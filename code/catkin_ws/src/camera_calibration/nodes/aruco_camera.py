@@ -1,7 +1,7 @@
 #! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
 # /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 # /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
-
+import math
 
 # Standard
 import numpy as np
@@ -35,8 +35,6 @@ print(intrinsic_camera, distortion)
 
 
 # Finds ArUco:s from images and broadcast the tf (ArUco to Camera)
-
-
 class ArUcoFinder(object):
 
     def __init__(self):
@@ -44,62 +42,97 @@ class ArUcoFinder(object):
         # todo add depth here
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.callback)
         self.pub_aruco_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=10)
-        self.aruco_to_camera = True
-        self.transforms = {"aruco_[0]": list(), "aruco_[1]": list()}
+        self.transforms = {}
+        self.use_charuco = True
+        self.r_vecs = np.random.random((3, 1))
+        self.t_vecs = np.random.random((3, 1))
 
     # Finds the ArUco:s location in the camera 3D space
-    def callback(self, image):
 
-        try:
-            image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+    def charuco_callback(self, image):
+        image, self.r_vecs, self.t_vecs = ARHelper.estimate_charuco_pose(
+            image=image,
+            camera_matrix=intrinsic_camera,
+            dist_coefficients=distortion, rvec=self.r_vecs, tvec=self.t_vecs)
+        # self.r_vecs[2] -= math.pi / 2
+        print("---\n", self.r_vecs, self.t_vecs, "\n---")
+        self.inv_and_pub(
+            parent_name="charuco",
+            child_name="charuco_to_camera",
+            rotation=self.r_vecs,
+            translation=self.t_vecs
+        )
+        return image
 
-        except CvBridgeError as e:
-            print(e)
+    def aruco_callback(self, image):
 
         # Find ArUco Markers
         image, corners, ids = arhelper.find_markers(image)
-        image = ARHelper.draw_vectors(image, corners, ids, intrinsic_camera, distortion)
+
+        # image = ARHelper.draw_vectors(image, corners, ids, intrinsic_camera, distortion)
+
         if ids is not None:
 
-            # todo make sure it's the right id / marker_size
+            # todo make sure it's the right id / marker_size (if we use different for table)
 
             # Find Camera Coordinates 3D
+
             r_vecs, t_vecs, obj_corners = cv2.aruco.estimatePoseSingleMarkers(
                 corners=corners,
                 markerLength=marker_size_m,
                 cameraMatrix=intrinsic_camera,
                 distCoeffs=distortion)
 
+            # NEW
+            ARHelper.draw_vectors(image, intrinsic_camera, distortion, r_vecs, t_vecs)
+
             for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
-
-                if self.aruco_to_camera:
-                    # change to aruco to camera
-                    translation, rotation = invert_transform(translation, rotation)
-
-                else:
-                    rotation = rotation_vector_to_quaternions(rotation)
-                    translation = np.reshape(translation, (3, 1))
-                transform_name = f"aruco_to_camera_{aruco_id}" if self.aruco_to_camera else f"camera_to_aruco_{aruco_id}"
+                transform_name = f"aruco_to_camera_{aruco_id}"
                 aruco_name = f"aruco_{aruco_id}"
-                if aruco_name in self.transforms.keys():
-                    self.transforms[aruco_name].append((translation, rotation))
-                else:
-                    self.transforms[aruco_name] = [(translation, rotation)]
+                self.inv_and_pub(
+                    parent_name=aruco_name,
+                    child_name=transform_name,
+                    rotation=rotation,
+                    translation=translation
+                )
+        return image
 
-                if len(self.transforms[aruco_name]) > 30:
-                    translation, rotation = self.create_average_transform(aruco_name, aruco_name, transform_name)
-                    if not np.isnan(translation).any():
-                        publish_transform(
-                            publisher=self.pub_aruco_tf,
-                            parent_name=aruco_name,
-                            child_name=transform_name,
-                            translation=translation,
-                            rotation=rotation
-                        )
-                    self.transforms = dict()
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    def inv_and_pub(self, parent_name, child_name, rotation, translation):
+        # change to aruco to camera
+        translation, rotation = invert_transform(translation, rotation)
+
+        if parent_name in self.transforms.keys():
+            self.transforms[parent_name].append((translation, rotation))
+        else:
+            self.transforms[parent_name] = [(translation, rotation)]
+
+        if len(self.transforms[parent_name]) > 30:
+            translation, rotation = self.create_average_transform(aruco_name=parent_name, parent_frame=parent_name,
+                                                                  child_frame=child_name)
+            if not np.isnan(translation).any():
+                publish_transform(
+                    publisher=self.pub_aruco_tf,
+                    parent_name=parent_name,
+                    child_name=child_name,
+                    translation=translation,
+                    rotation=rotation
+                )
+            self.transforms = dict()
+
+    def callback(self, image):
+        try:
+            image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+
+        except CvBridgeError as e:
+            print(e)
+        if self.use_charuco:
+            image = self.charuco_callback(image)
+        else:
+
+            image = self.aruco_callback(image)
+
         # Display Image
-        cv2.imshow('image', image)
+        cv2.imshow('image', cv2.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2))))
         cv2.waitKey(1)
 
     def create_average_transform(self, aruco_name, parent_frame, child_frame):
@@ -107,10 +140,7 @@ class ArUcoFinder(object):
         for transform in self.transforms[aruco_name]:
             transformations.append(
                 TFTransformer.vectors_to_stamped_transform(transform[0], transform[1], parent_frame, child_frame))
-        #
-        # transforms = [TFTransformer.vectors_to_stamped_transform(transform[0], transform[1], parent_frame, child_frame)
-        #               for transform in
-        #               self.transforms[aruco_name]]
+
         return riemannian_mean(transformations)
 
 

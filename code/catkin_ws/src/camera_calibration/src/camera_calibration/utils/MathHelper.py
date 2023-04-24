@@ -9,6 +9,7 @@ import cv2
 
 # TF
 import tf.transformations as tf
+import matplotlib.pyplot as plt
 
 
 # Invert vector from O to (translation, rotation)
@@ -17,7 +18,8 @@ def invert_transform(translation, rotation, turn_into_quaternion=True):
 
     # Change frame from Camera to ArUco, to ArUco to Camera
     inv_rotation = np.transpose(rotation_mat)
-    inv_translation = np.matmul(-inv_rotation, translation.T)
+
+    inv_translation = np.matmul(-inv_rotation, translation)
 
     q_normalized = rotation_vector_to_quaternions(rotation)
 
@@ -138,7 +140,7 @@ def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
     return translational_vectors, rotational_vectors
 
 
-import matplotlib.pyplot as plt
+
 
 
 def plot_rotational_vectors_zscore(rotational_vectors, sc=None):
@@ -163,23 +165,6 @@ def plot_rotational_vectors_zscore(rotational_vectors, sc=None):
         time.sleep(2)
         plt.close()
         return sc
-
-        # colors = ['green' if np.any(zscore) < 2 else 'red' for zscore in zscores]
-        # print(f'{len(rotational_vectors)}, {len(zscores)}, {len(colors)}')
-        # plt.scatter(range(len(rotational_vectors)), zscores, color=colors)
-        # plt.xlabel('Index')
-        # plt.ylabel('Z-score')
-        # plt.title('Z-scores of Rotational Vectors')
-        # plt.show()
-
-        # is_outlier = np.all(zscores < 2, axis=1)
-        # plt.ion()
-        # plt.scatter(range(len(rotational_vectors)), zscores[:, 0], c=zscores[:, 0], cmap='coolwarm')
-        # plt.xlabel('Index')
-        # plt.ylabel('Z-score')
-        # plt.title('Z-scores of Rotational Vectors')
-        # plt.colorbar()
-
 
     else:
 
