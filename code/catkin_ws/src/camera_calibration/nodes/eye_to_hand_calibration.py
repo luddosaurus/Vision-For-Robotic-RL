@@ -49,7 +49,12 @@ class EyeToHandEstimator(object):
             # let the tfs start publishing
             rate.sleep()
 
-            #
+            # Attached to gripper
+            # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
+            # hand2world = self.get_transform_between(origin=hand, to=world)
+
+
+            # Base to Camera
             camera2aruco = self.get_transform_between(origin=aruco, to=camera)
             hand2world = self.get_transform_between(origin=world, to=hand)
 
