@@ -16,6 +16,8 @@ from time import time
 from camera_calibration.utils.TFTransformer import TFTransformer
 
 import cv2
+from itertools import combinations
+
 
 
 # GOAL find offset between ee and aruco
@@ -36,13 +38,13 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 5
+        self.num_images_to_capture = 15
 
     def collect_transforms(self):
         rate = rospy.Rate(1)
         # camera = "camera_to_aruco_[0]"
-        camera = "charuco_to_camera"
-        aruco = "charuco"
+        camera = "aruco_to_camera_[0]"
+        aruco = "aruco_[0]"
         world = "world"
         hand = "panda_hand"
         while len(self.transforms_camera2aruco) < self.num_images_to_capture:
@@ -66,11 +68,14 @@ class EyeToHandEstimator(object):
                 self.transforms_hand2world.append(hand2world)
             print(len(self.transforms_camera2aruco))
 
-    def solve(self):
-
+    @staticmethod
+    def solveCombination(self, fixed2attached, hand2base):
         # fixed = camera, attached = aruco. in the example it's the other way around but should not matter?
-        rot_fixed2attached, tran_fixed2attached = self.transform_to_matrices(self.transforms_camera2aruco)
-        rot_hand2world, tran_hand2world = self.transform_to_matrices(self.transforms_hand2world)
+        rot_fixed2attached, tran_fixed2attached = self.transform_to_matrices(
+            fixed2attached)
+        
+        rot_hand2world, tran_hand2world = self.transform_to_matrices(
+            hand2base)
 
         rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
             R_gripper2base=rot_hand2world,
@@ -80,6 +85,40 @@ class EyeToHandEstimator(object):
             method=cv2.CALIB_HAND_EYE_TSAI
         )
         print(rot_attached2hand, tran_attached2hand)
+        return rot_attached2hand, tran_attached2hand
+
+
+    def solve(self):
+        
+        step_size = 3
+        start_sample_size = 3
+        end_sample_size = 15
+        
+        pose_estimations = dict()
+        list_size = len(self.transforms_camera2aruco)
+
+        # For every sample size
+        for sample_size in range(start_sample_size, end_sample_size, step_size):
+            pose_estimations[sample_size] = list()
+
+            # For every index combination
+            for sample_indices in combinations(range(list_size), sample_size):
+
+                # Take out subset of indices
+                camera2aruco_subset = [self.transforms_camera2aruco[index] for index in sample_indices]
+                hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
+
+                # Do and save estimation
+                pose_estimations[sample_size].append(
+                    self.solveCombination(
+                        fixed2aruco=camera2aruco_subset,
+                        hand2base=hand2base_subset
+                    )
+                )
+        
+        return pose_estimations
+
+        
 
     @staticmethod
     def transform_to_matrices(transforms):
