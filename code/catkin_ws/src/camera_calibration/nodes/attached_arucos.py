@@ -5,8 +5,8 @@
 import rospy
 import tf2_ros
 
-from camera_calibration.params.attached_arucos import *
-from camera_calibration.utils.TFPublish import publish_static_transform
+from src.camera_calibration.params.attached_arucos import *
+from src.camera_calibration.utils.TFPublish import publish_static_transform
 
 
 class AttachedArucoBroadcaster:

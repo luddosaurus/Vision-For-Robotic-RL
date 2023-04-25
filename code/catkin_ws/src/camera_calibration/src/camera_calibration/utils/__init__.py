@@ -1,1 +1,8 @@
-__all__ = ["ARHelper", "MathHelper", "TFPublish"]
+__all__ = [
+    "ARHelper",
+    "ErrorEstimator"
+    "HarryPlotter"
+    "MeanHelper", 
+    "TFPublish",
+    "TypeConverter",
+    ]

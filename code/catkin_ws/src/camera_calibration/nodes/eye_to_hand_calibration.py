@@ -3,7 +3,7 @@
 # /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 import rospy
-from camera_calibration.utils.TFPublish import *
+from src.camera_calibration.utils.TFPublish import TFPublish
 import geometry_msgs
 from tf2_msgs.msg import TFMessage
 from std_msgs.msg import UInt8MultiArray
@@ -13,7 +13,9 @@ import tf2_ros
 from tf.transformations import quaternion_matrix
 import numpy as np
 from time import time
-from camera_calibration.utils.TFTransformer import TFTransformer
+
+from src.camera_calibration.utils.TypeConverter import TypeConverter
+from src.camera_calibration.utils.HarryPlotter import HarryPlotter
 
 import cv2
 from itertools import combinations
@@ -28,6 +30,7 @@ from itertools import combinations
 # AX = XB . solve ee-aruco offset
 
 class EyeToHandEstimator(object):
+
     def __init__(self):
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -68,15 +71,18 @@ class EyeToHandEstimator(object):
                 self.transforms_hand2world.append(hand2world)
             print(len(self.transforms_camera2aruco))
 
-    @staticmethod
-    def solveCombination(self, fixed2attached, hand2base):
-        # fixed = camera, attached = aruco. in the example it's the other way around but should not matter?
-        rot_fixed2attached, tran_fixed2attached = self.transform_to_matrices(
+
+    def solveSample(self, fixed2attached, hand2base):
+        
+        # Fixed2Attached
+        rot_fixed2attached, tran_fixed2attached = TypeConverter.transform_to_matrices(
             fixed2attached)
         
-        rot_hand2world, tran_hand2world = self.transform_to_matrices(
+        # Hand2World
+        rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
             hand2base)
-
+        
+        # Attached2Hand
         rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
             R_gripper2base=rot_hand2world,
             t_gripper2base=tran_hand2world,
@@ -84,9 +90,9 @@ class EyeToHandEstimator(object):
             t_target2cam=tran_fixed2attached,
             method=cv2.CALIB_HAND_EYE_TSAI
         )
+
         print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
-
 
     def solve(self):
         
@@ -110,35 +116,13 @@ class EyeToHandEstimator(object):
 
                 # Do and save estimation
                 pose_estimations[sample_size].append(
-                    self.solveCombination(
+                    self.solveSample(
                         fixed2aruco=camera2aruco_subset,
                         hand2base=hand2base_subset
                     )
                 )
         
         return pose_estimations
-
-        
-
-    @staticmethod
-    def transform_to_matrices(transforms):
-        rotation_matrices = []
-        translations = []
-        for transform in transforms:
-            # Get the translation and quaternion from the transform message
-            translation = np.array([transform.transform.translation.x,
-                                    transform.transform.translation.y,
-                                    transform.transform.translation.z])
-            quaternion = np.array([transform.transform.rotation.x,
-                                   transform.transform.rotation.y,
-                                   transform.transform.rotation.z,
-                                   transform.transform.rotation.w])
-            # Convert the quaternion to a rotation matrix
-            rotation_matrix = quaternion_matrix(quaternion)[:3, :3]
-            # Append the rotation matrix and translation to the output lists
-            rotation_matrices.append(rotation_matrix)
-            translations.append(translation)
-        return rotation_matrices, translations
 
     def get_transform_between(self, origin, to):
         try:
@@ -153,7 +137,12 @@ if __name__ == '__main__':
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
     hand_eye_estimator.collect_transforms()
-    hand_eye_estimator.solve()
+    pose_estimations = hand_eye_estimator.solve()
+    HarryPlotter.plot_distances(
+        distance_dict=pose_estimations,
+        use_box=False
+    )
+
     try:
         rospy.spin()
     except KeyboardInterrupt:
