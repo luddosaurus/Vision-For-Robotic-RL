@@ -13,9 +13,10 @@ class ARHelper:
 
     def __init__(self, marker_size=50):
         self.marker_size = marker_size
+        self.rvec_un_reversed = np.random.random((3, 1))
+        self.tvec = np.random.random((3, 1))
 
     def find_markers(self, img, debug=False):
-
 
         gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -25,8 +26,6 @@ class ARHelper:
             dictionary=self.marker_dict,
             parameters=self.param_markers,
         )
-
-
 
         marked_image = cv2.aruco.drawDetectedMarkers(
             image=img,
@@ -107,8 +106,7 @@ class ARHelper:
                 tvec=t_vec,
                 length=axis_length)
 
-    @staticmethod
-    def estimate_charuco_pose(image, camera_matrix, dist_coefficients, rvec, tvec):
+    def estimate_charuco_pose(self, image, camera_matrix, dist_coefficients):
         square_length = 0.015  # mm
         marker_length = 0.012  # mm
         squares_x = 9
@@ -125,22 +123,37 @@ class ARHelper:
 
         corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
         if ids is None:
-            return image, rvec, tvec
+            return image, self.reverse_rvec(self.rvec_un_reversed), self.tvec
         cv2.aruco.drawDetectedMarkers(image, corners)
         _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, board)
         # charuco_findings = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, board)
         # print(charuco_findings)
         if charuco_corners is None or charuco_ids is None:
-            return image, rvec, tvec
+            return image, self.reverse_rvec(self.rvec_un_reversed), self.tvec
 
         retval, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(charucoCorners=charuco_corners, charucoIds=charuco_ids,
                                                                 board=board, cameraMatrix=camera_matrix,
-                                                                distCoeffs=dist_coefficients, rvec=rvec, tvec=tvec,
+                                                                distCoeffs=dist_coefficients,
+                                                                rvec=self.rvec_un_reversed, tvec=self.tvec,
                                                                 useExtrinsicGuess=True)
+        self.rvec_un_reversed = rvec
+        self.tvec = tvec
+        rotation_matrix, _ = cv2.Rodrigues(rvec)
+        z_invert_matrix = np.diag([1, -1, -1])
 
+        rotation_matrix = np.dot(rotation_matrix, z_invert_matrix)
+        rvec, _ = cv2.Rodrigues(rotation_matrix)
         if rvec is not None and tvec is not None:
             cv2.drawFrameAxes(image=image, cameraMatrix=camera_matrix, distCoeffs=dist_coefficients, rvec=rvec,
                               tvec=tvec,
                               length=0.03, thickness=2)
 
         return image, rvec, tvec
+
+    def reverse_rvec(self, rvec):
+        rotation_matrix, _ = cv2.Rodrigues(rvec)
+        z_invert_matrix = np.diag([1, -1, -1])
+
+        rotation_matrix = np.dot(rotation_matrix, z_invert_matrix)
+        rvec, _ = cv2.Rodrigues(rotation_matrix)
+        return rvec

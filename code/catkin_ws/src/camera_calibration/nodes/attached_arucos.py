@@ -5,8 +5,8 @@
 import rospy
 import tf2_ros
 
-from src.camera_calibration.params.attached_arucos import *
-from src.camera_calibration.utils.TFPublish import publish_static_transform
+from camera_calibration.params.attached_arucos import *
+from camera_calibration.utils.TFPublish import TFPublish
 
 
 class AttachedArucoBroadcaster:
@@ -17,7 +17,7 @@ class AttachedArucoBroadcaster:
 
     def spawn_static_aruco_markers(self, parent_frame_name, aruco_list):
         for aruco in aruco_list:
-            publish_static_transform(
+            TFPublish.publish_static_transform(
                 publisher=self.pub_tf_static,
                 parent_name=parent_frame_name,
                 child_name=aruco.get_name(),
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # todo update each aruco
     while not rospy.is_shutdown():
         rospy.sleep(0.1)
-        # tfb.spawn_static_aruco_markers(arm_parent_frame, arm_arucos)
-        tfb.spawn_static_aruco_markers(table_parent_frame, table_arucos)
+        tfb.spawn_static_aruco_markers(arm_parent_frame, arm_arucos)
+        # tfb.spawn_static_aruco_markers(table_parent_frame, table_arucos)
 
     rospy.spin()

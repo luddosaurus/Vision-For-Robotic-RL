@@ -21,7 +21,6 @@ import cv2
 from itertools import combinations
 
 
-
 # GOAL find offset between ee and aruco
 # subscribe to tf
 # get camera-aruco, put in list A
@@ -58,7 +57,6 @@ class EyeToHandEstimator(object):
             # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
             # hand2world = self.get_transform_between(origin=hand, to=world)
 
-
             # Base to Camera
             camera2aruco = self.get_transform_between(origin=aruco, to=camera)
             hand2world = self.get_transform_between(origin=world, to=hand)
@@ -71,8 +69,8 @@ class EyeToHandEstimator(object):
                 self.transforms_hand2world.append(hand2world)
             print(len(self.transforms_camera2aruco))
 
-
-    def solveSample(self, fixed2attached, hand2base):
+    @staticmethod
+    def solve_sample(fixed2attached, hand2base):
         
         # Fixed2Attached
         rot_fixed2attached, tran_fixed2attached = TypeConverter.transform_to_matrices(
@@ -100,12 +98,12 @@ class EyeToHandEstimator(object):
         start_sample_size = 3
         end_sample_size = 15
         
-        pose_estimations = dict()
+        poses = dict()
         list_size = len(self.transforms_camera2aruco)
 
         # For every sample size
         for sample_size in range(start_sample_size, end_sample_size, step_size):
-            pose_estimations[sample_size] = list()
+            poses[sample_size] = list()
 
             # For every index combination
             for sample_indices in combinations(range(list_size), sample_size):
@@ -115,14 +113,14 @@ class EyeToHandEstimator(object):
                 hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
 
                 # Do and save estimation
-                pose_estimations[sample_size].append(
-                    self.solveSample(
-                        fixed2aruco=camera2aruco_subset,
+                poses[sample_size].append(
+                    self.solve_sample(
+                        fixed2attached=camera2aruco_subset,
                         hand2base=hand2base_subset
                     )
                 )
         
-        return pose_estimations
+        return poses
 
     def get_transform_between(self, origin, to):
         try:

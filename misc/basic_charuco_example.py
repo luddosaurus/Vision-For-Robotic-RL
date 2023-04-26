@@ -5,9 +5,9 @@ import pyrealsense2 as rs
 
 import charuco_calib_example as charuco
 
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
-CALIB_FILE = "MultiMatrix.npz"
+CAMERA_WIDTH = 1920
+CAMERA_HEIGHT = 1080
+CALIB_FILE = "MultiMatrix1080.npz"
 
 with np.load(f'./{CALIB_FILE}') as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]

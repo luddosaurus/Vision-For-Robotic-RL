@@ -18,11 +18,11 @@ import geometry_msgs.msg
 import tf.transformations as tf
 
 # Local
-from src.camera_calibration.utils.ARHelper import ARHelper
-from src.camera_calibration.utils.TFPublish import TFPublish
-from src.camera_calibration.utils.MeanHelper import MeanHelper
-from src.camera_calibration.params.calibration import marker_size_m, calibration_path
-from src.camera_calibration.utils.TypeConverter import TypeConverter
+from camera_calibration.utils.ARHelper import ARHelper
+from camera_calibration.utils.TFPublish import TFPublish
+from camera_calibration.utils.MeanHelper import MeanHelper
+from camera_calibration.params.calibration import marker_size_m, calibration_path
+from camera_calibration.utils.TypeConverter import TypeConverter
 
 # Init
 arhelper = ARHelper(marker_size_m)
@@ -38,6 +38,7 @@ class ArUcoFinder(object):
 
     def __init__(self):
         self.cv_bridge = CvBridge()
+
         # todo add depth here
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.callback)
         self.pub_aruco_tf = rospy.Publisher("/tf", tf2_msgs.msg.TFMessage, queue_size=10)
@@ -49,14 +50,15 @@ class ArUcoFinder(object):
     # Finds the ArUco:s location in the camera 3D space
 
     def charuco_callback(self, image):
-        image, self.r_vecs, self.t_vecs = ARHelper.estimate_charuco_pose(
+        image, self.r_vecs, self.t_vecs = arhelper.estimate_charuco_pose(
             image=image,
             camera_matrix=intrinsic_camera,
-            dist_coefficients=distortion, rvec=self.r_vecs, tvec=self.t_vecs)
+            dist_coefficients=distortion)
         # self.r_vecs[2] -= math.pi / 2
-        print("---\n", self.r_vecs, self.t_vecs, "\n---")
+        # print("---\n", self.r_vecs, self.t_vecs, "\n---")
         self.inv_and_pub(
-            parent_name="charuco",
+            # parent_name="charuco",
+            parent_name="aruco_[0]",  # This is for debugging
             child_name="charuco_to_camera",
             rotation=self.r_vecs,
             translation=self.t_vecs
@@ -98,7 +100,9 @@ class ArUcoFinder(object):
 
     def inv_and_pub(self, parent_name, child_name, rotation, translation):
         # change to aruco to camera
-        translation, rotation = TypeConverter.invert_transform(translation, rotation)
+        translation, rotation = TypeConverter.invert_transform(
+            translation=translation,
+            rotation=rotation)
 
         if parent_name in self.transforms.keys():
             self.transforms[parent_name].append((translation, rotation))
@@ -130,7 +134,7 @@ class ArUcoFinder(object):
             image = self.aruco_callback(image)
 
         # Display Image
-        cv2.imshow('image', cv2.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2))))
+        cv2.imshow('image', cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2))))
         cv2.waitKey(1)
 
     def create_average_transform(self, aruco_name, parent_frame, child_frame):
@@ -138,11 +142,11 @@ class ArUcoFinder(object):
         for transform in self.transforms[aruco_name]:
             transformations.append(
                 TypeConverter.vectors_to_stamped_transform(
-                    translation=transform[0], 
-                    rotation=transform[1], 
-                    parent_frame=parent_frame, 
+                    translation=transform[0],
+                    rotation=transform[1],
+                    parent_frame=parent_frame,
                     child_frame=child_frame)
-                )
+            )
 
         return MeanHelper.riemannian_mean(transformations)
 

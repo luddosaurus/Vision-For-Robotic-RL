@@ -3,8 +3,8 @@
 # /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
 
 import rospy
-from src.camera_calibration.utils.TFPublish import TFPublish
-from src.camera_calibration.utils.TypeConverter import TypeConverter
+from camera_calibration.utils.TFPublish import TFPublish
+from camera_calibration.utils.TypeConverter import TypeConverter
 
 import geometry_msgs
 from std_msgs.msg import UInt8MultiArray
@@ -14,9 +14,8 @@ from tf.transformations import quaternion_matrix
 import numpy as np
 from time import time
 
-
-from src.camera_calibration.params.attached_arucos import table_arucos, arm_arucos
-from src.camera_calibration.utils.MeanHelper import MeanHelper
+from camera_calibration.params.attached_arucos import table_arucos, arm_arucos
+from camera_calibration.utils.MeanHelper import MeanHelper
 
 
 class StaticCameraPositionEstimator(object):
@@ -25,10 +24,10 @@ class StaticCameraPositionEstimator(object):
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
         self.marker_subscriber = rospy.Subscriber(
-            '/detected_aruco_marker_ids', 
-            UInt8MultiArray, 
+            '/detected_aruco_marker_ids',
+            UInt8MultiArray,
             self.marker_callback
-            )
+        )
         self.transformations = list()
         self.start_time = time()
 
@@ -38,7 +37,6 @@ class StaticCameraPositionEstimator(object):
 
         rate = rospy.Rate(10.0)
 
-
         for aruco in marker_ids:
 
             source_frame = 'world'
@@ -46,16 +44,16 @@ class StaticCameraPositionEstimator(object):
 
             try:
                 transform = self.tfBuffer.lookup_transform(
-                    source_frame=source_frame, 
-                    target_frame=target_frame, 
+                    source_frame=source_frame,
+                    target_frame=target_frame,
                     time=rospy.Time())
-                
+
                 self.transformations.append(transform)
 
             except (
-                tf2_ros.LookupException, 
-                tf2_ros.ConnectivityException, 
-                tf2_ros.ExtrapolationException):
+                    tf2_ros.LookupException,
+                    tf2_ros.ConnectivityException,
+                    tf2_ros.ExtrapolationException):
 
                 rate.sleep()
 
@@ -68,7 +66,7 @@ class StaticCameraPositionEstimator(object):
                 parent_name="world",
                 child_name="camera_position"
             )
-            
+
             if len(self.transformations) % 10:
                 print(avg_transform)
 
@@ -77,15 +75,15 @@ class StaticCameraPositionEstimator(object):
             if len(self.transformations) > 500:
                 print(avg_transform)
                 self.transformations.pop(0)
-            
+
         rate.sleep()
 
+    @staticmethod
+    def create_average_transform_stamped_message(transformations):
 
-    def create_average_transform_stamped_message(self, transformations):
-        
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(transformations)
 
-        # New 
+        # New
         avg_transform = TypeConverter.vectors_to_stamped_transform(
             translation=mean_translation,
             rotation=mean_rotation,
@@ -104,4 +102,3 @@ if __name__ == '__main__':
         rospy.spin()
     except KeyboardInterrupt:
         print('Shutting down.')
-

@@ -14,7 +14,7 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 class MeanHelper:
 
     @staticmethod
-    def riemannian_mean(self, transformations):
+    def riemannian_mean(transformations):
         translations = list()
         rotations = list()
         for stamped_transform in transformations:
@@ -26,9 +26,9 @@ class MeanHelper:
                         stamped_transform.transform.translation.y,
                         stamped_transform.transform.translation.z]))
         # print(len(translations))
-        clean_translations, clean_rotations = remove_outliers(np.array(translations), np.array(rotations))
+        clean_translations, clean_rotations = MeanHelper.remove_outliers(np.array(translations), np.array(rotations))
 
-        return self.riemannian_mean_translation(clean_translations), self.riemannian_mean_rotation(clean_rotations)
+        return MeanHelper.riemannian_mean_translation(clean_translations), MeanHelper.riemannian_mean_rotation(clean_rotations)
 
     
     def riemannian_mean_translation(translations):

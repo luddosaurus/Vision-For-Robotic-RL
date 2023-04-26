@@ -10,7 +10,7 @@ class TypeConverter:
 
     # Invert vector from O to (translation, rotation)
     @staticmethod
-    def invert_transform(self, translation, rotation, turn_into_quaternion=True):
+    def invert_transform(translation, rotation, turn_into_quaternion=True):
         rotation_mat, _ = cv2.Rodrigues(rotation)
 
         # Change frame from Camera to ArUco, to ArUco to Camera
@@ -18,7 +18,7 @@ class TypeConverter:
 
         inv_translation = np.matmul(-inv_rotation, translation)
 
-        q_normalized = self.rotation_vector_to_quaternions(rotation)
+        q_normalized = TypeConverter.rotation_vector_to_quaternions(rotation)
 
         if turn_into_quaternion:
             return inv_translation, q_normalized

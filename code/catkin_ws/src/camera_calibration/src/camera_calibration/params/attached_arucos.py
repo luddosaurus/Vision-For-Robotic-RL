@@ -8,6 +8,7 @@ from camera_calibration.model.aruco import ArUco
 arm_parent_frame = "panda_hand"
 arm_aruco_size = 0.034
 arm_arucos = [
+
     ArUco(
         aruco_id=0,
         translation=(0.036, 0.055, 0.04),

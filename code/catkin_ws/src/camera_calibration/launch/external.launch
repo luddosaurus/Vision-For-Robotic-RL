@@ -25,12 +25,12 @@
             name="detected_aruco_markers_node"
             output="screen">
     </node>
-        <node
-            pkg="camera_calibration"
-            type="eye_to_hand_calibration.py"
-            name="hand_eye_node"
-            output="screen">
-    </node>
+<!--        <node-->
+<!--            pkg="camera_calibration"-->
+<!--            type="eye_to_hand_calibration.py"-->
+<!--            name="hand_eye_node"-->
+<!--            output="screen">-->
+<!--    </node>-->
         <node
             pkg="camera_calibration"
             type="realsense_video_topic_publisher_script.py"
