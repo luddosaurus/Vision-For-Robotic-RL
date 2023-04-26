@@ -58,7 +58,7 @@ class ArUcoFinder(object):
         # print("---\n", self.r_vecs, self.t_vecs, "\n---")
         self.inv_and_pub(
             # parent_name="charuco",
-            parent_name="aruco_[22]",  # This is for debugging
+            parent_name="charuco",  # This is for debugging
             child_name="charuco_to_camera",
             rotation=self.r_vecs,
             translation=self.t_vecs
