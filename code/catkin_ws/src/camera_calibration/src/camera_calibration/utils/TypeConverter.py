@@ -18,7 +18,7 @@ class TypeConverter:
 
         inv_translation = np.matmul(-inv_rotation, translation)
 
-        q_normalized = TypeConverter.rotation_vector_to_quaternions(rotation)
+        q_normalized = TypeConverter.rotation_vector_to_quaternions(inv_rotation)
 
         if turn_into_quaternion:
             return inv_translation, q_normalized

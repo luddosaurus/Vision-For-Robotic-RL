@@ -138,11 +138,7 @@ class ARHelper:
                                                                 useExtrinsicGuess=True)
         self.rvec_un_reversed = rvec
         self.tvec = tvec
-        rotation_matrix, _ = cv2.Rodrigues(rvec)
-        z_invert_matrix = np.diag([1, -1, -1])
-
-        rotation_matrix = np.dot(rotation_matrix, z_invert_matrix)
-        rvec, _ = cv2.Rodrigues(rotation_matrix)
+        rvec = self.reverse_rvec(rvec)
         if rvec is not None and tvec is not None:
             cv2.drawFrameAxes(image=image, cameraMatrix=camera_matrix, distCoeffs=dist_coefficients, rvec=rvec,
                               tvec=tvec,
@@ -151,9 +147,9 @@ class ARHelper:
         return image, rvec, tvec
 
     def reverse_rvec(self, rvec):
-        rotation_matrix, _ = cv2.Rodrigues(rvec)
-        z_invert_matrix = np.diag([1, -1, -1])
-
-        rotation_matrix = np.dot(rotation_matrix, z_invert_matrix)
-        rvec, _ = cv2.Rodrigues(rotation_matrix)
+        # rotation_matrix, _ = cv2.Rodrigues(rvec)
+        # z_invert_matrix = np.diag([1, -1, -1])
+        #
+        # rotation_matrix = np.dot(rotation_matrix, z_invert_matrix)
+        # rvec, _ = cv2.Rodrigues(rotation_matrix)
         return rvec

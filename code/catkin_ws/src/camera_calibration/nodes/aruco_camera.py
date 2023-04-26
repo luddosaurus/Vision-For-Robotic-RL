@@ -58,7 +58,7 @@ class ArUcoFinder(object):
         # print("---\n", self.r_vecs, self.t_vecs, "\n---")
         self.inv_and_pub(
             # parent_name="charuco",
-            parent_name="aruco_[0]",  # This is for debugging
+            parent_name="aruco_[22]",  # This is for debugging
             child_name="charuco_to_camera",
             rotation=self.r_vecs,
             translation=self.t_vecs
@@ -103,7 +103,7 @@ class ArUcoFinder(object):
         translation, rotation = TypeConverter.invert_transform(
             translation=translation,
             rotation=rotation)
-
+        # rotation = TypeConverter.rotation_vector_to_quaternions(rotation)
         if parent_name in self.transforms.keys():
             self.transforms[parent_name].append((translation, rotation))
         else:

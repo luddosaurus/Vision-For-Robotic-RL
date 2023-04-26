@@ -5,6 +5,8 @@ from camera_calibration.model.aruco import ArUco
 
 # Params for ArUco Offset in meters
 
+# rotation order is x, y, z, w
+
 arm_parent_frame = "panda_hand"
 arm_aruco_size = 0.034
 arm_arucos = [
@@ -40,3 +42,7 @@ table_arucos = [ArUco(
     translation=(0.152, 0.404, -0.015),
     rotation=(0.0, 0.0, 0.7071, 0.7071)
 ), ]
+
+table_charuco = [ArUco(aruco_id=22,
+                       translation=(0.312, -0.013, -0.015),
+                       rotation=(0.7071, 0.7071, 0.0, 0.0))]
