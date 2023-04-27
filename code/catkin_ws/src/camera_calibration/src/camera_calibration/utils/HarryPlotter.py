@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+
 class HarryPlotter:
 
     @staticmethod
@@ -16,8 +17,8 @@ class HarryPlotter:
                 ax.set_ylabel('Z-score')
                 ax.set_title('Z-scores of Rotational Vectors')
                 sc = ax.scatter(
-                    x=range(len(rotational_vectors)), 
-                    y=np.zeros(len(rotational_vectors)), 
+                    x=range(len(rotational_vectors)),
+                    y=np.zeros(len(rotational_vectors)),
                     c='blue'
                 )
 
@@ -39,7 +40,6 @@ class HarryPlotter:
             plt.title('Z-scores of Rotational Vectors')
             plt.show()
 
-
     @staticmethod
     def plot_distances(distance_dict, use_box=False):
 
@@ -48,7 +48,7 @@ class HarryPlotter:
             plt.boxplot(distances)
         else:
             for size, distances in distance_dict.items():
-                plt.scatter([size]*len(distances), distances, color='blue', alpha=0.5)
+                plt.scatter([size] * len(distances), distances, color='blue', alpha=0.5)
 
         # Add labels and title
         plt.xlabel('Sample size')
@@ -56,4 +56,50 @@ class HarryPlotter:
         plt.title('Euclidean distance vs. sample size')
 
         # Show the plot
+        plt.show()
+
+    @staticmethod
+    def plot_translation_vectors(translations):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        x_vals = [t[0] for t in translations]
+        y_vals = [t[1] for t in translations]
+        z_vals = [t[2] for t in translations]
+
+        ax.scatter(x_vals, y_vals, z_vals)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        # ax.set_xlim3d(-1, 1)
+        # ax.set_ylim3d(-1, 1)
+        # ax.set_zlim3d(-1, 1)
+
+        plt.show()
+
+    @staticmethod
+    def plot_translation_vector_categories(translations):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
+        cmap = plt.get_cmap('hsv')
+        num_colors = len(translations)
+        colors = [cmap(i / num_colors) for i in range(num_colors)]
+
+        for i, (label, points) in enumerate(translations.items()):
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            z_vals = [p[2] for p in points]
+            # ax.scatter(x_vals, y_vals, z_vals, c=colors[i % len(colors)], label=label)
+            ax.scatter(x_vals, y_vals, z_vals, c=colors[i], label=label)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim3d(-1, 1)
+        ax.set_ylim3d(-1, 1)
+        ax.set_zlim3d(-1, 1)
+        ax.legend()
         plt.show()

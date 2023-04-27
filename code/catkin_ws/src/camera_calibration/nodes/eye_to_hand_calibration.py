@@ -132,30 +132,6 @@ class EyeToHandEstimator(object):
             print(f"Oopsie! No transform between {origin} and {to} D:")
             return None
 
-    def plot_translation_vectors(self, translations):
-        # Create a new figure and axis for 3D plotting
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        # Extract x, y, and z values from each translation vector
-        x_vals = [t[0] for t in translations]
-        y_vals = [t[1] for t in translations]
-        z_vals = [t[2] for t in translations]
-
-        # Plot the translation vectors as a scatter cloud
-        ax.scatter(x_vals, y_vals, z_vals)
-
-        # Set the axis labels and limits
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_xlim3d(-1, 1)
-        ax.set_ylim3d(-1, 1)
-        ax.set_zlim3d(-1, 1)
-
-        # Show the plot
-        plt.show()
-
 
 if __name__ == '__main__':
     rospy.init_node('hand_eye_node')
@@ -170,7 +146,7 @@ if __name__ == '__main__':
         for t in sample:
             translations.append(t[1])
 
-    hand_eye_estimator.plot_translation_vectors(translations)
+    HarryPlotter.plot_translation_vectors(translations)
     #   HarryPlotter.plot_distances(
     #    distance_dict=pose_estimations,
     #    use_box=False
