@@ -73,7 +73,8 @@ class EyeToHandEstimator(object):
                 self.transforms_hand2world.append(hand2world)
             print(len(self.transforms_camera2aruco))
 
-    def solve_sample(self, fixed2attached, hand2base):
+    @staticmethod
+    def solve_sample(fixed2attached, hand2base, solve_method):
 
         # Fixed2Attached
         rot_fixed2attached, tran_fixed2attached = TypeConverter.transform_to_matrices(
@@ -89,13 +90,13 @@ class EyeToHandEstimator(object):
             t_gripper2base=tran_hand2world,
             R_target2cam=rot_fixed2attached,
             t_target2cam=tran_fixed2attached,
-            method=cv2.CALIB_HAND_EYE_TSAI
+            method=solve_method
         )
 
         print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
-    def solve(self):
+    def solve(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
 
         step_size = 1
         start_sample_size = 3
@@ -118,9 +119,30 @@ class EyeToHandEstimator(object):
                 poses[sample_size].append(
                     self.solve_sample(
                         fixed2attached=camera2aruco_subset,
-                        hand2base=hand2base_subset
+                        hand2base=hand2base_subset,
+                        solve_method=solve_method
                     )
                 )
+
+        return poses
+
+    def solve_all_algorithms(self):
+        methods = [
+            cv2.CALIB_HAND_EYE_TSAI,
+            cv2.CALIB_HAND_EYE_PARK,
+            cv2.CALIB_HAND_EYE_HORAUD,
+            cv2.CALIB_HAND_EYE_ANDREFF,
+            cv2.CALIB_HAND_EYE_DANIILIDIS
+        ]
+        poses = dict()
+
+        for method in methods:
+
+            poses[method] = self.solve_sample(
+                fixed2attached=self.transforms_camera2aruco,
+                hand2base=self.transforms_hand2world,
+                solve_method=method
+            )
 
         return poses
 
@@ -132,25 +154,27 @@ class EyeToHandEstimator(object):
             print(f"Oopsie! No transform between {origin} and {to} D:")
             return None
 
+    @staticmethod
+    def plot_pose_dict(pose_samples):
+
+        sample_translations = dict()
+        for sample_category, sample_poses in pose_samples:
+            sample_translations[sample_category] = list()
+            for rotation, translation in sample_poses:
+                sample_translations[sample_category].append(translation)
+
+        HarryPlotter.plot_translation_vector_categories(sample_translations)
+
 
 if __name__ == '__main__':
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
     hand_eye_estimator.collect_transforms()
-    pose_estimations = hand_eye_estimator.solve()
+    pose_estimations_samples = hand_eye_estimator.solve()
+    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
-    translations = list()
-
-    for sample in pose_estimations.values():
-
-        for t in sample:
-            translations.append(t[1])
-
-    HarryPlotter.plot_translation_vectors(translations)
-    #   HarryPlotter.plot_distances(
-    #    distance_dict=pose_estimations,
-    #    use_box=False
-    # )
+    hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
+    # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
 
     try:
         rospy.spin()
