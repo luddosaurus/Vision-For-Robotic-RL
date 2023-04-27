@@ -20,6 +20,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.HarryPlotter import HarryPlotter
 from camera_calibration.utils.TFPublish import TFPublish
+from camera_calibration.utils.SaveMe import SaveMe
 
 import cv2
 from itertools import combinations
@@ -185,6 +186,14 @@ class EyeToHandEstimator(object):
                 sample_translations[sample_category].append(translation)
 
         HarryPlotter.plot_translation_vector_categories(sample_translations)
+
+    def save(self):
+        SaveMe.save_transforms(self.transforms_camera2aruco, 'camera2aruco.json')
+        SaveMe.save_transforms(self.transforms_hand2world, 'hand2world.json')
+
+    def load(self):
+        self.transforms_camera2aruco = SaveMe.load_transforms('camera2aruco.json')
+        self.transforms_hand2world = SaveMe.load_transforms('hand2world.json')
 
 
 if __name__ == '__main__':
