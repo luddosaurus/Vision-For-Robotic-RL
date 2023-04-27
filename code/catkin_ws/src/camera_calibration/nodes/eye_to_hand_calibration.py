@@ -74,7 +74,12 @@ class EyeToHandEstimator(object):
             print(len(self.transforms_camera2aruco))
 
     @staticmethod
-    def solve_sample(fixed2attached, hand2base, solve_method):
+    def solve(fixed2attached, hand2base, solve_method, attached2hand_guess=None):
+        # fixed = thing on table
+        # attached = thing on arm
+        # hand = gripper
+        # bases = world
+        # Solves AX=XB with hand2base being A and fixed2attached B
 
         # Fixed2Attached
         rot_fixed2attached, tran_fixed2attached = TypeConverter.transform_to_matrices(
@@ -84,19 +89,35 @@ class EyeToHandEstimator(object):
         rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
             hand2base)
 
-        # Attached2Hand
-        rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
-            R_gripper2base=rot_hand2world,
-            t_gripper2base=tran_hand2world,
-            R_target2cam=rot_fixed2attached,
-            t_target2cam=tran_fixed2attached,
-            method=solve_method
+        # Init Guess Fixed2Hand
+        rot_attached2hand_guess, trand_attached2hand_guess = TypeConverter.transform_to_matrices(
+            attached2hand_guess
         )
+
+        # Attached2Hand
+        if attached2hand_guess is not None:
+            rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
+                R_gripper2base=rot_hand2world,
+                t_gripper2base=tran_hand2world,
+                R_target2cam=rot_fixed2attached,
+                t_target2cam=tran_fixed2attached,
+                R_cam2gripper=rot_attached2hand_guess,
+                t_cam2gripper=trand_attached2hand_guess,
+                method=solve_method
+            )
+        else:
+            rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
+                R_gripper2base=rot_hand2world,
+                t_gripper2base=tran_hand2world,
+                R_target2cam=rot_fixed2attached,
+                t_target2cam=tran_fixed2attached,
+                method=solve_method
+            )
 
         print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
-    def solve(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
+    def solve_all_sample_combos(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
 
         step_size = 1
         start_sample_size = 3
@@ -117,7 +138,7 @@ class EyeToHandEstimator(object):
 
                 # Do and save estimation
                 poses[sample_size].append(
-                    self.solve_sample(
+                    self.solve(
                         fixed2attached=camera2aruco_subset,
                         hand2base=hand2base_subset,
                         solve_method=solve_method
@@ -138,7 +159,7 @@ class EyeToHandEstimator(object):
 
         for method in methods:
 
-            poses[method] = self.solve_sample(
+            poses[method] = self.solve(
                 fixed2attached=self.transforms_camera2aruco,
                 hand2base=self.transforms_hand2world,
                 solve_method=method
@@ -170,7 +191,7 @@ if __name__ == '__main__':
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
     hand_eye_estimator.collect_transforms()
-    pose_estimations_samples = hand_eye_estimator.solve()
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos()
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
     hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
