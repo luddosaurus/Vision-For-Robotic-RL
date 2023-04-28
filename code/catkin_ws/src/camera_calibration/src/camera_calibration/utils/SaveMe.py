@@ -1,6 +1,9 @@
 import json
 import rospy
 from geometry_msgs.msg import TransformStamped, Quaternion, Vector3
+import os
+
+directory = "/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src/camera_calibration/src/external_calibration_transforms/"
 
 
 class SaveMe:
@@ -26,12 +29,12 @@ class SaveMe:
                 }
             })
 
-        with open(filename, 'w') as f:
+        with open(directory + filename, 'w') as f:
             json.dump(data, f)
 
     @staticmethod
     def load_transforms(filename):
-        with open(filename, 'r') as f:
+        with open(directory + filename, 'r') as f:
             data = json.load(f)
 
         transforms = []

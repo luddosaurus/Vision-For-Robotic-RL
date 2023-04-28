@@ -45,9 +45,13 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 5
+        self.num_images_to_capture = 15
 
-    def collect_transforms(self):
+    def collect_transforms(self, num_images=None):
+        if num_images is None:
+            num_images = self.num_images_to_capture
+        else:
+            self.num_images_to_capture = num_images
         rate = rospy.Rate(1)
         # camera = "camera_to_aruco_[0]"
         camera = "charuco_to_camera"
@@ -59,12 +63,12 @@ class EyeToHandEstimator(object):
             rate.sleep()
 
             # Attached to gripper
-            # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-            # hand2world = self.get_transform_between(origin=hand, to=world)
+            camera2aruco = self.get_transform_between(origin=camera, to=aruco)
+            hand2world = self.get_transform_between(origin=hand, to=world)
 
             # Base to Camera
-            camera2aruco = self.get_transform_between(origin=aruco, to=camera)
-            hand2world = self.get_transform_between(origin=world, to=hand)
+            # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
+            # hand2world = self.get_transform_between(origin=world, to=hand)
 
             input()
             print(camera2aruco)
@@ -90,13 +94,12 @@ class EyeToHandEstimator(object):
         rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
             hand2base)
 
-        # Init Guess Fixed2Hand
-        rot_attached2hand_guess, trand_attached2hand_guess = TypeConverter.transform_to_matrices(
-            attached2hand_guess
-        )
-
         # Attached2Hand
         if attached2hand_guess is not None:
+            # Init Guess Fixed2Hand
+            rot_attached2hand_guess, trand_attached2hand_guess = TypeConverter.transform_to_matrices(
+                attached2hand_guess
+            )
             rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
                 R_gripper2base=rot_hand2world,
                 t_gripper2base=tran_hand2world,
@@ -122,7 +125,7 @@ class EyeToHandEstimator(object):
 
         step_size = 1
         start_sample_size = 3
-        end_sample_size = self.num_images_to_capture
+        end_sample_size = self.num_images_to_capture + 1
 
         poses = dict()
         list_size = len(self.transforms_camera2aruco)
@@ -159,11 +162,11 @@ class EyeToHandEstimator(object):
         poses = dict()
 
         for method in methods:
-
-            poses[method] = self.solve(
+            poses[method] = list()
+            poses[method].append(self.solve(
                 fixed2attached=self.transforms_camera2aruco,
                 hand2base=self.transforms_hand2world,
-                solve_method=method
+                solve_method=method)
             )
 
         return poses
@@ -180,7 +183,7 @@ class EyeToHandEstimator(object):
     def plot_pose_dict(pose_samples):
 
         sample_translations = dict()
-        for sample_category, sample_poses in pose_samples:
+        for sample_category, sample_poses in zip(pose_samples.keys(), pose_samples.values()):
             sample_translations[sample_category] = list()
             for rotation, translation in sample_poses:
                 sample_translations[sample_category].append(translation)
@@ -197,14 +200,32 @@ class EyeToHandEstimator(object):
 
 
 if __name__ == '__main__':
+
+    methods = [
+        cv2.CALIB_HAND_EYE_TSAI,
+        cv2.CALIB_HAND_EYE_PARK,
+        cv2.CALIB_HAND_EYE_HORAUD,
+        cv2.CALIB_HAND_EYE_ANDREFF,
+        cv2.CALIB_HAND_EYE_DANIILIDIS
+    ]
+
+    save_data = True
+    load_data = True
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
-    hand_eye_estimator.collect_transforms()
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos()
+
+    if load_data:
+        save_data = False
+        hand_eye_estimator.load()
+    else:
+        hand_eye_estimator.collect_transforms()
+    if save_data:
+        hand_eye_estimator.save()
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
     hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
-    # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+    hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
 
     try:
         rospy.spin()

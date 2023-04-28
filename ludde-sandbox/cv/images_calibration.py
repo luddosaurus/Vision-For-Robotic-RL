@@ -42,7 +42,7 @@ auto_calibrate(calibration_images)
 
 
 
-# for calibration_image in calibration_images:
+# for calibration_image in external_calibration_transforms:
 #     current_image = cv2.imread(calibration_image)
 #     chess_image = calibrator.find_and_save_chessboard_points(current_image)
 #     # cv2.imshow('image', chess_image)
