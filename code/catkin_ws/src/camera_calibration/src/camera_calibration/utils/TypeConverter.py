@@ -72,9 +72,7 @@ class TypeConverter:
         translation.x, translation.y, translation.z = matrix[:3, 3]
 
         # New
-        q = tf.transformations.quaternion_from_matrix(matrix)
-        q_norm = np.linalg.norm(q)
-        q = q / q_norm
+        q = TypeConverter.matrix_to_quaternion_vector(matrix)
 
         rotation = Quaternion()
         rotation.x, rotation.y, rotation.z, rotation.w = q
@@ -91,6 +89,18 @@ class TypeConverter:
         stamped_transform.transform.rotation = rotation
 
         return stamped_transform
+
+    @staticmethod
+    def matrix_to_quaternion_vector(matrix):
+
+        embedded_rotation = np.eye(4)
+        embedded_rotation[:3, :3] = matrix
+
+        q = tf.transformations.quaternion_from_matrix(embedded_rotation)
+        q_norm = np.linalg.norm(q)
+        q = q / q_norm
+
+        return q
 
     @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):

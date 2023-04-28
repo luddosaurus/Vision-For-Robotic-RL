@@ -221,11 +221,19 @@ if __name__ == '__main__':
         hand_eye_estimator.collect_transforms()
     if save_data:
         hand_eye_estimator.save()
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
+    # pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
-    hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
-    hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
+    # print(rotation)
+    rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
+    print(rotation)
+    pub_tf_static = tf2_ros.StaticTransformBroadcaster()
+    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
+                                       rotation=rotation, translation=translation)
+
+    # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
+    # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
 
     try:
         rospy.spin()

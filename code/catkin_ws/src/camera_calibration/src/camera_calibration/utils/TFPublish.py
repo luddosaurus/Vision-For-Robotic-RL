@@ -6,6 +6,7 @@ import tf2_msgs.msg
 import geometry_msgs.msg
 import tf.transformations as tf
 
+
 class TFPublish:
 
     @staticmethod
@@ -33,8 +34,8 @@ class TFPublish:
         publisher.sendTransform(transform_stamped_msg)
         # publisher.publish(tfm)
 
+    @staticmethod
     def publish_transform(publisher, parent_name, child_name, translation, rotation):
-
         # Message
         transform_stamped_msg = geometry_msgs.msg.TransformStamped()
 
@@ -56,7 +57,7 @@ class TFPublish:
 
         publisher.publish(tfm)
 
-
+    @staticmethod
     def publish_static_transform(publisher, parent_name, child_name, translation, rotation):
         # Message
         transform_stamped_msg = geometry_msgs.msg.TransformStamped()
@@ -77,6 +78,3 @@ class TFPublish:
 
         # tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
         publisher.sendTransform(transform_stamped_msg)
-
-
-
