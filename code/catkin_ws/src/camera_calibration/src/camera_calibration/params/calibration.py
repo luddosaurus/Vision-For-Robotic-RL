@@ -14,8 +14,7 @@ calibration_path_laptop = '/home/oskarlarsson/PycharmProjects/Vision-For-Robotic
                           '/calibration_data/internal_calibration/MultiMatrix_720.npz'
 calibration_path = ""
 
-external_calibration_path = '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src' \
-                            '/camera_calibration/calibration_data/external_calibration_data/'
+external_calibration_path = '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src/camera_calibration/calibration_data/external_calibration_data/'
 
 
 external_calibration_path_position = '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src' \

@@ -31,10 +31,16 @@
             name="hand_eye_node"
             output="screen">
     </node>
-        <node
+    <node
             pkg="camera_calibration"
             type="realsense_video_topic_publisher_script.py"
             name="realsense_video_topic_publisher_node"
+            output="screen">
+    </node>
+    <node
+            pkg="camera_calibration"
+            type="external_camera_estimate_broadcaster.py"
+            name="external_camera_estimate_broadcaster_node"
             output="screen">
     </node>
 </launch>
