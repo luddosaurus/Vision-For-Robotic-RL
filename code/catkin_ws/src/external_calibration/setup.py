@@ -6,7 +6,7 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 
 setup_args = generate_distutils_setup(
-    packages=['external_calibration'],
+    packages=['external_calibration_data'],
     package_dir={'': 'src'},
 )
 

@@ -21,6 +21,8 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.HarryPlotter import HarryPlotter
 from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.SaveMe import SaveMe
+from camera_calibration.params.calibration import external_calibration_data_position
+from camera_calibration.params.calibration import external_calibration_data
 
 import cv2
 from itertools import combinations
@@ -118,7 +120,7 @@ class EyeToHandEstimator(object):
                 method=solve_method
             )
 
-        print(rot_attached2hand, tran_attached2hand)
+        # print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
     def solve_all_sample_combos(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
@@ -191,12 +193,12 @@ class EyeToHandEstimator(object):
         HarryPlotter.plot_translation_vector_categories(sample_translations)
 
     def save(self):
-        SaveMe.save_transforms(self.transforms_camera2aruco, 'camera2aruco.json')
-        SaveMe.save_transforms(self.transforms_hand2world, 'hand2world.json')
+        SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_data + 'camera2aruco.json')
+        SaveMe.save_transforms(self.transforms_hand2world, external_calibration_data + 'hand2world.json')
 
     def load(self):
-        self.transforms_camera2aruco = SaveMe.load_transforms('camera2aruco.json')
-        self.transforms_hand2world = SaveMe.load_transforms('hand2world.json')
+        self.transforms_camera2aruco = SaveMe.load_transforms(external_calibration_data + 'camera2aruco.json')
+        self.transforms_hand2world = SaveMe.load_transforms(external_calibration_data + 'hand2world.json')
 
 
 if __name__ == '__main__':
@@ -216,18 +218,24 @@ if __name__ == '__main__':
 
     if load_data:
         save_data = False
+        print('Calibrating camera position...')
         hand_eye_estimator.load()
     else:
+        print('Press return to collect data point.')
         hand_eye_estimator.collect_transforms()
     if save_data:
         hand_eye_estimator.save()
+        print('Saved data points.')
+
     # pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
     rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
     # print(rotation)
     rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
-    print(rotation)
+    print('Calibration complete.')
+    print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
     TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
                                        rotation=rotation, translation=translation)

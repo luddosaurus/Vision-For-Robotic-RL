@@ -29,7 +29,7 @@ arhelper = ARHelper(marker_size_m)
 with np.load(calibration_path) as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
 
-print("ArUcoFinder launched with parameters:")
+print("ArUcoFinder launched with internal parameters:")
 print(intrinsic_camera, distortion)
 
 

@@ -10,7 +10,7 @@ K = np.array([[fx, 0, cx],
               [0, 0, 1]])
 
 # Save K to a npz file
-np.savez('../code/catkin_ws/src/camera_calibration/src/intrinsic_camera_calibration_data/factory_settings_1920.npz', K=K)
+np.savez('../code/catkin_ws/src/camera_calibration/calibration_data/internal_calibration/factory_settings_1920.npz', K=K)
 
 print("Intrinsic camera matrix K:")
 print(K)
