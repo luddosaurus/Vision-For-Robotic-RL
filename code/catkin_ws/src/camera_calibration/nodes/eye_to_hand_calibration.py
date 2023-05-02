@@ -240,6 +240,7 @@ if __name__ == '__main__':
     SaveMe.save_transforms(transforms, external_calibration_path_position + 'camera_estimate.json')
     print(f'Saved transform frame to: {external_calibration_path_position}camera_estimate.json')
 
+    rospy.signal_shutdown("Calibration successful")
     # pub_tf_static = tf2_ros.StaticTransformBroadcaster()
     # TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name=tfn.world, child_name=tfn.camera_estimate,
     #                                    rotation=rotation, translation=translation)

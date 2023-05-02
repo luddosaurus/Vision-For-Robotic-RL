@@ -36,10 +36,7 @@ class SaveMe:
     def load_transforms(path):
         with open(path, 'r') as f:
             data = json.load(f)
-        print(path)
-        if path == '/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/code/catkin_ws/src' \
-                   '/camera_calibration/calibration_data/external_calibration_data_position/camera_estimate.json':
-            print(data)
+
         transforms = []
         for d in data:
             transform = TransformStamped()
