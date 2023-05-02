@@ -103,3 +103,19 @@ class HarryPlotter:
         ax.set_zlim3d(-1, 1)
         ax.legend()
         plt.show()
+
+    @staticmethod
+    def plot_stds(translation_stds, rotation_stds):
+        x = np.arange(3)
+        y = translation_stds
+        plt.errorbar(x, np.zeros(3), y, fmt='o', color='blue', ecolor='lightblue', elinewidth=3, capsize=0)
+
+        x = np.arange(4)
+        y = rotation_stds
+        plt.errorbar(x, np.zeros(4), y, fmt='o', color='red', ecolor='pink', elinewidth=3, capsize=0)
+
+        plt.xlabel('Axis')
+        plt.ylabel('Standard deviation')
+        plt.title('Standard deviations of translations and rotations')
+
+        plt.show()
