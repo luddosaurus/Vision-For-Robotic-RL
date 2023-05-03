@@ -21,6 +21,9 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.HarryPlotter import HarryPlotter
 from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.SaveMe import SaveMe
+from camera_calibration.utils.ErrorEstimator import ErrorEstimator
+from camera_calibration.params.calibration import external_calibration_data_position
+from camera_calibration.params.calibration import external_calibration_data
 from camera_calibration.params.calibration import external_calibration_path_position
 from camera_calibration.params.calibration import external_calibration_path
 import camera_calibration.params.transform_frame_names as tfn
@@ -41,7 +44,7 @@ class EyeToHandEstimator(object):
     def __init__(self):
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
-
+        self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
         self.listener = tf.TransformListener()
         # self.marker_subscriber = rospy.Subscriber('/detected_aruco_marker_ids', UInt8MultiArray, self.marker_callback)
         # self.tf_subscriber = rospy.Subscriber('/tf', TFMessage, self.callback)
@@ -57,14 +60,17 @@ class EyeToHandEstimator(object):
             self.num_images_to_capture = num_images
         rate = rospy.Rate(1)
         # camera = "camera_to_aruco_[0]"
-
+        camera = "charuco_to_camera"
+        aruco = "charuco"
+        world = "world"
+        hand = "panda_hand"
         while len(self.transforms_camera2aruco) < self.num_images_to_capture:
             # let the tfs start publishing
             rate.sleep()
 
             # Attached to gripper
-            camera2aruco = self.get_transform_between(origin=tfn.camera, to=tfn.charuco)
-            hand2world = self.get_transform_between(origin=tfn.hand, to=tfn.world)
+            camera2aruco = self.get_transform_between(origin=camera, to=aruco)
+            hand2world = self.get_transform_between(origin=hand, to=world)
 
             # Base to Camera
             # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
@@ -191,12 +197,12 @@ class EyeToHandEstimator(object):
         HarryPlotter.plot_translation_vector_categories(sample_translations)
 
     def save(self):
-        SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_path + 'camera2aruco.json')
-        SaveMe.save_transforms(self.transforms_hand2world, external_calibration_path + 'hand2world.json')
+        SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_data + 'camera2aruco.json')
+        SaveMe.save_transforms(self.transforms_hand2world, external_calibration_data + 'hand2world.json')
 
     def load(self):
-        self.transforms_camera2aruco = SaveMe.load_transforms(external_calibration_path + 'camera2aruco.json')
-        self.transforms_hand2world = SaveMe.load_transforms(external_calibration_path + 'hand2world.json')
+        self.transforms_camera2aruco = SaveMe.load_transforms(external_calibration_data + 'camera2aruco.json')
+        self.transforms_hand2world = SaveMe.load_transforms(external_calibration_data + 'hand2world.json')
 
 
 if __name__ == '__main__':
@@ -234,16 +240,9 @@ if __name__ == '__main__':
     print('Calibration complete.')
     print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
 
-    transform = TypeConverter.vectors_to_stamped_transform(translation=translation, rotation=rotation,
-                                                           parent_frame=tfn.world, child_frame=tfn.camera)
-    transforms = [transform]
-    SaveMe.save_transforms(transforms, external_calibration_path_position + 'camera_estimate.json')
-    print(f'Saved transform frame to: {external_calibration_path_position}camera_estimate.json')
-
-    rospy.signal_shutdown("Calibration successful")
-    # pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-    # TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name=tfn.world, child_name=tfn.camera_estimate,
-    #                                    rotation=rotation, translation=translation)
+    pub_tf_static = tf2_ros.StaticTransformBroadcaster()
+    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
+                                       rotation=rotation, translation=translation)
 
     # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)

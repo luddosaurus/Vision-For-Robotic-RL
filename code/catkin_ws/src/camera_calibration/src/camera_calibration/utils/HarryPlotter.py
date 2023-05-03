@@ -103,3 +103,43 @@ class HarryPlotter:
         ax.set_zlim3d(-1, 1)
         ax.legend()
         plt.show()
+
+    @staticmethod
+    def plot_stds(translation_stds, rotation_stds):
+        x = np.arange(3)
+        y = translation_stds
+        plt.errorbar(x, np.zeros(3), y, fmt='o', color='blue', ecolor='lightblue', elinewidth=3, capsize=0)
+
+        x = np.arange(4)
+        y = rotation_stds
+        plt.errorbar(x, np.zeros(4), y, fmt='o', color='red', ecolor='pink', elinewidth=3, capsize=0)
+
+        plt.xlabel('Axis')
+        plt.ylabel('Standard deviation')
+        plt.title('Standard deviations of translations and rotations')
+
+        plt.show()
+
+    @staticmethod
+    def plot_spread(distances):
+        # Calculate the mean and standard deviation of the distances
+        mean_distance = np.mean(distances)
+        std_distance = np.std(distances)
+
+        # Plot the distances as a histogram
+        plt.hist(distances, bins='auto')
+
+        # Add a vertical line for the mean distance
+        plt.axvline(mean_distance, color='red', linestyle='dashed', linewidth=1)
+
+        # Add text for the mean and standard deviation
+        plt.text(mean_distance, 5, f'Mean: {mean_distance:.2f}', ha='center')
+        plt.text(mean_distance, 4, f'Std: {std_distance:.2f}', ha='center')
+
+        # Set the axis labels and title
+        plt.xlabel('Euclidean distance')
+        plt.ylabel('Frequency')
+        plt.title('Distribution of Euclidean distances')
+
+        # Show the plot
+        plt.show()

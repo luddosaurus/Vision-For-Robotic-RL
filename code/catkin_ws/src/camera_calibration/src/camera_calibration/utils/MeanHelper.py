@@ -30,7 +30,6 @@ class MeanHelper:
 
         return MeanHelper.riemannian_mean_translation(clean_translations), MeanHelper.riemannian_mean_rotation(clean_rotations)
 
-    
     def riemannian_mean_translation(translations):
         # Compute the Riemannian mean of the vectors
         mean_vector = np.mean(translations, axis=0)
@@ -43,7 +42,6 @@ class MeanHelper:
         # Print the results
         # print("Mean vector:", mean_vector)
         return mean_vector
-
 
     def riemannian_mean_rotation(quaternions):
         # Convert the quaternion vectors to Rotation objects
@@ -58,7 +56,6 @@ class MeanHelper:
         # Print the results
         # print("Mean quaternion:", mean_quaternion.as_quat())
         return mean_quaternion.as_quat()
-
 
     def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
         # might be problem here

@@ -61,7 +61,6 @@ class TypeConverter:
             rotation_matrices.append(rotation_matrix)
             translations.append(translation)
         return rotation_matrices, translations
-    
 
     # (4x4) transformation matrix to stamped transform
     @staticmethod
