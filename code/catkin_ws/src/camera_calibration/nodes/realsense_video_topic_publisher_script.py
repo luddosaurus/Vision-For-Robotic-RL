@@ -1,4 +1,4 @@
-#! /usr/bin/python3.8 
+#! /usr/bin/python3.8
 
 import cv2
 import pyrealsense2 as rs
@@ -10,10 +10,14 @@ from sensor_msgs.msg import Image
 CAMERA_WIDTH = 1920
 CAMERA_HEIGHT = 1080
 
+MAX_WIDTH_DEPTH = 1280
+MAX_HEIGHT_DEPTH = 720
+
 
 def main():
     rospy.init_node('realsense_video_topic_publisher_node')
-    pub = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
+    pub_color = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
+    pub_aligned_depth = rospy.Publisher('/camera/aligned/image_raw', Image, queue_size=10)
     rate = rospy.Rate(1)
 
     # print(
@@ -22,6 +26,11 @@ def main():
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, 30)
+    # config.enable_stream(rs.stream.color, min(CAMERA_WIDTH, MAX_WIDTH_DEPTH),
+    #                      min(CAMERA_HEIGHT, MAX_HEIGHT_DEPTH), rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.depth, min(CAMERA_WIDTH, MAX_WIDTH_DEPTH),
+                         min(CAMERA_HEIGHT, MAX_HEIGHT_DEPTH),
+                         rs.format.z16, 30)
 
     # Get device product line for setting a supporting resolution
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
@@ -39,7 +48,12 @@ def main():
         exit(0)
 
     # Start streaming
-    pipeline.start(config)
+    profile = pipeline.start(config)
+
+    # Skip some frames for auto exposure
+    for x in range(5):
+        pipeline.wait_for_frames()
+
     cv_bridge = CvBridge()
 
     send_continuous = True
@@ -52,24 +66,41 @@ def main():
                 frames = pipeline.wait_for_frames()
 
                 color_frame = frames.get_color_frame()
-                if not color_frame:
+                depth_frame = frames.get_depth_frame()
+                if not color_frame or not depth_frame:
                     continue
+
+                colorizer = rs.colorizer()
+                # colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
 
                 # Convert images to numpy arrays
 
                 color_image = np.asanyarray(color_frame.get_data())
 
+                align = rs.align(align_to=rs.stream.color)
+                frames = align.process(frames)
+
+                aligned_depth_frame = frames.get_depth_frame()
+                colorized_depth = colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+
+                images = np.hstack((color_image, colorized_depth))
+
                 # Show images
                 try:
-                    img_message = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
+                    img_message_color = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
+                    img_message_aligned_depth = cv_bridge.cv2_to_imgmsg(colorized_depth, encoding="bgr8")
                 except CvBridgeError as e:
                     print(e)
-                pub.publish(img_message)
-                # cv2.imshow('Realsense_color', color_image)
+                pub_color.publish(img_message_color)
+                pub_aligned_depth.publish(img_message_aligned_depth)
+                
+                if CAMERA_HEIGHT >= 720:
+                    images = cv2.resize(images, None, fx=0.5, fy=0.5)
+                cv2.imshow('Realsense_color', images)
                 # if send_continuous:
                 #     pub.publish(img_message)
                 # # rate.sleep()
-                # key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKey(1) & 0xFF
                 # if key == ord('f'):
                 #     print('Publishing continuously')
                 #     send_continuous = True
@@ -78,12 +109,13 @@ def main():
                 #     send_continuous = False
                 # elif key == ord('s') and not send_continuous:
                 #     pub.publish(img_message)
-                # elif key == ord('q'):
-                #     break
+                if key == ord('q'):
+                    break
         finally:
             # Stop streaming
             cv2.destroyAllWindows()
             pipeline.stop()
+            rospy.signal_shutdown('Image view dismissed.')
 
 
 if __name__ == '__main__':
