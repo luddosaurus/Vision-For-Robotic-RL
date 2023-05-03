@@ -21,6 +21,7 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.HarryPlotter import HarryPlotter
 from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.SaveMe import SaveMe
+from camera_calibration.utils.ErrorEstimator import ErrorEstimator
 from camera_calibration.params.calibration import external_calibration_data_position
 from camera_calibration.params.calibration import external_calibration_data
 
@@ -203,6 +204,8 @@ class EyeToHandEstimator(object):
 
 if __name__ == '__main__':
 
+    # ---------------------------- Init
+
     methods = [
         cv2.CALIB_HAND_EYE_TSAI,
         cv2.CALIB_HAND_EYE_PARK,
@@ -216,6 +219,8 @@ if __name__ == '__main__':
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
 
+    # ---------------------------- Collect
+
     if load_data:
         save_data = False
         print('Calibrating camera position...')
@@ -227,10 +232,13 @@ if __name__ == '__main__':
         hand_eye_estimator.save()
         print('Saved data points.')
 
-    # pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
+    # ---------------------------- Estimate Pose Transforms
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
     rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
+
+    # ---------------------------- Publish
     # print(rotation)
     rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
     print('Calibration complete.')
@@ -239,6 +247,27 @@ if __name__ == '__main__':
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
     TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
                                        rotation=rotation, translation=translation)
+
+    # ---------------------------- Plot
+    truth_transform = TypeConverter.vectors_to_stamped_transform(
+        translation=translation,
+        rotation=rotation,
+        parent_frame="world",
+        child_frame="camera_estimate"
+    )
+    all_pose_transforms = list()
+    for sample_poses in pose_estimations_samples.values():
+        for pose in sample_poses:
+            all_pose_transforms.append(pose)
+
+    # Standard Deviations
+    translation_stds, rotation_stds = ErrorEstimator.calculate_std(all_pose_transforms)
+    HarryPlotter.plot_stds(translation_stds, rotation_stds)
+
+    # Distance
+    distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
+    HarryPlotter.plot_spread(distances)
+
 
     # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)

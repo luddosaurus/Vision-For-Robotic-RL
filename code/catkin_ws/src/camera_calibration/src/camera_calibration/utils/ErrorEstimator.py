@@ -26,7 +26,7 @@ class ErrorEstimator:
         return distances
 
     @staticmethod
-    def calculate_std_devs(transforms):
+    def calculate_stds(transforms):
 
         num_transforms = len(transforms)
         translations = np.zeros((num_transforms, 3))
