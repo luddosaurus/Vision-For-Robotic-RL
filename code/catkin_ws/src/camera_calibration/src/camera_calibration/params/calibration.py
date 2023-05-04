@@ -2,6 +2,7 @@
 # /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 import os
+import rospkg
 
 marker_size_m = 0.034  # Deprecated
 

@@ -231,21 +231,44 @@ if __name__ == '__main__':
         hand_eye_estimator.save()
         print('Saved data points.')
 
-    # pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
-    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
+        # ---------------------------- Estimate Pose Transforms
+        pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
+        pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
 
-    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
-    # print(rotation)
-    rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
-    print('Calibration complete.')
-    print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+        rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
 
-    pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
-                                       rotation=rotation, translation=translation)
+        # ---------------------------- Publish
+        # print(rotation)
+        rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
+        print('Calibration complete.')
+        print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
 
-    # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
-    # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+        pub_tf_static = tf2_ros.StaticTransformBroadcaster()
+        TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
+                                           rotation=rotation, translation=translation)
+
+        # ---------------------------- Plot
+        truth_transform = TypeConverter.vectors_to_stamped_transform(
+            translation=translation,
+            rotation=rotation,
+            parent_frame="world",
+            child_frame="camera_estimate"
+        )
+        all_pose_transforms = list()
+        for sample_poses in pose_estimations_samples.values():
+            for pose in sample_poses:
+                all_pose_transforms.append(pose)
+
+        # Standard Deviations
+        translation_stds, rotation_stds = ErrorEstimator.calculate_std(all_pose_transforms)
+        HarryPlotter.plot_stds(translation_stds, rotation_stds)
+
+        # Distance
+        distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
+        HarryPlotter.plot_spread(distances)
+
+        # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
+        # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
 
     try:
         rospy.spin()
