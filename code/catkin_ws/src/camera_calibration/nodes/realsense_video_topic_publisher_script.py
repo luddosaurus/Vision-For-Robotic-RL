@@ -7,8 +7,8 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-CAMERA_WIDTH = 1920
-CAMERA_HEIGHT = 1080
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
 
 MAX_WIDTH_DEPTH = 1280
 MAX_HEIGHT_DEPTH = 720
@@ -18,10 +18,6 @@ def main():
     rospy.init_node('realsense_video_topic_publisher_node')
     pub_color = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
     pub_aligned_depth = rospy.Publisher('/camera/aligned/image_raw', Image, queue_size=10)
-    rate = rospy.Rate(1)
-
-    # print(
-    #     "f - Publish continuously\ng - Don't publish continuously\ns - Publish single image while not publishing continuously\nq - Quit")
 
     pipeline = rs.pipeline()
     config = rs.config()
@@ -71,7 +67,6 @@ def main():
                     continue
 
                 colorizer = rs.colorizer()
-                # colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
 
                 # Convert images to numpy arrays
 
@@ -93,24 +88,16 @@ def main():
                     print(e)
                 pub_color.publish(img_message_color)
                 pub_aligned_depth.publish(img_message_aligned_depth)
-                
+
                 if CAMERA_HEIGHT >= 720:
                     images = cv2.resize(images, None, fx=0.5, fy=0.5)
                 cv2.imshow('Realsense_color', images)
-                # if send_continuous:
-                #     pub.publish(img_message)
-                # # rate.sleep()
+
                 key = cv2.waitKey(1) & 0xFF
-                # if key == ord('f'):
-                #     print('Publishing continuously')
-                #     send_continuous = True
-                # elif key == ord('g'):
-                #     print('Not publishing continuously')
-                #     send_continuous = False
-                # elif key == ord('s') and not send_continuous:
-                #     pub.publish(img_message)
+
                 if key == ord('q'):
                     break
+                # rospy.Rate(100).sleep()
         finally:
             # Stop streaming
             cv2.destroyAllWindows()

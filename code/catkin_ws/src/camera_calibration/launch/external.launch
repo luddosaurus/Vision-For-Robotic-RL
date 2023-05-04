@@ -37,6 +37,13 @@
             name="realsense_video_topic_publisher_node"
             output="screen">
     </node>
+
+    <node
+            pkg="camera_calibration"
+            type="internal_calibration.py"
+            name="internal_calibration_node"
+            output="screen">
+    </node>
     <!--    <node-->
     <!--            pkg="camera_calibration"-->
     <!--            type="external_camera_estimate_broadcaster.py"-->
