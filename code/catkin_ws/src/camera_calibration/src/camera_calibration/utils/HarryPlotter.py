@@ -122,6 +122,8 @@ class HarryPlotter:
 
     @staticmethod
     def plot_spread(distances):
+
+        print(max(distances))
         # Calculate the mean and standard deviation of the distances
         mean_distance = np.mean(distances)
         std_distance = np.std(distances)
@@ -131,7 +133,7 @@ class HarryPlotter:
 
         # Add a vertical line for the mean distance
         plt.axvline(mean_distance, color='red', linestyle='dashed', linewidth=1)
-
+        plt.xlim(0, 0.1)
         # Add text for the mean and standard deviation
         plt.text(mean_distance, 5, f'Mean: {mean_distance:.2f}', ha='center')
         plt.text(mean_distance, 4, f'Std: {std_distance:.2f}', ha='center')
@@ -140,6 +142,35 @@ class HarryPlotter:
         plt.xlabel('Euclidean distance')
         plt.ylabel('Frequency')
         plt.title('Distribution of Euclidean distances')
+
+        # Show the plot
+        plt.show()
+
+    @staticmethod
+    def plot_distances_histogram(distances):
+        """
+        Plot a histogram of distances
+
+        Args:
+        distances: list of floats, the distances to plot
+        """
+        #
+        # # Normalize the distances between 0 and 1
+        # normalized_distances = normalize_distances(distances)
+
+        # Set up the plot
+        fig, ax = plt.subplots()
+
+        # Set the number of bins based on the length of the input list
+        num_bins = min(len(distances), 150)
+
+        # Plot the histogram
+        ax.hist(distances, bins=num_bins)
+
+        # Set the plot labels and title
+        ax.set_xlabel('Normalized distance')
+        ax.set_ylabel('Frequency')
+        ax.set_title('Distance histogram')
 
         # Show the plot
         plt.show()

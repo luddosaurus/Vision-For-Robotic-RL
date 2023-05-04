@@ -8,8 +8,12 @@ class ErrorEstimator:
     @staticmethod
     def euclidean_distance(transform1, transform2):
         # Convert the transformation matrices to homogeneous coordinates
-        homog1 = np.vstack((transform1, [0, 0, 0, 1]))
-        homog2 = np.vstack((transform2, [0, 0, 0, 1]))
+        homog1 = np.array([transform1.translation.x,
+                           transform1.translation.y,
+                           transform1.translation.z])
+        homog2 = np.array([transform2.translation.x,
+                           transform2.translation.y,
+                           transform2.translation.z])
 
         # Compute the Euclidean distance between the homogeneous coordinates
         distance = np.linalg.norm(homog1 - homog2)
@@ -17,11 +21,11 @@ class ErrorEstimator:
         return distance
 
     @staticmethod
-    def distance_between(transforms, truth):
+    def distance_between(transforms, stamped_truth):
         distances = list()
         for stamped_transform in transforms:
             transform = stamped_transform.transform
-            distances.append(ErrorEstimator.euclidean_distance(transform, truth))
+            distances.append(ErrorEstimator.euclidean_distance(transform, stamped_truth.transform))
 
         return distances
 

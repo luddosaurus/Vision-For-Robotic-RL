@@ -106,6 +106,28 @@ class ARHelper:
                 tvec=t_vec,
                 length=axis_length)
 
+    @staticmethod
+    def detect_and_draw_charuco(image):
+        square_length = 0.015  # mm
+        marker_length = 0.012  # mm
+        squares_x = 9
+        squares_y = 7
+
+        board = cv2.aruco.CharucoBoard_create(
+            squares_x, squares_y, square_length,
+            marker_length, cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+        )
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+        parameters = cv2.aruco.DetectorParameters_create()
+
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        if ids is None:
+            return False, image
+        cv2.aruco.drawDetectedMarkers(image, corners)
+        return True, image
+
     def estimate_charuco_pose(self, image, camera_matrix, dist_coefficients):
         square_length = 0.015  # mm
         marker_length = 0.012  # mm

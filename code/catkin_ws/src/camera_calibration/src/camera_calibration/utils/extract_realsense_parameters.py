@@ -21,6 +21,7 @@ class ExtractParameters(object):
         self.profile = self.pipeline.start(self.config)
 
     def print_parameters(self):
+        print("LOOK AT ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         for s in self.profile.get_streams():
             if s.stream_name() == 'Color':
                 v = s.as_video_stream_profile()
