@@ -59,3 +59,4 @@ CATKIN_IGNORE
 misc.xml
 Vision-For-Robotics-Rl.iml
 ludde-sandbox/.DS_Store
+.idea
