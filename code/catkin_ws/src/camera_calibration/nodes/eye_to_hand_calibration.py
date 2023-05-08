@@ -9,6 +9,7 @@ from tf2_msgs.msg import TFMessage
 from std_msgs.msg import UInt8MultiArray
 import tf
 import tf2_ros
+import random
 
 from tf.transformations import quaternion_matrix
 import numpy as np
@@ -126,11 +127,15 @@ class EyeToHandEstimator(object):
         # print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
-    def solve_all_sample_combos(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
+    def solve_all_sample_combos(
+            self,
+            solve_method=cv2.CALIB_HAND_EYE_TSAI,
+            start_sample_size=3,
+            end_sample_size=None,
+            step_size=1):
 
-        step_size = 1
-        start_sample_size = 3
-        end_sample_size = self.num_images_to_capture + 1
+        if end_sample_size is None:
+            end_sample_size = self.num_images_to_capture + 1
 
         poses = dict()
         list_size = len(self.transforms_camera2aruco)
@@ -157,14 +162,31 @@ class EyeToHandEstimator(object):
 
         return poses
 
-    def solve_all_algorithms(self):
-        methods = [
-            cv2.CALIB_HAND_EYE_TSAI,
-            cv2.CALIB_HAND_EYE_PARK,
-            cv2.CALIB_HAND_EYE_HORAUD,
-            cv2.CALIB_HAND_EYE_ANDREFF,
-            cv2.CALIB_HAND_EYE_DANIILIDIS
-        ]
+    def solve_all_method_samples(self, algorithms, start_sample_size=3, step_size=1):
+
+        end_sample_size = self.num_images_to_capture + 1
+        poses = dict()
+
+        for method in algorithms:
+            poses[method] = list()
+
+            for sample_size in range(start_sample_size, end_sample_size, step_size):
+                sample_indices = random.sample(range(len(self.transforms_camera2aruco)), sample_size)
+                camera2aruco_subset = [self.transforms_camera2aruco[index] for index in sample_indices]
+                hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
+
+                poses[method].append(
+                    self.solve(
+                        fixed2attached=self.transforms_camera2aruco,
+                        hand2base=self.transforms_hand2world,
+                        solve_method=method
+                    )
+                )
+
+        return poses
+
+    def solve_all_algorithms(self, methods):
+
         poses = dict()
 
         for method in methods:
@@ -235,8 +257,17 @@ if __name__ == '__main__':
         print('Saved data points.')
 
     # ---------------------------- Estimate Pose Transforms
+    methods = [
+        cv2.CALIB_HAND_EYE_TSAI,
+        cv2.CALIB_HAND_EYE_PARK,
+        cv2.CALIB_HAND_EYE_HORAUD,
+        cv2.CALIB_HAND_EYE_ANDREFF,
+        cv2.CALIB_HAND_EYE_DANIILIDIS
+    ]
+
     pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
-    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
+    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
+    pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
 
     rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
 
