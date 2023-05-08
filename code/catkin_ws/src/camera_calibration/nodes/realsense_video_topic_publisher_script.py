@@ -7,8 +7,8 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
+CAMERA_WIDTH = 1920
+CAMERA_HEIGHT = 1080
 
 MAX_WIDTH_DEPTH = 1280
 MAX_HEIGHT_DEPTH = 720
