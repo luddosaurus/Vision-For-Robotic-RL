@@ -299,17 +299,22 @@ if __name__ == '__main__':
         parent_frame="world",
         child_frame="camera_estimate"
     )
+
     all_pose_transforms = list()
-    for sample_poses in pose_estimations_samples.values():
-        for rotation,translation in sample_poses:
-            all_pose_transforms.append(
-                TypeConverter.vectors_to_stamped_transform(
+    sample_size2transforms = dict()
+
+    for sample_size, transforms in pose_estimations_samples.items():
+        sample_size2transforms[sample_size] = list()
+
+        for rotation, translation in transforms:
+            stamped_transform = TypeConverter.vectors_to_stamped_transform(
                     translation=translation,
                     rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
                     parent_frame="world",
                     child_frame="camera_estimate"
                 )
-            )
+            all_pose_transforms.append(stamped_transform)
+            sample_size2transforms[sample_size].append(stamped_transform)
 
     # Standard Deviations
     translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
@@ -320,9 +325,13 @@ if __name__ == '__main__':
     # normalized_distances = (distances-min(distances))/(max(distances)-min(distances))
     # HarryPlotter.plot_distances_histogram(distances)
     HarryPlotter.plot_spread(distances)
+    HarryPlotter.plot_proportion(sample_size2transforms)
+    HarryPlotter.plot_distance_histogram(sample_size2transforms)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
-    # hand_eye_estimator.plot_
+    hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
+
+
 
     try:
         rospy.spin()

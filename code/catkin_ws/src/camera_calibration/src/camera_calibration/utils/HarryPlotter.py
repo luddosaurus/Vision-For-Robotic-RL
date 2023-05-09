@@ -123,6 +123,23 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
+    def plot_distance_histogram(dictionary):
+
+        max_num_bins = max(len(distances) for distances in dictionary.values())
+        cmap = plt.get_cmap('tab10')
+
+        for sample_number, distances in dictionary.items():
+            num_bins = len(distances)
+            color = cmap(sample_number % 10)
+
+            plt.hist(distances, bins=max_num_bins, color=color, alpha=0.7, label=str(sample_number))
+
+        plt.xlabel('Distance to Truth')
+        plt.ylabel('Frequency')
+        plt.legend()
+        plt.show()
+
+    @staticmethod
     def plot_translation_vectors_gradient(translations):
 
         max_num_points = max(len(vectors) for vectors in translations.values())
