@@ -105,6 +105,22 @@ class HarryPlotter:
         plt.show()
 
     # todo plot proportion
+    # dict of sample number, list(distance to truth)
+    @staticmethod
+    def plot_proportion(dictionary):
+        # Calculate the proportion of each distance category
+        distances = np.concatenate(list(dictionary.values()))
+        unique_distances, counts = np.unique(distances, return_counts=True)
+        proportions = counts / np.sum(counts)
+
+        # Plot the proportions
+        plt.bar(unique_distances, proportions)
+
+        plt.xlabel('Distance to Truth')
+        plt.ylabel('Proportion')
+        plt.title('Proportion Plot')
+
+        plt.show()
 
     @staticmethod
     def plot_translation_vectors_gradient(translations):

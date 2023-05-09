@@ -162,12 +162,19 @@ class EyeToHandEstimator(object):
 
         return poses
 
-    def solve_all_method_samples(self, algorithms, start_sample_size=3, step_size=1):
+    def solve_all_method_samples(
+            self,
+            solve_methods,
+            start_sample_size=3,
+            end_sample_size=None,
+            step_size=1):
 
-        end_sample_size = self.num_images_to_capture + 1
+        # Solve all sample sizes for each algorithm
+        if end_sample_size is None:
+            end_sample_size = self.num_images_to_capture + 1
         poses = dict()
 
-        for method in algorithms:
+        for method in solve_methods:
             poses[method] = list()
 
             for sample_size in range(start_sample_size, end_sample_size, step_size):
@@ -185,16 +192,18 @@ class EyeToHandEstimator(object):
 
         return poses
 
-    def solve_all_algorithms(self, methods):
+    def solve_all_algorithms(self, solve_methods):
 
         poses = dict()
 
-        for method in methods:
+        for method in solve_methods:
             poses[method] = list()
-            poses[method].append(self.solve(
-                fixed2attached=self.transforms_camera2aruco,
-                hand2base=self.transforms_hand2world,
-                solve_method=method)
+            poses[method].append(
+                self.solve(
+                    fixed2attached=self.transforms_camera2aruco,
+                    hand2base=self.transforms_hand2world,
+                    solve_method=method
+                )
             )
 
         return poses
@@ -211,12 +220,14 @@ class EyeToHandEstimator(object):
     def plot_pose_dict(pose_samples):
 
         sample_translations = dict()
-        for sample_category, sample_poses in zip(pose_samples.keys(), pose_samples.values()):
+        for sample_category, poses in zip(pose_samples.keys(), pose_samples.values()):
             sample_translations[sample_category] = list()
-            for rotation, translation in sample_poses:
-                sample_translations[sample_category].append(translation)
 
-        HarryPlotter.plot_translation_vector_categories(sample_translations)
+            for _, t_vec in poses:
+                sample_translations[sample_category].append(t_vec)
+
+        # HarryPlotter.plot_translation_vector_categories(sample_translations)
+        HarryPlotter.plot_translation_vectors_gradient(sample_translations)
 
     def save(self):
         SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_path + 'camera2aruco.json')
@@ -311,6 +322,7 @@ if __name__ == '__main__':
     HarryPlotter.plot_spread(distances)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
     # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+    # hand_eye_estimator.plot_
 
     try:
         rospy.spin()
