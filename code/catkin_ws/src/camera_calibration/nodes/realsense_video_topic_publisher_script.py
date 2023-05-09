@@ -7,8 +7,8 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-CAMERA_WIDTH = 1920
-CAMERA_HEIGHT = 1080
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
 
 MAX_WIDTH_DEPTH = 1280
 MAX_HEIGHT_DEPTH = 720
@@ -46,9 +46,13 @@ def main():
     # Start streaming
     profile = pipeline.start(config)
 
+
+
     # Skip some frames for auto exposure
+
     for x in range(5):
         pipeline.wait_for_frames()
+
 
     cv_bridge = CvBridge()
 
