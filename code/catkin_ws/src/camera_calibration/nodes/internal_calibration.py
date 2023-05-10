@@ -21,7 +21,7 @@ class InternalCalibrator(object):
         self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.my_callback)
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        self.board = cv2.aruco.CharucoBoard_create(7, 9, 0.015, 0.012, self.aruco_dict)
+        self.board = cv2.aruco.CharucoBoard_create(10, 7, 0.012, 0.008, self.aruco_dict)
         self.board_dimensions = board_dimensions
         self.size_of_chessboard_squares_mm = square_size_mm
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -174,7 +174,8 @@ class InternalCalibrator(object):
                                      zeroZone=(-1, -1),
                                      criteria=criteria)
                 res2 = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.board)
-                if res2[1] is not None and res2[2] is not None and len(res2[1]) > 3 and decimator % 1 == 0:
+
+                if res2[1] is not None and res2[2] is not None and len(res2[1]) > 5 and decimator % 1 == 0:
                     allCorners.append(res2[1])
                     allIds.append(res2[2])
 
@@ -189,12 +190,14 @@ class InternalCalibrator(object):
         """
         print("CAMERA CALIBRATION")
 
-        cameraMatrixInit = np.array([[600., 0., imsize[0] / 2.],
-                                     [0., 600., imsize[1] / 2.],
+        cameraMatrixInit = np.array([[1387., 0., 946],
+                                     [0., 1388., 561],
                                      [0., 0., 1.]])
 
         distCoeffsInit = np.zeros((5, 1))
-        flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_RATIONAL_MODEL + cv2.CALIB_FIX_ASPECT_RATIO)
+        # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_RATIONAL_MODEL + cv2.CALIB_FIX_ASPECT_RATIO)
+        flags = cv2.CALIB_USE_INTRINSIC_GUESS
+        # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_FOCAL_LENGTH + cv2.CALIB_FIX_PRINCIPAL_POINT)
         # # flags = (cv2.CALIB_RATIONAL_MODEL)
         # (ret, camera_matrix, distortion_coefficients0,
         #  rotation_vectors, translation_vectors,
@@ -219,7 +222,7 @@ class InternalCalibrator(object):
             distCoeffs=distCoeffsInit,
             flags=flags,
             criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
-
+        print(ret)
         if ret:
             print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
             np.savez(
@@ -240,7 +243,7 @@ class InternalCalibrator(object):
             #
             # print("total error: {}".format(mean_error / len(objpoints)))
 
-            print(translation_vectors)
+            # print(translation_vectors)
         return ret
 
         # return ret, camera_matrix, distortion_coefficients0, rotation_vectors, translation_vectors

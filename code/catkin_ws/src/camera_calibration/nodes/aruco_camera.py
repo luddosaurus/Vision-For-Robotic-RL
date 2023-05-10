@@ -135,7 +135,7 @@ class ArUcoFinder(object):
 
         # Display Image
         cv2.imshow('image', cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2))))
-        cv2.imshow('image', image)
+        # cv2.imshow('image', image)
         cv2.waitKey(1)
 
     def create_average_transform(self, aruco_name, parent_frame, child_frame):

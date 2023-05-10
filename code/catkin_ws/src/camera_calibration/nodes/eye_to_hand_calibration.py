@@ -51,7 +51,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 15
+        self.num_images_to_capture = 30
 
     def collect_transforms(self, num_images=None):
         if num_images is None:
@@ -116,22 +116,26 @@ class EyeToHandEstimator(object):
                 method=solve_method
             )
         else:
-            rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
-                R_gripper2base=rot_hand2world,
-                t_gripper2base=tran_hand2world,
-                R_target2cam=rot_fixed2attached,
-                t_target2cam=tran_fixed2attached,
-                method=solve_method
-            )
+            try:
+                rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
+                    R_gripper2base=rot_hand2world,
+                    t_gripper2base=tran_hand2world,
+                    R_target2cam=rot_fixed2attached,
+                    t_target2cam=tran_fixed2attached,
+                    method=solve_method
+                )
+            except:
+                print('bad value')
+                return None, None
 
         # print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
     def solve_all_sample_combos(
             self,
-            solve_method=cv2.CALIB_HAND_EYE_TSAI,
-            start_sample_size=3,
-            end_sample_size=None,
+            solve_method=cv2.CALIB_HAND_EYE_DANIILIDIS,
+            start_sample_size=15,
+            end_sample_size=16,
             step_size=1):
 
         if end_sample_size is None:
@@ -139,7 +143,7 @@ class EyeToHandEstimator(object):
 
         poses = dict()
         list_size = len(self.transforms_camera2aruco)
-
+        max_iterations = 0
         # For every sample size
         for sample_size in range(start_sample_size, end_sample_size, step_size):
             print(sample_size)
@@ -152,28 +156,34 @@ class EyeToHandEstimator(object):
                 hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
 
                 # Do and save estimation
-                poses[sample_size].append(
-                    self.solve(
+                rot, tran = self.solve(
                         fixed2attached=camera2aruco_subset,
                         hand2base=hand2base_subset,
                         solve_method=solve_method
                     )
-                )
+                if rot is not None and tran is not None:
+                    poses[sample_size].append(
+                        (rot, tran)
+                    )
+                max_iterations += 1
+                if max_iterations >= 300:
+                    break
+            max_iterations = 0
 
         return poses
 
     def solve_all_method_samples(
             self,
             solve_methods,
-            start_sample_size=3,
-            end_sample_size=None,
+            start_sample_size=10,
+            end_sample_size=16,
             step_size=1):
 
         # Solve all sample sizes for each algorithm
         if end_sample_size is None:
             end_sample_size = self.num_images_to_capture + 1
         poses = dict()
-
+        max_iterations = 0
         for method in solve_methods:
             poses[method] = list()
 
@@ -189,6 +199,10 @@ class EyeToHandEstimator(object):
                         solve_method=method
                     )
                 )
+                max_iterations += 1
+                if max_iterations >= 300:
+                    break
+            max_iterations = 0
 
         return poses
 
@@ -226,8 +240,8 @@ class EyeToHandEstimator(object):
             for _, t_vec in poses:
                 sample_translations[sample_category].append(t_vec)
 
-        # HarryPlotter.plot_translation_vector_categories(sample_translations)
-        HarryPlotter.plot_translation_vectors_gradient(sample_translations)
+        HarryPlotter.plot_translation_vector_categories(sample_translations)
+        # HarryPlotter.plot_translation_vectors_gradient(sample_translations)
 
     def save(self):
         SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_path + 'camera2aruco.json')
@@ -238,10 +252,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = SaveMe.load_transforms(external_calibration_path + 'hand2world.json')
 
 
-
 if __name__ == '__main__':
-
-
 
     methods = [
         cv2.CALIB_HAND_EYE_TSAI,
@@ -276,17 +287,19 @@ if __name__ == '__main__':
         cv2.CALIB_HAND_EYE_DANIILIDIS
     ]
 
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[3])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
     pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
 
-    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
+    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_HORAUD][0]
 
     # ---------------------------- Publish
     # print(rotation)
     rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
-    print('Calibration complete.')
-    print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+    # print('Calibration complete.')
+    # print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+    #
+    print(pose_estimations_methods)
 
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
     TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
@@ -308,30 +321,28 @@ if __name__ == '__main__':
 
         for rotation, translation in transforms:
             stamped_transform = TypeConverter.vectors_to_stamped_transform(
-                    translation=translation,
-                    rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
-                    parent_frame="world",
-                    child_frame="camera_estimate"
-                )
+                translation=translation,
+                rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
+                parent_frame="world",
+                child_frame="camera_estimate"
+            )
             all_pose_transforms.append(stamped_transform)
             sample_size2transforms[sample_size].append(stamped_transform)
 
     # Standard Deviations
     translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
-    #HarryPlotter.plot_stds(translation_stds, rotation_stds)
+    # HarryPlotter.plot_stds(translation_stds, rotation_stds)
 
     # Distance
     distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
     # normalized_distances = (distances-min(distances))/(max(distances)-min(distances))
     # HarryPlotter.plot_distances_histogram(distances)
-    HarryPlotter.plot_spread(distances)
-    HarryPlotter.plot_proportion(sample_size2transforms)
-    HarryPlotter.plot_distance_histogram(sample_size2transforms)
-    # hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
-    # hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
-    hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
-
-
+    # HarryPlotter.plot_spread(distances)
+    # HarryPlotter.plot_proportion(sample_size2transforms)
+    # HarryPlotter.plot_distance_histogram(sample_size2transforms)
+    hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
+    hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+    # hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
 
     try:
         rospy.spin()
