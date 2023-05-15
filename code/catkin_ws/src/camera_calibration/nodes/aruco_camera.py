@@ -23,6 +23,7 @@ from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.MeanHelper import MeanHelper
 from camera_calibration.params.calibration import marker_size_m, calibration_path
 from camera_calibration.utils.TypeConverter import TypeConverter
+from camera_calibration.utils.ErrorEstimator import ErrorEstimator
 
 # Init
 
@@ -50,6 +51,8 @@ class ArUcoFinder(object):
         self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
                                  charuco_square_size=charuco_square_size, dict_type=dict_type)
 
+        self.transform_memory = []
+
     # Finds the ArUco:s location in the camera 3D space
 
     def charuco_callback(self, image):
@@ -57,19 +60,31 @@ class ArUcoFinder(object):
             image=image,
             camera_matrix=intrinsic_camera,
             dist_coefficients=distortion)
+        stamped_transform = TypeConverter.vectors_to_stamped_transform(self.t_vecs,
+                                                                       TypeConverter.rotation_vector_to_quaternions(
+                                                                           self.r_vecs), "charuco", "charuco_to_camera")
+
+        if len(self.transform_memory) > 5:
+            self.transform_memory = self.transform_memory[1:]
+        self.transform_memory.append(stamped_transform)
+        std = ErrorEstimator.calculate_stds(self.transform_memory)
+        sum_std = np.sum(std[0]) + np.sum(std[1])
+        cv2.putText(image, f'{sum_std}', (10, image.shape[0] + 10), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2,
+                    cv2.LINE_AA)
+
+        # print(sum_std)
         # self.r_vecs[2] -= math.pi / 2
         # print("---\n", self.r_vecs, self.t_vecs, "\n---")
         self.inv_and_pub(
             # parent_name="charuco",
-            parent_name="charuco",  # This is for debugging
+            parent_name="charuco",
             child_name="charuco_to_camera",
             rotation=self.r_vecs,
-            translation=self.t_vecs
-        )
+            translation=self.t_vecs)
+
         return image
 
     def aruco_callback(self, image):
-
         # Find ArUco Markers
         image, corners, ids = self.arHelperr.find_markers(image)
 
@@ -112,10 +127,10 @@ class ArUcoFinder(object):
         else:
             self.transforms[parent_name] = [(translation, rotation)]
 
-        if len(self.transforms[parent_name]) > 30:
+        if len(self.transforms[parent_name]) > 100:
             translation, rotation = self.create_average_transform(aruco_name=parent_name, parent_frame=parent_name,
                                                                   child_frame=child_name)
-            if not np.isnan(translation).any():
+            if not np.isnan(translation).any() and not np.isnan(rotation).any():
                 TFPublish.publish_transform(
                     publisher=self.pub_aruco_tf,
                     parent_name=parent_name,
@@ -123,7 +138,7 @@ class ArUcoFinder(object):
                     translation=translation,
                     rotation=rotation
                 )
-            self.transforms = dict()
+            self.transforms[parent_name] = self.transforms[parent_name][1:]
 
     def callback(self, image):
         try:
@@ -157,7 +172,8 @@ class ArUcoFinder(object):
 
 def main():
     rospy.init_node('aruco_camera_node')
-    aruco_finder = ArUcoFinder(charuco_board_shape=(9, 14), charuco_square_size=0.04, charuco_marker_size=0.031, dict_type=cv2.aruco.DICT_5X5_100)
+    aruco_finder = ArUcoFinder(charuco_board_shape=(9, 14), charuco_square_size=0.04, charuco_marker_size=0.031,
+                               dict_type=cv2.aruco.DICT_5X5_100)
 
     try:
         rospy.spin()

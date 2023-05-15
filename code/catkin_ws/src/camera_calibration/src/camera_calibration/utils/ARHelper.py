@@ -120,7 +120,7 @@ class ARHelper:
         parameters = cv2.aruco.DetectorParameters_create()
 
         corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-        if len(ids) < 10 or ids is None:
+        if len(ids) < 5 or ids is None:
             return False, image
         cv2.aruco.drawDetectedMarkers(image, corners)
         return True, image
