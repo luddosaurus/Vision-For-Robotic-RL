@@ -8,13 +8,19 @@ class ARHelper:
     # marker_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     # param_markers = cv2.aruco.DetectorParameters()
 
-    marker_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+    # marker_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
     param_markers = cv2.aruco.DetectorParameters_create()
 
-    def __init__(self, marker_size=50):
-        self.marker_size = marker_size
+    def __init__(self, charuco_board_shape=None, charuco_marker_size=None, charuco_square_size=None, dict_type=None):
+        self.marker_size = 50  # DO NOT USE THIS
         self.rvec_un_reversed = np.random.random((3, 1))
         self.tvec = np.random.random((3, 1))
+        self.param_markers = cv2.aruco.DetectorParameters_create()
+
+        self.aruco_dict = cv2.aruco.Dictionary_get(dict_type)
+        self.charuco_board = cv2.aruco.CharucoBoard_create(
+            charuco_board_shape[1], charuco_board_shape[0], charuco_square_size,
+            charuco_marker_size, self.aruco_dict)
 
     def find_markers(self, img, debug=False):
 
@@ -108,44 +114,24 @@ class ARHelper:
 
     @staticmethod
     def detect_and_draw_charuco(image):
-        square_length = 0.012  # mm
-        marker_length = 0.008  # mm
-        squares_x = 7
-        squares_y = 10
-
-        board = cv2.aruco.CharucoBoard_create(
-            squares_y, squares_x, square_length,
-            marker_length, cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
-        )
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_100)
         parameters = cv2.aruco.DetectorParameters_create()
 
         corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-        if ids is None:
+        if len(ids) < 10 or ids is None:
             return False, image
         cv2.aruco.drawDetectedMarkers(image, corners)
         return True, image
 
     def estimate_charuco_pose(self, image, camera_matrix, dist_coefficients):
-        square_length = 0.012  # mm
-        marker_length = 0.008  # mm
-        squares_x = 7
-        squares_y = 10
-
-        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_100)
-
-        board = cv2.aruco.CharucoBoard_create(
-            squares_y, squares_x, square_length,
-            marker_length, aruco_dict
-        )
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         parameters = cv2.aruco.DetectorParameters_create()
 
-        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=parameters)
         if ids is None:
             return image, self.reverse_rvec(self.rvec_un_reversed), self.tvec
         cv2.aruco.drawDetectedMarkers(image, corners)
@@ -156,7 +142,7 @@ class ARHelper:
         # for (aruco_rvec, aruco_tvec) in zip(aruco_rvecs, aruco_tvecs):
         #     cv2.drawFrameAxes(image=image, cameraMatrix=camera_matrix, distCoeffs=dist_coefficients, rvec=aruco_rvec, tvec=aruco_tvec, length=0.03, thickness=2)
 
-        ret, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, board)
+        ret, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.charuco_board)
 
         # for corner in charuco_corners:
         #     # print(int(corner[0]), corner[1])
@@ -169,7 +155,7 @@ class ARHelper:
             return image, self.reverse_rvec(self.rvec_un_reversed), self.tvec
 
         retval, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(charucoCorners=charuco_corners, charucoIds=charuco_ids,
-                                                                board=board, cameraMatrix=camera_matrix,
+                                                                board=self.charuco_board, cameraMatrix=camera_matrix,
                                                                 distCoeffs=dist_coefficients,
                                                                 rvec=self.rvec_un_reversed, tvec=self.tvec,
                                                                 useExtrinsicGuess=True)

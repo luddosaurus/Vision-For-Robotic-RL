@@ -51,7 +51,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 30
+        self.num_images_to_capture = 5
 
     def collect_transforms(self, num_images=None):
         if num_images is None:
@@ -70,7 +70,7 @@ class EyeToHandEstimator(object):
 
             # Attached to gripper
             camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-            hand2world = self.get_transform_between(origin=hand, to=world)
+            hand2world = self.get_transform_between(origin=world, to=hand)
 
             # Base to Camera
             # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
@@ -134,8 +134,8 @@ class EyeToHandEstimator(object):
     def solve_all_sample_combos(
             self,
             solve_method=cv2.CALIB_HAND_EYE_DANIILIDIS,
-            start_sample_size=15,
-            end_sample_size=16,
+            start_sample_size=3,
+            end_sample_size=6,
             step_size=1):
 
         if end_sample_size is None:
@@ -175,8 +175,8 @@ class EyeToHandEstimator(object):
     def solve_all_method_samples(
             self,
             solve_methods,
-            start_sample_size=10,
-            end_sample_size=16,
+            start_sample_size=3,
+            end_sample_size=None,
             step_size=1):
 
         # Solve all sample sizes for each algorithm
@@ -302,14 +302,14 @@ if __name__ == '__main__':
     print(pose_estimations_methods)
 
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
+    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="panda_hand", child_name="camera_estimate",
                                        rotation=rotation, translation=translation)
 
     # ---------------------------- Plot
     truth_transform = TypeConverter.vectors_to_stamped_transform(
         translation=translation,
         rotation=rotation,
-        parent_frame="world",
+        parent_frame="panda_hand",
         child_frame="camera_estimate"
     )
 
