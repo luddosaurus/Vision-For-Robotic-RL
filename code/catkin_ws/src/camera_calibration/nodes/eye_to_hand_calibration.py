@@ -51,7 +51,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 5
+        self.num_images_to_capture = 10
 
     def collect_transforms(self, num_images=None):
         if num_images is None:
@@ -67,7 +67,7 @@ class EyeToHandEstimator(object):
         while len(self.transforms_camera2aruco) < self.num_images_to_capture:
             # let the tfs start publishing
             rate.sleep()
-
+            input()
             # Attached to gripper
             camera2aruco = self.get_transform_between(origin=camera, to=aruco)
             hand2world = self.get_transform_between(origin=world, to=hand)
@@ -76,7 +76,6 @@ class EyeToHandEstimator(object):
             # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
             # hand2world = self.get_transform_between(origin=world, to=hand)
 
-            input()
             print(camera2aruco)
             print(hand2world)
             if hand2world is not None and camera2aruco is not None:
@@ -134,8 +133,8 @@ class EyeToHandEstimator(object):
     def solve_all_sample_combos(
             self,
             solve_method=cv2.CALIB_HAND_EYE_DANIILIDIS,
-            start_sample_size=3,
-            end_sample_size=6,
+            start_sample_size=8,
+            end_sample_size=11,
             step_size=1):
 
         if end_sample_size is None:
@@ -157,10 +156,10 @@ class EyeToHandEstimator(object):
 
                 # Do and save estimation
                 rot, tran = self.solve(
-                        fixed2attached=camera2aruco_subset,
-                        hand2base=hand2base_subset,
-                        solve_method=solve_method
-                    )
+                    fixed2attached=camera2aruco_subset,
+                    hand2base=hand2base_subset,
+                    solve_method=solve_method
+                )
                 if rot is not None and tran is not None:
                     poses[sample_size].append(
                         (rot, tran)
@@ -263,7 +262,7 @@ if __name__ == '__main__':
     ]
 
     save_data = True
-    load_data = True
+    load_data = False
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
 
@@ -287,11 +286,13 @@ if __name__ == '__main__':
         cv2.CALIB_HAND_EYE_DANIILIDIS
     ]
 
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[3])
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
     pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
     pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
 
-    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_HORAUD][0]
+    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_TSAI][0]
+
+    # ---------------------------- Test mean of all methods
 
     # ---------------------------- Publish
     # print(rotation)
@@ -323,7 +324,7 @@ if __name__ == '__main__':
             stamped_transform = TypeConverter.vectors_to_stamped_transform(
                 translation=translation,
                 rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
-                parent_frame="world",
+                parent_frame="panda_hand",
                 child_frame="camera_estimate"
             )
             all_pose_transforms.append(stamped_transform)
