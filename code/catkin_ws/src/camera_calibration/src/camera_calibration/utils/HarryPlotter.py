@@ -104,6 +104,65 @@ class HarryPlotter:
         ax.legend()
         plt.show()
 
+    # todo plot proportion
+    # dict of sample number, list(distance to truth)
+    @staticmethod
+    def plot_proportion(dictionary):
+        # Calculate the proportion of each distance category
+        distances = np.concatenate(list(dictionary.values()))
+        unique_distances, counts = np.unique(distances, return_counts=True)
+        proportions = counts / np.sum(counts)
+
+        # Plot the proportions
+        plt.bar(unique_distances, proportions)
+
+        plt.xlabel('Distance to Truth')
+        plt.ylabel('Proportion')
+        plt.title('Proportion Plot')
+
+        plt.show()
+
+    @staticmethod
+    def plot_distance_histogram(dictionary):
+
+        max_num_bins = max(len(distances) for distances in dictionary.values())
+        cmap = plt.get_cmap('tab10')
+
+        for sample_number, distances in dictionary.items():
+            num_bins = len(distances)
+            color = cmap(sample_number % 10)
+
+            plt.hist(distances, bins=max_num_bins, color=color, alpha=0.7, label=str(sample_number))
+
+        plt.xlabel('Distance to Truth')
+        plt.ylabel('Frequency')
+        plt.legend()
+        plt.show()
+
+    @staticmethod
+    def plot_translation_vectors_gradient(translations):
+
+        max_num_points = max(len(vectors) for vectors in translations.values())
+        cmap = plt.get_cmap('viridis')
+
+        for method, points in translations.items():
+            points = np.array(points)
+            num_points = len(points)
+            indices = np.arange(num_points)
+
+            colors = [cmap(i / (max_num_points - 1)) for i in indices]
+
+            plt.scatter(points[:, 0], points[:, 1], points[:, 2], c=colors, label=method)
+
+        # Set labels and legend
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.zlabel('Z')
+        plt.legend()
+
+        # Show the plot
+        plt.show()
+
     @staticmethod
     def plot_stds(translation_stds, rotation_stds):
         x = np.arange(3)

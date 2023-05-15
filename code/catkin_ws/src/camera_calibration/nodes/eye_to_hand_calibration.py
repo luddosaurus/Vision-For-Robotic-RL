@@ -9,6 +9,7 @@ from tf2_msgs.msg import TFMessage
 from std_msgs.msg import UInt8MultiArray
 import tf
 import tf2_ros
+import random
 
 from tf.transformations import quaternion_matrix
 import numpy as np
@@ -30,10 +31,6 @@ import camera_calibration.params.transform_frame_names as tfn
 import cv2
 from itertools import combinations
 
-import datetime
-
-import os
-
 
 # GOAL find offset between ee and aruco
 # subscribe to tf
@@ -54,7 +51,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2aruco = []
         self.start_time = time()
-        self.num_images_to_capture = 30
+        self.num_images_to_capture = 5
 
     def collect_transforms(self, num_images=None):
         if num_images is None:
@@ -73,7 +70,7 @@ class EyeToHandEstimator(object):
 
             # Attached to gripper
             camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-            hand2world = self.get_transform_between(origin=hand, to=world)
+            hand2world = self.get_transform_between(origin=world, to=hand)
 
             # Base to Camera
             # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
@@ -119,30 +116,34 @@ class EyeToHandEstimator(object):
                 method=solve_method
             )
         else:
-            rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
-                R_gripper2base=rot_hand2world,
-                t_gripper2base=tran_hand2world,
-                R_target2cam=rot_fixed2attached,
-                t_target2cam=tran_fixed2attached,
-                method=solve_method
-            )
+            try:
+                rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
+                    R_gripper2base=rot_hand2world,
+                    t_gripper2base=tran_hand2world,
+                    R_target2cam=rot_fixed2attached,
+                    t_target2cam=tran_fixed2attached,
+                    method=solve_method
+                )
+            except:
+                print('bad value')
+                return None, None
 
         # print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
-    def solve_all_sample_combos(self, solve_method=cv2.CALIB_HAND_EYE_TSAI):
+    def solve_all_sample_combos(
+            self,
+            solve_method=cv2.CALIB_HAND_EYE_DANIILIDIS,
+            start_sample_size=3,
+            end_sample_size=6,
+            step_size=1):
 
-        step_size = 1
-        start_sample_size = 28
-        # end_sample_size = self.num_images_to_capture + 1
-        end_sample_size = 29
-
+        if end_sample_size is None:
+            end_sample_size = self.num_images_to_capture + 1
 
         poses = dict()
         list_size = len(self.transforms_camera2aruco)
-
         max_iterations = 0
-
         # For every sample size
         for sample_size in range(start_sample_size, end_sample_size, step_size):
             print(sample_size)
@@ -155,36 +156,68 @@ class EyeToHandEstimator(object):
                 hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
 
                 # Do and save estimation
-                poses[sample_size].append(
-                    self.solve(
+                rot, tran = self.solve(
                         fixed2attached=camera2aruco_subset,
                         hand2base=hand2base_subset,
                         solve_method=solve_method
                     )
-                )
+                if rot is not None and tran is not None:
+                    poses[sample_size].append(
+                        (rot, tran)
+                    )
                 max_iterations += 1
-                if max_iterations >= 500:
+                if max_iterations >= 300:
                     break
             max_iterations = 0
 
         return poses
 
-    def solve_all_algorithms(self):
-        methods = [
-            cv2.CALIB_HAND_EYE_TSAI,
-            cv2.CALIB_HAND_EYE_PARK,
-            cv2.CALIB_HAND_EYE_HORAUD,
-            cv2.CALIB_HAND_EYE_ANDREFF,
-            cv2.CALIB_HAND_EYE_DANIILIDIS
-        ]
+    def solve_all_method_samples(
+            self,
+            solve_methods,
+            start_sample_size=3,
+            end_sample_size=None,
+            step_size=1):
+
+        # Solve all sample sizes for each algorithm
+        if end_sample_size is None:
+            end_sample_size = self.num_images_to_capture + 1
+        poses = dict()
+        max_iterations = 0
+        for method in solve_methods:
+            poses[method] = list()
+
+            for sample_size in range(start_sample_size, end_sample_size, step_size):
+                sample_indices = random.sample(range(len(self.transforms_camera2aruco)), sample_size)
+                camera2aruco_subset = [self.transforms_camera2aruco[index] for index in sample_indices]
+                hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
+
+                poses[method].append(
+                    self.solve(
+                        fixed2attached=self.transforms_camera2aruco,
+                        hand2base=self.transforms_hand2world,
+                        solve_method=method
+                    )
+                )
+                max_iterations += 1
+                if max_iterations >= 300:
+                    break
+            max_iterations = 0
+
+        return poses
+
+    def solve_all_algorithms(self, solve_methods):
+
         poses = dict()
 
-        for method in methods:
+        for method in solve_methods:
             poses[method] = list()
-            poses[method].append(self.solve(
-                fixed2attached=self.transforms_camera2aruco[15:],
-                hand2base=self.transforms_hand2world[15:],
-                solve_method=method)
+            poses[method].append(
+                self.solve(
+                    fixed2attached=self.transforms_camera2aruco,
+                    hand2base=self.transforms_hand2world,
+                    solve_method=method
+                )
             )
 
         return poses
@@ -201,28 +234,22 @@ class EyeToHandEstimator(object):
     def plot_pose_dict(pose_samples):
 
         sample_translations = dict()
-        for sample_category, sample_poses in zip(pose_samples.keys(), pose_samples.values()):
+        for sample_category, poses in zip(pose_samples.keys(), pose_samples.values()):
             sample_translations[sample_category] = list()
-            for rotation, translation in sample_poses:
-                sample_translations[sample_category].append(translation)
+
+            for _, t_vec in poses:
+                sample_translations[sample_category].append(t_vec)
 
         HarryPlotter.plot_translation_vector_categories(sample_translations)
+        # HarryPlotter.plot_translation_vectors_gradient(sample_translations)
 
     def save(self):
-
-        current_datetime = datetime.datetime.now()
-        formatted_datetime = current_datetime.strftime('%Y-%m-%d_%H-%M-%S')
-        directory_path = os.path.join(external_calibration_path, formatted_datetime)
-        os.makedirs(directory_path)
-
-        SaveMe.save_transforms(self.transforms_camera2aruco, directory_path + '/camera2aruco.json')
-        SaveMe.save_transforms(self.transforms_hand2world, directory_path + '/hand2world.json')
+        SaveMe.save_transforms(self.transforms_camera2aruco, external_calibration_path + 'camera2aruco.json')
+        SaveMe.save_transforms(self.transforms_hand2world, external_calibration_path + 'hand2world.json')
 
     def load(self):
-        self.transforms_camera2aruco = SaveMe.load_transforms(
-            external_calibration_path + '/2023-05-08_12-43-30/camera2aruco.json')
-        self.transforms_hand2world = SaveMe.load_transforms(
-            external_calibration_path + '/2023-05-08_12-43-30/hand2world.json')
+        self.transforms_camera2aruco = SaveMe.load_transforms(external_calibration_path + 'camera2aruco.json')
+        self.transforms_hand2world = SaveMe.load_transforms(external_calibration_path + 'hand2world.json')
 
 
 if __name__ == '__main__':
@@ -252,54 +279,70 @@ if __name__ == '__main__':
         print('Saved data points.')
 
     # ---------------------------- Estimate Pose Transforms
-    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms()
+    methods = [
+        cv2.CALIB_HAND_EYE_TSAI,
+        cv2.CALIB_HAND_EYE_PARK,
+        cv2.CALIB_HAND_EYE_HORAUD,
+        cv2.CALIB_HAND_EYE_ANDREFF,
+        cv2.CALIB_HAND_EYE_DANIILIDIS
+    ]
 
-    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_DANIILIDIS][0]
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[3])
+    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
+    pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
+
+    rotation, translation = pose_estimations_methods[cv2.CALIB_HAND_EYE_HORAUD][0]
 
     # ---------------------------- Publish
     # print(rotation)
     rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
-    print('Calibration complete.')
-    print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+    # print('Calibration complete.')
+    # print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
+    #
+    print(pose_estimations_methods)
 
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
+    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="panda_hand", child_name="camera_estimate",
                                        rotation=rotation, translation=translation)
 
     # ---------------------------- Plot
     truth_transform = TypeConverter.vectors_to_stamped_transform(
         translation=translation,
         rotation=rotation,
-        parent_frame="world",
+        parent_frame="panda_hand",
         child_frame="camera_estimate"
     )
-    all_pose_transforms = list()
 
-    # -------- Samples
-    hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
-    #
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[4])
-    for sample_poses in pose_estimations_samples.values():
-        for rotation, translation in sample_poses:
-            all_pose_transforms.append(
-                TypeConverter.vectors_to_stamped_transform(
-                    translation=translation,
-                    rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
-                    parent_frame="world",
-                    child_frame="camera_estimate"
-                )
+    all_pose_transforms = list()
+    sample_size2transforms = dict()
+
+    for sample_size, transforms in pose_estimations_samples.items():
+        sample_size2transforms[sample_size] = list()
+
+        for rotation, translation in transforms:
+            stamped_transform = TypeConverter.vectors_to_stamped_transform(
+                translation=translation,
+                rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
+                parent_frame="world",
+                child_frame="camera_estimate"
             )
+            all_pose_transforms.append(stamped_transform)
+            sample_size2transforms[sample_size].append(stamped_transform)
 
     # Standard Deviations
-    # translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
+    translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
     # HarryPlotter.plot_stds(translation_stds, rotation_stds)
 
     # Distance
-    # distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
+    distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
     # normalized_distances = (distances-min(distances))/(max(distances)-min(distances))
     # HarryPlotter.plot_distances_histogram(distances)
     # HarryPlotter.plot_spread(distances)
+    # HarryPlotter.plot_proportion(sample_size2transforms)
+    # HarryPlotter.plot_distance_histogram(sample_size2transforms)
     hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
+    hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
+    # hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
 
     try:
         rospy.spin()

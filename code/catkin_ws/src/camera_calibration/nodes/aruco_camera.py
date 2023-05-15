@@ -25,7 +25,7 @@ from camera_calibration.params.calibration import marker_size_m, calibration_pat
 from camera_calibration.utils.TypeConverter import TypeConverter
 
 # Init
-arhelper = ARHelper(marker_size_m)
+
 with np.load(calibration_path) as X:
     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
 
@@ -36,7 +36,8 @@ print(intrinsic_camera, distortion)
 # Finds ArUco:s from images and broadcast the tf (ArUco to Camera)
 class ArUcoFinder(object):
 
-    def __init__(self):
+    def __init__(self, charuco_board_shape=None, charuco_marker_size=None,
+                 charuco_square_size=None, dict_type=None):
         self.cv_bridge = CvBridge()
 
         # todo add depth here
@@ -46,11 +47,13 @@ class ArUcoFinder(object):
         self.use_charuco = True
         self.r_vecs = np.random.random((3, 1))
         self.t_vecs = np.random.random((3, 1))
+        self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
+                                 charuco_square_size=charuco_square_size, dict_type=dict_type)
 
     # Finds the ArUco:s location in the camera 3D space
 
     def charuco_callback(self, image):
-        image, self.r_vecs, self.t_vecs = arhelper.estimate_charuco_pose(
+        image, self.r_vecs, self.t_vecs = self.arHelper.estimate_charuco_pose(
             image=image,
             camera_matrix=intrinsic_camera,
             dist_coefficients=distortion)
@@ -68,7 +71,7 @@ class ArUcoFinder(object):
     def aruco_callback(self, image):
 
         # Find ArUco Markers
-        image, corners, ids = arhelper.find_markers(image)
+        image, corners, ids = self.arHelperr.find_markers(image)
 
         # image = ARHelper.draw_vectors(image, corners, ids, intrinsic_camera, distortion)
 
@@ -85,7 +88,7 @@ class ArUcoFinder(object):
                 distCoeffs=distortion)
 
             # NEW
-            ARHelper.draw_vectors(image, intrinsic_camera, distortion, r_vecs, t_vecs)
+            self.arHelper.draw_vectors(image, intrinsic_camera, distortion, r_vecs, t_vecs)
 
             for aruco_id, rotation, translation, corner_points in zip(ids, r_vecs, t_vecs, corners):
                 transform_name = f"aruco_to_camera_{aruco_id}"
@@ -134,8 +137,8 @@ class ArUcoFinder(object):
             image = self.aruco_callback(image)
 
         # Display Image
-        # cv2.imshow('image', cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2))))
-        cv2.imshow('image', cv2.resize(image, None, fx=0.5, fy=0.5))
+        cv2.imshow('image', cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2))))
+        # cv2.imshow('image', image)
         cv2.waitKey(1)
 
     def create_average_transform(self, aruco_name, parent_frame, child_frame):
@@ -154,7 +157,7 @@ class ArUcoFinder(object):
 
 def main():
     rospy.init_node('aruco_camera_node')
-    aruco_finder = ArUcoFinder()
+    aruco_finder = ArUcoFinder(charuco_board_shape=(9, 14), charuco_square_size=0.04, charuco_marker_size=0.031, dict_type=cv2.aruco.DICT_5X5_100)
 
     try:
         rospy.spin()

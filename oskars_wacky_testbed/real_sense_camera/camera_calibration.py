@@ -5,16 +5,19 @@ import cv2
 import numpy as np
 from extract_realsense_parameters import ExtractParameters
 
+
 # lth board
 # chessboardSize = (5, 8)
 # size_of_chessboard_squares_mm = 20
 
+
 chessboardSize = (7, 10)
 size_of_chessboard_squares_mm = 15
-IMAGE_FOLDER_NAME = "images_real_sense_1280"
-CALIB_DATA_NAME = "calib_data_1280"
-calib_data_path = f'/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/{CALIB_DATA_NAME}'
-image_path = f'/home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/{IMAGE_FOLDER_NAME}/*.png'
+IMAGE_FOLDER_NAME = "images_real_sense_1920"
+CALIB_DATA_NAME = "calib_data_1080"
+# /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/
+calib_data_path = f'/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera//{CALIB_DATA_NAME}'
+image_path = f'/home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/oskars_wacky_testbed/real_sense_camera/{IMAGE_FOLDER_NAME}/*.png'
 
 CHECK_DIR = os.path.isdir(calib_data_path)
 
