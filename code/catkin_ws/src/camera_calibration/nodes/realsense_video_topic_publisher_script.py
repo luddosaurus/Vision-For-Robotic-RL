@@ -100,13 +100,18 @@ def main():
                 key = cv2.waitKey(1) & 0xFF
 
                 if key == ord('q'):
+                    cv2.destroyAllWindows()
+                    rospy.Rate(1).sleep()
+                    pipeline.stop()
+                    del pipeline
+                    rospy.signal_shutdown('Image view dismissed.')
                     break
                 # rospy.Rate(100).sleep()
         finally:
             # Stop streaming
             cv2.destroyAllWindows()
-            pipeline.stop()
-            rospy.signal_shutdown('Image view dismissed.')
+            # pipeline.stop()
+            # rospy.signal_shutdown('Image view dismissed.')
 
 
 if __name__ == '__main__':

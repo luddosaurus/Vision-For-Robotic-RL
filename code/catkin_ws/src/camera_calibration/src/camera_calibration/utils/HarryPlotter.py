@@ -157,7 +157,6 @@ class HarryPlotter:
         # Set labels and legend
         plt.xlabel('X')
         plt.ylabel('Y')
-        plt.zlabel('Z')
         plt.legend()
 
         # Show the plot
