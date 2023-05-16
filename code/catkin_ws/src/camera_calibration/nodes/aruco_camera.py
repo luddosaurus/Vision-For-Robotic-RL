@@ -24,6 +24,7 @@ from camera_calibration.utils.MeanHelper import MeanHelper
 from camera_calibration.params.calibration import marker_size_m, calibration_path
 from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.ErrorEstimator import ErrorEstimator
+from camera_calibration.utils.DaVinci import DaVinci
 
 # Init
 
@@ -48,6 +49,7 @@ class ArUcoFinder(object):
         self.use_charuco = True
         self.r_vecs = np.random.random((3, 1))
         self.t_vecs = np.random.random((3, 1))
+
         self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
                                  charuco_square_size=charuco_square_size, dict_type=dict_type)
 
@@ -69,8 +71,9 @@ class ArUcoFinder(object):
         self.transform_memory.append(stamped_transform)
         std = ErrorEstimator.calculate_stds(self.transform_memory)
         sum_std = np.sum(std[0]) + np.sum(std[1])
-        cv2.putText(image, f'{sum_std}', (10, image.shape[0] + 10), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2,
-                    cv2.LINE_AA)
+        # cv2.putText(image, f'{sum_std}', (10, image.shape[0] - 50), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2,
+        #             cv2.LINE_AA)
+        DaVinci.draw_text(image=image, text=f'{sum_std}')
 
         # print(sum_std)
         # self.r_vecs[2] -= math.pi / 2
@@ -127,7 +130,7 @@ class ArUcoFinder(object):
         else:
             self.transforms[parent_name] = [(translation, rotation)]
 
-        if len(self.transforms[parent_name]) > 100:
+        if len(self.transforms[parent_name]) > 5:
             translation, rotation = self.create_average_transform(aruco_name=parent_name, parent_frame=parent_name,
                                                                   child_frame=child_name)
             if not np.isnan(translation).any() and not np.isnan(rotation).any():
@@ -172,9 +175,21 @@ class ArUcoFinder(object):
 
 def main():
     rospy.init_node('aruco_camera_node')
-    aruco_finder = ArUcoFinder(charuco_board_shape=(9, 14), charuco_square_size=0.04, charuco_marker_size=0.031,
-                               dict_type=cv2.aruco.DICT_5X5_100)
 
+    board = 2
+
+    if board == 0:
+        big_charuco_finder = ArUcoFinder(charuco_board_shape=(9, 14), charuco_square_size=0.04,
+                                         charuco_marker_size=0.031,
+                                         dict_type=cv2.aruco.DICT_5X5_100)
+    elif board == 1:
+        medium_charuco_finder = ArUcoFinder(charuco_board_shape=(18, 29), charuco_square_size=0.01,
+                                            charuco_marker_size=0.008,
+                                            dict_type=cv2.aruco.DICT_5X5_1000)
+    elif board == 2:
+        small_charuco_finder = ArUcoFinder(charuco_board_shape=(7, 10), charuco_square_size=0.012,
+                                           charuco_marker_size=0.008,
+                                           dict_type=cv2.aruco.DICT_4X4_50)
     try:
         rospy.spin()
     except KeyboardInterrupt:

@@ -70,10 +70,10 @@ class EyeToHandEstimator(object):
             input()
             # Attached to gripper
             camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-            hand2world = self.get_transform_between(origin=world, to=hand)
+            hand2world = self.get_transform_between(origin=hand, to=world)
 
             # Base to Camera
-            # camera2aruco = self.get_transform_between(origin=aruco, to=camera)
+            # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
             # hand2world = self.get_transform_between(origin=world, to=hand)
 
             print(camera2aruco)

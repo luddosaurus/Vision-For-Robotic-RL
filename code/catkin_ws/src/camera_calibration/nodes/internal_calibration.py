@@ -36,7 +36,7 @@ class InternalCalibrator(object):
         self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
                                  charuco_square_size=charuco_square_size, dict_type=dict_type)
 
-        self.num_images = 15
+        self.num_images = 6
 
     def my_callback(self, image_message):
 
@@ -118,7 +118,8 @@ class InternalCalibrator(object):
                                      [0., 639., 401],
                                      [0., 0., 1.]])
 
-        distCoeffsInit = np.zeros((5, 1))
+        # distCoeffsInit = np.zeros((5, 1))
+        distCoeffsInit = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
 
         # cameraMatrixInit = np.array([[1387., 0., 946],
         #                              [0., 1388., 561],
@@ -157,6 +158,17 @@ class InternalCalibrator(object):
             print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
             np.savez(
                 f"{self.calib_data_path}/MultiMatrix_{imsize}",
+                camMatrix=camera_matrix,
+                distCoef=distortion_coefficients0,
+                rVector=rotation_vectors,
+                tVector=translation_vectors,
+            )
+
+            camera_matrix = np.array([[640.627, 0, 650.553], [0, 639.93, 401.117], [0, 0, 1]])
+            distortion_coefficients0 = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
+            print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
+            np.savez(
+                f"{self.calib_data_path}/d455_default_MultiMatrix_{imsize}",
                 camMatrix=camera_matrix,
                 distCoef=distortion_coefficients0,
                 rVector=rotation_vectors,

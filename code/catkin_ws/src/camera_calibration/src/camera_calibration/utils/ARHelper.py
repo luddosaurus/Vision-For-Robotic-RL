@@ -12,7 +12,7 @@ class ARHelper:
     param_markers = cv2.aruco.DetectorParameters_create()
 
     def __init__(self, charuco_board_shape=None, charuco_marker_size=None, charuco_square_size=None, dict_type=None):
-        self.marker_size = 50  # DO NOT USE THIS
+
         self.rvec_un_reversed = np.random.random((3, 1))
         self.tvec = np.random.random((3, 1))
         self.param_markers = cv2.aruco.DetectorParameters_create()
@@ -120,7 +120,7 @@ class ARHelper:
         parameters = cv2.aruco.DetectorParameters_create()
 
         corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-        if len(ids) < 5 or ids is None:
+        if ids is None:
             return False, image
         cv2.aruco.drawDetectedMarkers(image, corners)
         return True, image
@@ -170,6 +170,7 @@ class ARHelper:
         return image, rvec, tvec
 
     def reverse_rvec(self, rvec):
+        # REMOVE ME PLEASE!
         # rotation_matrix, _ = cv2.Rodrigues(rvec)
         # z_invert_matrix = np.diag([1, -1, -1])
         #
