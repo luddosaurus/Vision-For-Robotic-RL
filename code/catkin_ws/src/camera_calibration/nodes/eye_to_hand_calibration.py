@@ -262,7 +262,7 @@ if __name__ == '__main__':
     ]
 
     save_data = True
-    load_data = False
+    load_data = True
     rospy.init_node('hand_eye_node')
     hand_eye_estimator = EyeToHandEstimator()
 
@@ -303,14 +303,14 @@ if __name__ == '__main__':
     print(pose_estimations_methods)
 
     pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="panda_hand", child_name="camera_estimate",
+    TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world", child_name="camera_estimate",
                                        rotation=rotation, translation=translation)
 
     # ---------------------------- Plot
     truth_transform = TypeConverter.vectors_to_stamped_transform(
         translation=translation,
         rotation=rotation,
-        parent_frame="panda_hand",
+        parent_frame="world",
         child_frame="camera_estimate"
     )
 
@@ -324,7 +324,7 @@ if __name__ == '__main__':
             stamped_transform = TypeConverter.vectors_to_stamped_transform(
                 translation=translation,
                 rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
-                parent_frame="panda_hand",
+                parent_frame="world",
                 child_frame="camera_estimate"
             )
             all_pose_transforms.append(stamped_transform)
