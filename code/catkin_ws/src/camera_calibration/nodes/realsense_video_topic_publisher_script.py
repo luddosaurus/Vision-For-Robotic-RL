@@ -7,8 +7,8 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
+CAMERA_WIDTH = 1280
+CAMERA_HEIGHT = 800
 
 MAX_WIDTH_DEPTH = 1280
 MAX_HEIGHT_DEPTH = 720
@@ -46,9 +46,13 @@ def main():
     # Start streaming
     profile = pipeline.start(config)
 
+
+
     # Skip some frames for auto exposure
+
     for x in range(5):
         pipeline.wait_for_frames()
+
 
     cv_bridge = CvBridge()
 
@@ -96,13 +100,18 @@ def main():
                 key = cv2.waitKey(1) & 0xFF
 
                 if key == ord('q'):
+                    cv2.destroyAllWindows()
+                    rospy.Rate(1).sleep()
+                    pipeline.stop()
+                    del pipeline
+                    rospy.signal_shutdown('Image view dismissed.')
                     break
                 # rospy.Rate(100).sleep()
         finally:
             # Stop streaming
             cv2.destroyAllWindows()
-            pipeline.stop()
-            rospy.signal_shutdown('Image view dismissed.')
+            # pipeline.stop()
+            # rospy.signal_shutdown('Image view dismissed.')
 
 
 if __name__ == '__main__':

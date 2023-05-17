@@ -27,12 +27,12 @@
 <!--            name="internal_calibration_node"-->
 <!--            output="screen">-->
 <!--    </node>-->
-        <node
-                pkg="camera_calibration"
-                type="external_camera_estimate_broadcaster.py"
-                name="external_camera_estimate_broadcaster_node"
-                output="screen">
-        </node>
+<!--        <node-->
+<!--                pkg="camera_calibration"-->
+<!--                type="external_camera_estimate_broadcaster.py"-->
+<!--                name="external_camera_estimate_broadcaster_node"-->
+<!--                output="screen">-->
+<!--        </node>-->
 </launch>
 
 
