@@ -325,18 +325,14 @@ if __name__ == '__main__':
     true_translation = translation
     true_rotation = rotation
 
-    # todo convert to panda frames and then do these
     # Standard Deviations
-    translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
-    # HarryPlotter.plot_stds(translation_stds, rotation_stds)
+    frame_std = ErrorEstimator.calculate_standard_deviation_by_category(frame_samples)
 
     # Distance
-    distances = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
-    # normalized_distances = (distances-min(distances))/(max(distances)-min(distances))
-    # HarryPlotter.plot_distances_histogram(distances)
-    # HarryPlotter.plot_spread(distances)
-    # HarryPlotter.plot_proportion(sample_size2transforms)
-    # HarryPlotter.plot_distance_histogram(sample_size2transforms)
+    frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
+    HarryPlotter.plot_histogram_by_category(frame_distance)
+    # todo change to proportion
+
 
     try:
         rospy.spin()

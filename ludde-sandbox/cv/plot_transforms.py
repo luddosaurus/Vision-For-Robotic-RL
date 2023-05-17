@@ -112,9 +112,9 @@ frame_std = calculate_standard_deviation_by_category(df)
 print(frame_std)
 plot_std_deviation(frame_std)
 # print(df)
-# frame_distance = calculate_distance_to_mean(df)
+frame_distance = calculate_distance_to_mean(df)
 # print(frame_distance)
-# plot_histogram_by_category(frame_distance)
+plot_histogram_by_category(frame_distance)
 
 # plot_3d_scatter(df)
 

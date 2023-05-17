@@ -48,4 +48,12 @@ class HarryPlotter:
         plt.title('Standard Deviation of Columns by Category')
         plt.show()
 
-
+    @staticmethod
+    def plot_histogram_by_category(data_frame):
+        plt.figure(figsize=(10, 6))
+        sns.histplot(data=data_frame, x='Distance', hue='Category', multiple='stack')
+        plt.xlabel('Distance')
+        plt.ylabel('Count')
+        plt.title('Histogram of Distances by Category')
+        plt.legend(title='Category')
+        plt.show()
