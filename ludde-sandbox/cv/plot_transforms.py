@@ -81,6 +81,25 @@ def plot_histogram_by_category(data_frame):
     plt.show()
 
 
+def plot_prop(data_frame, density=True):
+    plt.figure()
+    if density:
+        sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="stack")
+        # sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="fill")
+        # sns.kdeplot(
+        #     data=data_frame, x="Distance", hue="Category",
+        #     fill=True, common_norm=False, palette="crest",
+        #     alpha=.5, linewidth=0,
+        # )
+
+    else:
+        sns.histplot(data_frame, x="Distance", hue="Category", element="poly")
+
+    plt.title('Distances by Category')
+    plt.xlabel('Distance')
+    plt.ylabel('Count')
+    plt.show()
+
 def calculate_distance_to_mean(frame):
     translation_columns = ['Translation X', 'Translation Y', 'Translation Z']
     mean_translation = frame[translation_columns].mean()
@@ -108,13 +127,13 @@ num_categories_samples = 5
 num_translations_samples = 10
 
 df = create_sample_data(num_categories_samples, num_translations_samples)
-frame_std = calculate_standard_deviation_by_category(df)
-print(frame_std)
-plot_std_deviation(frame_std)
+# frame_std = calculate_standard_deviation_by_category(df)
+# print(frame_std)
+# plot_std_deviation(frame_std)
 # print(df)
 frame_distance = calculate_distance_to_mean(df)
-# print(frame_distance)
-plot_histogram_by_category(frame_distance)
-
+print(frame_distance)
+# plot_histogram_by_category(frame_distance)
+plot_prop(frame_distance)
 # plot_3d_scatter(df)
 
