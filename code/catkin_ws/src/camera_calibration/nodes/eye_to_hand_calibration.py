@@ -112,6 +112,11 @@ class EyeToHandEstimator(object):
         DaVinci.draw_text(image=self.current_image, text=f'{self.num_images_captured}/{self.num_images_to_capture}')
         cv2.imshow('External calibration display', self.current_image)
 
+        if self.num_images_captured == self.num_images_to_capture:
+            self.save()
+            self.run_solvers()
+            rospy.signal_shutdown("Calibration complete.")
+
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('q'):
@@ -135,6 +140,12 @@ class EyeToHandEstimator(object):
                 self.save()
             self.run_solvers()
 
+        elif key == ord('p') and self.num_images_captured >= 3:
+            self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
+                                                 transforms_camera2charuco=self.transforms_camera2charuco,
+                                                 num_images_to_capture=self.num_images_to_capture)
+            pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
+            self.pretty_print_transforms(pose_estimations_all_algorithms)
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -362,6 +373,12 @@ class EyeToHandEstimator(object):
         self.transforms_camera2charuco = SaveMe.load_transforms(external_calibration_path + 'camera2charuco.json')
         self.transforms_hand2world = SaveMe.load_transforms(external_calibration_path + 'hand2world.json')
 
+    def pretty_print_transforms(self, transforms):
+        for method in self.methods:
+            rotation, translation = transforms[method][0]
+            rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
+            print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
+
     def run_solvers(self):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
         pose_estimations_methods = self.eye_hand_solver.solve_all_algorithms()
@@ -369,12 +386,12 @@ class EyeToHandEstimator(object):
 
         for method in self.methods:
             rotation, translation = pose_estimations_methods[method][0]
-
+            rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             # ---------------------------- Test mean of all methods
 
             # ---------------------------- Publish
             # print(rotation)
-            rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
+
             # print('Calibration complete.')
             # print(f'Camera was found at\nrotation:\n{rotation}\ntranslation:\n{translation}')
             #
