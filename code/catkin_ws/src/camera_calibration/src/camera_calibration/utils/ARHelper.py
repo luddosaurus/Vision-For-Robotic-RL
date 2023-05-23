@@ -1,6 +1,7 @@
 # from cv2 import aruco as aruco
 import cv2
 import numpy as np
+from camera_calibration.utils.DaVinci import DaVinci
 
 
 class ARHelper:
@@ -112,17 +113,21 @@ class ARHelper:
                 tvec=t_vec,
                 length=axis_length)
 
-    @staticmethod
-    def detect_and_draw_charuco(image):
+    def detect_and_draw_charuco(self, image):
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_100)
+
         parameters = cv2.aruco.DetectorParameters_create()
 
-        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=parameters)
         if ids is None:
             return False, image
         cv2.aruco.drawDetectedMarkers(image, corners)
+
+        ret, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.charuco_board)
+
+        for corner in charuco_corners:
+            image = DaVinci.draw_charuco_corner(image, corner)
         return True, image
 
     def estimate_charuco_pose(self, image, camera_matrix, dist_coefficients):
