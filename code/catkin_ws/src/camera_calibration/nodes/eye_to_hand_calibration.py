@@ -248,30 +248,6 @@ def publish(r_vec, t_vec):
                                        rotation=rotation_q, translation=t_vec)
 
 
-def convert_to_dataframe(sample_translations):
-    # Convert dict of [category, list(stamped_transform)]
-    # to panda frame [category,
-    # translationX, translationY, translationZ,
-    # rotationX, rotationY, rotationZ , rotationW]
-
-    data = []
-
-    for sample_category, poses in sample_translations.items():
-        for r_vec, t_vec in poses:
-            data.append([
-                sample_category,
-                t_vec[0], t_vec[1], t_vec[2],
-                r_vec[0], r_vec[1], r_vec[2], r_vec[3]
-            ])
-
-    df = pd.DataFrame(data, columns=[
-        'Category',
-        'Translation X', 'Translation Y', 'Translation Z'
-        'Rotation X', 'Rotation Y', 'Rotation Z', 'Rotation W'
-    ])
-    return df
-
-
 if __name__ == '__main__':
 
     save_data = True
@@ -306,9 +282,9 @@ if __name__ == '__main__':
 
     # ---------------------------- Convert to pandas
     # Frame [Category, Translation XYZ, Rotation XYZW]
-    frame_samples = convert_to_dataframe(pose_estimations_samples)
-    frame_methods = convert_to_dataframe(pose_estimations_methods)
-    frame_method_samples = convert_to_dataframe(pose_estimations_methods)
+    frame_samples = TypeConverter.convert_to_dataframe(pose_estimations_samples)
+    frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_methods)
+    frame_method_samples = TypeConverter.convert_to_dataframe(pose_estimations_methods)
 
     # ---------------------------- Publish
     for method in methods:
@@ -331,7 +307,6 @@ if __name__ == '__main__':
     # Distance
     frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
     HarryPlotter.plot_histogram_by_category(frame_distance)
-    # todo change to proportion
 
 
     try:

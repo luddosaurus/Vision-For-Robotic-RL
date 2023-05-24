@@ -9,11 +9,24 @@ class Transform(object):
             category=""
     ):
         # Essential
+        self.translation = translation
+        self.rotation = rotation
         self.translation_x, self.translation_y, self.translation_z = translation
         self.rotation_x, self.rotation_y, self.rotation_z, self.rotation_w = rotation
         # Extra
 
-    def get_name(self):
-        return f'aruco_[{self.aruco_id}]'
+    def transform_matrix(self):
+        pass
 
-# todo 4x4 matrix, vectors , rotation matrix, panda frame
+    def rotation_matrix(self):
+        pass
+
+    def rotation(self):
+        return self.rotation
+
+    def translation(self):
+        return self.translation
+
+    def panda_frame(self):
+        pass
+

@@ -122,6 +122,46 @@ def calculate_standard_deviation_by_category(data_frame):
     return std_deviation_frame
 
 
+def plot_translation_rotation(dataframe):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    translations = dataframe[['Translation X', 'Translation Y', 'Translation Z']].values
+    rotations = dataframe[['Rotation X', 'Rotation Y', 'Rotation Z', 'Rotation W']].values
+
+    for i in range(len(translations)):
+        translation = translations[i]
+        rotation = rotations[i]
+
+        # Plot translation point
+        ax.scatter(translation[0], translation[1], translation[2], color='magenta')
+
+        # Extract rotational matrix from quaternion
+        rot_matrix = np.array([[1 - 2 * (rotation[1]**2 + rotation[2]**2),
+                                2 * (rotation[0] * rotation[1] - rotation[2] * rotation[3]),
+                                2 * (rotation[0] * rotation[2] + rotation[1] * rotation[3])],
+                               [2 * (rotation[0] * rotation[1] + rotation[2] * rotation[3]),
+                                1 - 2 * (rotation[0]**2 + rotation[2]**2),
+                                2 * (rotation[1] * rotation[2] - rotation[0] * rotation[3])],
+                               [2 * (rotation[0] * rotation[2] - rotation[1] * rotation[3]),
+                                2 * (rotation[1] * rotation[2] + rotation[0] * rotation[3]),
+                                1 - 2 * (rotation[0]**2 + rotation[1]**2)]])
+
+        # Plot rotation axes
+        axis_colors = ['red', 'green', 'blue']
+        for j in range(3):
+            axis_start = translation
+            axis_end = translation + 0.1 * rot_matrix[:, j]  # Use rotational matrix for axis direction
+            ax.plot([axis_start[0], axis_end[0]], [axis_start[1], axis_end[1]], [axis_start[2], axis_end[2]], color=axis_colors[j])
+
+    # Set labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    plt.show()
+
+
 # Example usage:
 num_categories_samples = 5
 num_translations_samples = 10
@@ -137,3 +177,4 @@ print(frame_distance)
 plot_prop(frame_distance)
 # plot_3d_scatter(df)
 
+plot_translation_rotation(df)
