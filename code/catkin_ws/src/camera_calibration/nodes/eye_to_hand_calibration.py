@@ -109,6 +109,7 @@ class EyeToHandEstimator(object):
             print(e)
 
         latest_r_vec, latest_t_vec = self.collect_camera_target_transform()
+
         DaVinci.draw_text(image=self.current_image, text=f'{self.num_images_captured}/{self.num_images_to_capture}')
         cv2.imshow('External calibration display', self.current_image)
 
@@ -146,6 +147,9 @@ class EyeToHandEstimator(object):
                                                  num_images_to_capture=self.num_images_to_capture)
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.pretty_print_transforms(pose_estimations_all_algorithms)
+        elif key == ord('w'):
+            print(f'rvec: {latest_r_vec}')
+            print(f'tvec: {latest_t_vec}')
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -156,20 +160,23 @@ class EyeToHandEstimator(object):
 
     def save_camera_target_transform(self, r_vec, t_vec):
         self.r_vec_memory.append(r_vec)
-        self.t_vec_memory.append(t_vec)
+
+        t_vec_memory_entry = [t_vec[i][0] for i in range(len(t_vec))]
+        self.t_vec_memory.append(np.array(t_vec_memory_entry))
         if len(self.r_vec_memory) > self.memory_size and len(self.t_vec_memory) > self.memory_size:
             self.r_vec_memory = self.r_vec_memory[1:]
             self.t_vec_memory = self.t_vec_memory[1:]
 
         self.average_r_vec = MeanHelper.riemannian_mean_rotation(
-            quaternions=TypeConverter.rotation_vector_list_to_quaternions(rotation_vector=self.r_vec_memory))
+            quaternions=TypeConverter.rotation_vector_list_to_quaternions(self.r_vec_memory))
+
         self.average_t_vec = MeanHelper.riemannian_mean_translation(self.t_vec_memory)
 
-        if not np.isnan(self.average_t_vec).any() and not np.insnan(self.average_r_vec).any():
+        if not np.isnan(self.average_t_vec).any() and not np.isnan(self.average_r_vec).any():
             average_stamped_transform = TypeConverter.vectors_to_stamped_transform(translation=self.average_t_vec,
                                                                                    rotation=self.average_r_vec,
-                                                                                   parent_frame=self.Frame.charuco.name,
-                                                                                   child_frame=self.Frame.camera.name)
+                                                                                   parent_frame=self.Frame.camera.name,
+                                                                                   child_frame=self.Frame.charuco.name)
             self.transforms_camera2charuco.append(average_stamped_transform)
 
     def collect_robot_transforms(self):
@@ -375,9 +382,16 @@ class EyeToHandEstimator(object):
 
     def pretty_print_transforms(self, transforms):
         for method in self.methods:
+            if method == self.methods[3]:
+                continue
             rotation, translation = transforms[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
+            if not np.isnan(rotation).any() and not np.isnan(translation).any():
+                pub_tf_static = tf2_ros.StaticTransformBroadcaster()
+                TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world",
+                                                   child_name=f'camera_estimate{method}',
+                                                   rotation=rotation, translation=translation)
 
     def run_solvers(self):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
@@ -385,6 +399,8 @@ class EyeToHandEstimator(object):
         pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples(self.methods)
 
         for method in self.methods:
+            if method == self.methods[3]:
+                continue
             rotation, translation = pose_estimations_methods[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             # ---------------------------- Test mean of all methods
@@ -456,7 +472,8 @@ if __name__ == '__main__':
     if selected_board == Board.small:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,
                                                 charuco_marker_size=0.008,
-                                                dict_type=cv2.aruco.DICT_4X4_50, load_data=load, save_data=save)
+                                                dict_type=cv2.aruco.DICT_4X4_50, load_data=load, save_data=save,
+                                                num_images_to_capture=6)
     elif selected_board == Board.medium:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(18, 29), charuco_square_size=0.01,
                                                 charuco_marker_size=0.008,

@@ -7,8 +7,10 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-CAMERA_WIDTH = 1280
-CAMERA_HEIGHT = 800
+d435 = False
+
+CAMERA_WIDTH = 1920 if d435 else 1280
+CAMERA_HEIGHT = 1080 if d435 else 800
 
 MAX_WIDTH_DEPTH = 1280
 MAX_HEIGHT_DEPTH = 720
@@ -18,7 +20,10 @@ def main():
     rospy.init_node('realsense_video_topic_publisher_node')
     pub_color = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
     pub_aligned_depth = rospy.Publisher('/camera/aligned/image_raw', Image, queue_size=10)
-
+    ctx = rs.context()
+    devices = ctx.query_devices()
+    for dev in devices:
+        dev.hardware_reset()
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, 30)

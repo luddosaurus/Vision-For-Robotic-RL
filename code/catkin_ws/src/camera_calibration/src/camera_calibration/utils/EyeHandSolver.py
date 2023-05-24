@@ -69,14 +69,17 @@ class EyeHandSolver(object):
     def solve_all_sample_combos(
             self,
             solve_method=None,
-            start_sample_size=15,
-            end_sample_size=21,
+            start_sample_size=None,
+            end_sample_size=None,
             step_size=1):
 
         if end_sample_size is None:
             end_sample_size = self.num_images_to_capture + 1
         if solve_method is None:
             solve_method = self.methods[0]
+        if start_sample_size is None:
+            half_size = int(self.num_images_to_capture / 2)
+            start_sample_size = half_size if half_size >= 3 else 3
 
         poses = dict()
         list_size = len(self.transforms_camera2charuco)
@@ -111,13 +114,16 @@ class EyeHandSolver(object):
 
     def solve_all_method_samples(
             self,
-            start_sample_size=20,
+            start_sample_size=None,
             end_sample_size=None,
             step_size=1):
 
         # Solve all sample sizes for each algorithm
         if end_sample_size is None:
             end_sample_size = self.num_images_to_capture + 1
+        if start_sample_size is None:
+            half_size = int(self.num_images_to_capture / 2)
+            start_sample_size = half_size if half_size >= 3 else 3
         poses = dict()
         max_iterations = 0
         for method in self.methods:
@@ -147,6 +153,8 @@ class EyeHandSolver(object):
         poses = dict()
 
         for method in self.methods:
+            if method == self.methods[3]:
+                continue
             poses[method] = list()
             poses[method].append(
                 self.solve(

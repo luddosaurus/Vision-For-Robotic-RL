@@ -32,6 +32,8 @@ class MeanHelper:
 
     def riemannian_mean_translation(translations):
         # Compute the Riemannian mean of the vectors
+        # print_t = np.array(translations)
+
         mean_vector = np.mean(translations, axis=0)
         prev_mean_vector = np.zeros_like(mean_vector)
         while np.linalg.norm(mean_vector - prev_mean_vector) > 1e-6:
