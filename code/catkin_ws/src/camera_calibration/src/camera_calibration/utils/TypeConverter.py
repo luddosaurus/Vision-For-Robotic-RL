@@ -39,7 +39,12 @@ class TypeConverter:
         q_normalized = quaternion / q_norm
 
         return q_normalized
-    
+
+    @staticmethod
+    def rotation_vector_list_to_quaternions(rotation_vector_list):
+        quaternion_list = [TypeConverter.rotation_vector_to_quaternions(rotation) for rotation in rotation_vector_list]
+        return quaternion_list
+
     # --------------------------------------- Transform
 
     @staticmethod
@@ -79,7 +84,6 @@ class TypeConverter:
         # Old
         # rotation.x, rotation.y, rotation.z, rotation.w = tf.transformations.quaternion_from_matrix(matrix)
 
-        
         stamped_transform = TransformStamped()
         stamped_transform.header.stamp = stamp
         stamped_transform.header.frame_id = parent_frame
@@ -103,7 +107,7 @@ class TypeConverter:
 
     @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):
-        
+
         stamp = rospy.Time.now()
 
         tvec = Vector3()

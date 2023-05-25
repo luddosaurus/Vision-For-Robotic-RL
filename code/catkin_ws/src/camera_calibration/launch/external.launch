@@ -1,12 +1,12 @@
 <launch>
-        <node
-                pkg="camera_calibration"
-                type="aruco_camera.py"
-                name="aruco_camera_node"
-                output="screen">
-    <!--                 <arg name="camera_to_aruco" default="true"/> -->
+<!--         <node -->
+<!--                 pkg="camera_calibration" -->
+<!--                 type="aruco_camera.py" -->
+<!--                 name="aruco_camera_node" -->
+<!--                 output="screen"> -->
+<!--      --><!--                 <arg name="camera_to_aruco" default="true"/> -->
 
-        </node>
+<!--         </node> -->
 
             <node
                 pkg="camera_calibration"

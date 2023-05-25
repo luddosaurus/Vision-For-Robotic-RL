@@ -56,3 +56,9 @@ class DaVinci:
         resized_image = cv2.resize(image, (target_width, target_height))
 
         return resized_image
+
+    @staticmethod
+    def draw_charuco_corner(image, corner):
+        cv2.circle(img=image, center=(int(corner[0][0]), int(corner[0][1])), radius=10, color=(255, 255, 0),
+                   thickness=-1)
+        return image

@@ -1,6 +1,7 @@
 # from cv2 import aruco as aruco
 import cv2
 import numpy as np
+from camera_calibration.utils.DaVinci import DaVinci
 
 
 class ARHelper:
@@ -15,6 +16,8 @@ class ARHelper:
 
         self.rvec_un_reversed = np.random.random((3, 1))
         self.tvec = np.random.random((3, 1))
+        # self.rvec_un_reversed = np.zeros((3, 1))
+        # self.tvec = np.zeros((3, 1))
         self.param_markers = cv2.aruco.DetectorParameters_create()
 
         self.aruco_dict = cv2.aruco.Dictionary_get(dict_type)
@@ -112,17 +115,21 @@ class ARHelper:
                 tvec=t_vec,
                 length=axis_length)
 
-    @staticmethod
-    def detect_and_draw_charuco(image):
+    def detect_and_draw_charuco(self, image):
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_100)
+
         parameters = cv2.aruco.DetectorParameters_create()
 
-        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=parameters)
         if ids is None:
             return False, image
         cv2.aruco.drawDetectedMarkers(image, corners)
+
+        ret, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.charuco_board)
+
+        for corner in charuco_corners:
+            image = DaVinci.draw_charuco_corner(image, corner)
         return True, image
 
     def estimate_charuco_pose(self, image, camera_matrix, dist_coefficients):
@@ -143,11 +150,11 @@ class ARHelper:
         #     cv2.drawFrameAxes(image=image, cameraMatrix=camera_matrix, distCoeffs=dist_coefficients, rvec=aruco_rvec, tvec=aruco_tvec, length=0.03, thickness=2)
 
         ret, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.charuco_board)
-
-        # for corner in charuco_corners:
-        #     # print(int(corner[0]), corner[1])
-        #     # tuple(corner.ravel())
-        #     cv2.circle(img=image, center=(int(corner[0][0]), int(corner[0][1])), radius=10, color=(255, 255, 0), thickness=-1)
+        if charuco_corners is not None:
+            for corner in charuco_corners:
+                # print(int(corner[0]), corner[1])
+                # tuple(corner.ravel())
+                cv2.circle(img=image, center=(int(corner[0][0]), int(corner[0][1])), radius=10, color=(255, 255, 0), thickness=-1)
 
         # charuco_findings = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, board)
         # print(charuco_corners)
@@ -158,7 +165,7 @@ class ARHelper:
                                                                 board=self.charuco_board, cameraMatrix=camera_matrix,
                                                                 distCoeffs=dist_coefficients,
                                                                 rvec=self.rvec_un_reversed, tvec=self.tvec,
-                                                                useExtrinsicGuess=True)
+                                                                useExtrinsicGuess=False)
         self.rvec_un_reversed = rvec
         self.tvec = tvec
         rvec = self.reverse_rvec(rvec)
