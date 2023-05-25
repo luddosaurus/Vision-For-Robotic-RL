@@ -12,7 +12,16 @@ class TypeConverter:
     # Invert vector from O to (translation, rotation)
     @staticmethod
     def invert_transform(translation, rotation, turn_into_quaternion=True):
-        rotation_mat, _ = cv2.Rodrigues(rotation)
+        if len(rotation) == 4:
+            rotation = tf.transformations.quaternion_matrix(rotation)
+            rotation_mat = rotation[:3, :3]
+
+            # rotation_mat, _ = cv2.Rodrigues(rotation_matrix)
+            # print(rotation_matrix)
+            # print(rotation_mat)
+
+        else:
+            rotation_mat, _ = cv2.Rodrigues(rotation)
 
         # Change frame from Camera to ArUco, to ArUco to Camera
         inv_rotation = np.transpose(rotation_mat)
@@ -25,6 +34,25 @@ class TypeConverter:
             return inv_translation, q_normalized
         else:
             return inv_translation, inv_rotation
+
+    @staticmethod
+    def invert_stamped_transform(stamped_transform):
+
+        transform = stamped_transform.transform
+        translation = [transform.translation.x,
+                       transform.translation.y,
+                       transform.translation.z]
+        rotation = [transform.rotation.x,
+                    transform.rotation.y,
+                    transform.rotation.z,
+                    transform.rotation.w]
+        rotation_xyz = tf.transformations.euler_from_quaternion(rotation)
+        reversed_translation, reversed_rotation = TypeConverter.invert_transform(translation=translation,
+                                                                                 rotation=rotation_xyz)
+
+        return TypeConverter.vectors_to_stamped_transform(translation=reversed_translation, rotation=reversed_rotation,
+                                                          parent_frame=stamped_transform.child_frame_id,
+                                                          child_frame=stamped_transform.header.frame_id)
 
     @staticmethod
     def rotation_vector_to_quaternions(rotation_vector):
@@ -40,6 +68,10 @@ class TypeConverter:
         q_normalized = quaternion / q_norm
 
         return q_normalized
+
+    # @staticmethod
+    # def quaternion_to_rotation_vector(quaternions):
+    #     matrix = tf.transformations.
 
     @staticmethod
     def rotation_vector_list_to_quaternions(rotation_vector_list):
@@ -169,9 +201,3 @@ class TypeConverter:
             'Rotation X', 'Rotation Y', 'Rotation Z', 'Rotation W'
         ])
         return df
-
-
-
-
-
-

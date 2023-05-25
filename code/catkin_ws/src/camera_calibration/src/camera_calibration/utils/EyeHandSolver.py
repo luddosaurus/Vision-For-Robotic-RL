@@ -153,8 +153,8 @@ class EyeHandSolver(object):
         poses = dict()
 
         for method in self.methods:
-            if method == self.methods[3]:
-                continue
+            # if method == self.methods[3]:
+            #     continue
             poses[method] = list()
             poses[method].append(
                 self.solve(

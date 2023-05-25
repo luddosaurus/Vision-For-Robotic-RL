@@ -35,7 +35,7 @@ from camera_calibration.utils.EyeHandSolver import EyeHandSolver
 
 from camera_calibration.params.calibration import external_calibration_path_position
 from camera_calibration.params.calibration import external_calibration_path
-from camera_calibration.params.calibration import calibration_path
+from camera_calibration.params.calibration import calibration_path_d455, calibration_path_d435
 import camera_calibration.params.transform_frame_names as tfn
 
 import cv2
@@ -50,25 +50,29 @@ from itertools import combinations
 # AX = XB . solve ee-aruco offset
 
 
-with np.load(calibration_path) as X:
-    intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
-
-print("ArUcoFinder launched with internal parameters:")
-print(intrinsic_camera, distortion)
+# with np.load(calibration_path) as X:
+#     intrinsic_camera, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef', 'rVector', 'tVector')]
+#
+# print("ArUcoFinder launched with internal parameters:")
+# print(intrinsic_camera, distortion)
 
 
 class EyeToHandEstimator(object):
 
-    def __init__(self, charuco_board_shape, charuco_marker_size, charuco_square_size, dict_type, memory_size=10,
-                 num_images_to_capture=15, load_data=False, save_data=False):
-        self.latest_r_vec = np.random.random((3, 1))
-        self.latest_t_vec = np.random.random((3, 1))
+    def __init__(self, charuco_board_shape, charuco_marker_size, charuco_square_size, dict_type, memory_size=5,
+                 num_images_to_capture=15, load_data=False, save_data=False, eye_in_hand=False):
 
-        self.r_vec_memory = []
-        self.t_vec_memory = []
+        # self.intrinsic_camera, self.distortion =
+        with np.load(calibration_path_d435 if eye_in_hand else calibration_path_d455) as X:
+            self.intrinsic_camera, self.distortion, _, _ = [X[i] for i in
+                                                            ('camMatrix', 'distCoef', 'rVector', 'tVector')]
+        print("ArUcoFinder launched with internal parameters:")
+        print(self.intrinsic_camera, self.distortion)
 
-        self.average_r_vec = self.latest_r_vec
-        self.average_t_vec = self.latest_t_vec
+        self.transform_memory = []
+
+        # self.average_r_vec = self.latest_r_vec
+        # self.average_t_vec = self.latest_t_vec
 
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -76,6 +80,8 @@ class EyeToHandEstimator(object):
         self.listener = tf.TransformListener()
 
         self.camera_subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.camera_callback)
+        # self.camera_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
+        #                                           self.camera_callback)
         self.cv_bridge = CvBridge()
         self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
                                  charuco_square_size=charuco_square_size, dict_type=dict_type)
@@ -100,6 +106,7 @@ class EyeToHandEstimator(object):
         self.Frame = Enum('Frame', 'camera charuco world panda_hand')
         self.eye_hand_solver = None
         self.save_data = save_data
+        self.eye_in_hand = eye_in_hand
         if load_data:
             self.load()
 
@@ -110,7 +117,7 @@ class EyeToHandEstimator(object):
         except CvBridgeError as e:
             print(e)
 
-        latest_r_vec, latest_t_vec = self.collect_camera_target_transform()
+        self.collect_camera_target_transform()
 
         DaVinci.draw_text(image=self.current_image, text=f'{self.num_images_captured}/{self.num_images_to_capture}')
         cv2.imshow('External calibration display', self.current_image)
@@ -125,14 +132,12 @@ class EyeToHandEstimator(object):
         if key == ord('q'):
             print('Shutting down....')
             rospy.signal_shutdown('We are done here')
-        elif key == ord('s') and latest_t_vec is not None and latest_r_vec is not None:
-            self.save_camera_target_transform(r_vec=latest_r_vec, t_vec=latest_t_vec)
+        elif key == ord('s'):
+            self.save_camera_target_transform()
             self.collect_robot_transforms()
             self.num_images_captured += 1
         elif key == ord('u') and self.num_images_captured > 0:
             self.num_images_captured -= 1
-            self.t_vec_memory = self.t_vec_memory[:-1]
-            self.r_vec_memory = self.r_vec_memory[:-1]
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
         elif key == ord('d') and self.num_images_captured > 0:
@@ -143,47 +148,62 @@ class EyeToHandEstimator(object):
                 self.save()
             self.run_solvers()
 
-        elif key == ord('p') and self.num_images_captured >= 3:
+        elif key == ord('p') and len(self.transforms_camera2charuco) >= 3:
+
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  num_images_to_capture=self.num_images_to_capture)
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.pretty_print_transforms(pose_estimations_all_algorithms)
-        elif key == ord('w'):
-            print(f'rvec: {latest_r_vec}')
-            print(f'tvec: {latest_t_vec}')
+
+        elif key == ord('h'):
+            self.save()
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
             image=self.current_image,
-            camera_matrix=intrinsic_camera,
-            dist_coefficients=distortion)
-        return latest_r_vec, latest_t_vec
+            camera_matrix=self.intrinsic_camera,
+            dist_coefficients=self.distortion)
+        if self.eye_in_hand:
+            # latest_t_vec, latest_r_vec = TypeConverter.invert_transform(latest_t_vec, latest_r_vec)
+            latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
+        else:
+            latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
+        if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
+            transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
+                                                                   rotation=latest_r_vec,
+                                                                   parent_frame=self.Frame.camera.name,
+                                                                   child_frame=self.Frame.charuco.name)
+            self.transform_memory.append(transform)
+            if len(self.transform_memory) > self.memory_size:
+                self.transform_memory = self.transform_memory[1:]
 
-    def save_camera_target_transform(self, r_vec, t_vec):
-        self.r_vec_memory.append(r_vec)
+    def save_camera_target_transform(self):
 
-        t_vec_memory_entry = [t_vec[i][0] for i in range(len(t_vec))]
-        self.t_vec_memory.append(np.array(t_vec_memory_entry))
-        if len(self.r_vec_memory) > self.memory_size and len(self.t_vec_memory) > self.memory_size:
-            self.r_vec_memory = self.r_vec_memory[1:]
-            self.t_vec_memory = self.t_vec_memory[1:]
+        mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.transform_memory)
+        # if self.eye_in_hand:
+        #     mean_translation, mean_rotation = TypeConverter.invert_transform(mean_translation, mean_rotation)
 
-        self.average_r_vec = MeanHelper.riemannian_mean_rotation(
-            quaternions=TypeConverter.rotation_vector_list_to_quaternions(self.r_vec_memory))
+        average_stamped_transform = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
+                                                                               rotation=mean_rotation,
+                                                                               parent_frame=self.Frame.camera.name,
+                                                                               child_frame=self.Frame.charuco.name)
 
-        self.average_t_vec = MeanHelper.riemannian_mean_translation(self.t_vec_memory)
-
-        if not np.isnan(self.average_t_vec).any() and not np.isnan(self.average_r_vec).any():
-            average_stamped_transform = TypeConverter.vectors_to_stamped_transform(translation=self.average_t_vec,
-                                                                                   rotation=self.average_r_vec,
-                                                                                   parent_frame=self.Frame.camera.name,
-                                                                                   child_frame=self.Frame.charuco.name)
-            self.transforms_camera2charuco.append(average_stamped_transform)
+        # if self.eye_in_hand:
+        #     average_stamped_transform = TypeConverter.invert_stamped_transform(average_stamped_transform)
+        print(average_stamped_transform)
+        self.transforms_camera2charuco.append(average_stamped_transform)
 
     def collect_robot_transforms(self):
 
-        hand2world = self.get_transform_between(origin=self.Frame.panda_hand.name, to=self.Frame.world.name)
+        if not self.eye_in_hand:
+            origin = self.Frame.world.name
+            child = self.Frame.panda_hand.name
+        else:
+            origin = self.Frame.panda_hand.name
+            child = self.Frame.world.name
+
+        hand2world = self.get_transform_between(origin=origin, to=child)
         if hand2world is not None:
             self.transforms_hand2world.append(hand2world)
 
@@ -356,23 +376,24 @@ class EyeToHandEstimator(object):
     def get_transform_between(self, origin, to):
         try:
             transform = self.tfBuffer.lookup_transform(origin, to, rospy.Time())
+            print(transform)
             return transform
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             print(f"Oopsie! No transform between {origin} and {to} D:")
             return None
 
-    @staticmethod
-    def plot_pose_dict(pose_samples):
-
-        sample_translations = dict()
-        for sample_category, poses in zip(pose_samples.keys(), pose_samples.values()):
-            sample_translations[sample_category] = list()
-
-            for _, t_vec in poses:
-                sample_translations[sample_category].append(t_vec)
-
-        # HarryPlotter.plot_translation_vector_categories(sample_translations)
-        HarryPlotter.plot_translation_vectors_gradient(sample_translations)
+    # @staticmethod
+    # def plot_pose_dict(pose_samples):
+    #
+    #     sample_translations = dict()
+    #     for sample_category, poses in zip(pose_samples.keys(), pose_samples.values()):
+    #         sample_translations[sample_category] = list()
+    #
+    #         for _, t_vec in poses:
+    #             sample_translations[sample_category].append(t_vec)
+    #
+    #     # HarryPlotter.plot_translation_vector_categories(sample_translations)
+    #     HarryPlotter.plot_translation_vectors_gradient(sample_translations)
 
     def save(self):
         SaveMe.save_transforms(self.transforms_camera2charuco, external_calibration_path + 'camera2charuco.json')
@@ -383,26 +404,29 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = SaveMe.load_transforms(external_calibration_path + 'hand2world.json')
 
     def pretty_print_transforms(self, transforms):
+        print(transforms)
         for method in self.methods:
-            if method == self.methods[3]:
-                continue
+            # if method == self.methods[3]:
+            #     continue
             rotation, translation = transforms[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
             if not np.isnan(rotation).any() and not np.isnan(translation).any():
                 pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-                TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name="world",
+                parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+                TFPublish.publish_static_transform(publisher=pub_tf_static,
+                                                   parent_name=parent_frame,
                                                    child_name=f'camera_estimate{method}',
                                                    rotation=rotation, translation=translation)
 
     def run_solvers(self):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
         pose_estimations_methods = self.eye_hand_solver.solve_all_algorithms()
-        pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples(self.methods)
+        pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples()
 
         for method in self.methods:
-            if method == self.methods[3]:
-                continue
+            # if method == self.methods[3]:
+            #     continue
             rotation, translation = pose_estimations_methods[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             # ---------------------------- Test mean of all methods
@@ -421,81 +445,28 @@ class EyeToHandEstimator(object):
                                                rotation=rotation, translation=translation)
 
         # ---------------------------- Plot
-        truth_transform = TypeConverter.vectors_to_stamped_transform(
-            translation=translation,
-            rotation=rotation,
-            parent_frame="world",
-            child_frame="camera_estimate"
-        )
-    # ---------------------------- Estimate Pose Transforms
-    methods = [
-        cv2.CALIB_HAND_EYE_TSAI,
-        cv2.CALIB_HAND_EYE_PARK,
-        cv2.CALIB_HAND_EYE_HORAUD,
-        cv2.CALIB_HAND_EYE_ANDREFF,
-        cv2.CALIB_HAND_EYE_DANIILIDIS
-    ]
 
-    # dict [category, list(tuple(rotation, translation)]
-    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
-    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
-    pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
+        # ---------------------------- Convert to pandas
+        # Frame [Category, Translation XYZ, Rotation XYZW]
+        frame_samples = TypeConverter.convert_to_dataframe(pose_estimations_samples)
+        frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_methods)
+        frame_method_samples = TypeConverter.convert_to_dataframe(pose_estimations_method_samples)
 
-    # ---------------------------- Convert to pandas
-    # Frame [Category, Translation XYZ, Rotation XYZW]
-    frame_samples = TypeConverter.convert_to_dataframe(pose_estimations_samples)
-    frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_methods)
-    frame_method_samples = TypeConverter.convert_to_dataframe(pose_estimations_methods)
+        # ---------------------------- Plot 3D
+        HarryPlotter.plot_3d_scatter(frame_samples)
+        HarryPlotter.plot_3d_scatter(frame_methods)
+        HarryPlotter.plot_3d_scatter(frame_method_samples)
 
-    # ---------------------------- Publish
-    for method in methods:
-        rotation, translation = pose_estimations_methods[method][0]
-        print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
-        publish(translation, rotation)
-
-        all_pose_transforms = list()
-        sample_size2transforms = dict()
-    # ---------------------------- Plot 3D
-    HarryPlotter.plot_3d_scatter(frame_samples)
-    HarryPlotter.plot_3d_scatter(frame_methods)
-    HarryPlotter.plot_3d_scatter(frame_method_samples)
-
-        for sample_size, transforms in pose_estimations_samples.items():
-            sample_size2transforms[sample_size] = list()
-
-            for rotation, translation in transforms:
-                stamped_transform = TypeConverter.vectors_to_stamped_transform(
-                    translation=translation,
-                    rotation=TypeConverter.matrix_to_quaternion_vector(rotation),
-                    parent_frame="world",
-                    child_frame="camera_estimate"
-                )
-                all_pose_transforms.append(stamped_transform)
-                sample_size2transforms[sample_size].append(stamped_transform)
-    # ---------------------------- Plot 2D
-    true_translation = translation
-    true_rotation = rotation
+        # ---------------------------- Plot 2D
+        true_translation = translation
+        true_rotation = rotation
 
         # Standard Deviations
-        translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
-        # HarryPlotter.plot_stds(translation_stds, rotation_stds)
-    # Standard Deviations
-    frame_std = ErrorEstimator.calculate_standard_deviation_by_category(frame_samples)
+        frame_std = ErrorEstimator.calculate_standard_deviation_by_category(frame_samples)
 
         # Distance
-        distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
-        # normalized_distances = (distances-min(distances))/(max(distances)-min(distances))
-        # HarryPlotter.plot_distances_histogram(distances)
-        # HarryPlotter.plot_spread(distances)
-        # HarryPlotter.plot_proportion(sample_size2transforms)
-        # HarryPlotter.plot_distance_histogram(sample_size2transforms)
-        hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
-        hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
-        hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
-    # Distance
-    frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
-    HarryPlotter.plot_histogram_by_category(frame_distance)
-
+        frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
+        HarryPlotter.plot_histogram_by_category(frame_distance)
 
 
 if __name__ == '__main__':
@@ -504,16 +475,16 @@ if __name__ == '__main__':
 
     rospy.init_node('hand_eye_node')
 
-    selected_board = Board.small
+    selected_board = Board.large
 
     save = False
-    load = False
+    load = True
 
     if selected_board == Board.small:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,
                                                 charuco_marker_size=0.008,
                                                 dict_type=cv2.aruco.DICT_4X4_50, load_data=load, save_data=save,
-                                                num_images_to_capture=6)
+                                                num_images_to_capture=6, eye_in_hand=False)
     elif selected_board == Board.medium:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(18, 29), charuco_square_size=0.01,
                                                 charuco_marker_size=0.008,
@@ -521,7 +492,8 @@ if __name__ == '__main__':
     elif selected_board == Board.large:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(9, 14), charuco_square_size=0.04,
                                                 charuco_marker_size=0.031,
-                                                dict_type=cv2.aruco.DICT_5X5_100, load_data=load, save_data=save)
+                                                dict_type=cv2.aruco.DICT_5X5_100, load_data=load, save_data=save,
+                                                num_images_to_capture=20, eye_in_hand=True)
 
     try:
         rospy.spin()
