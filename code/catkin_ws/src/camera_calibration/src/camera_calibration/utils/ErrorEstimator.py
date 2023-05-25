@@ -1,59 +1,26 @@
 import numpy as np
-import rospy
-from geometry_msgs.msg import TransformStamped
+import pandas as pd
 
 
 class ErrorEstimator:
 
     @staticmethod
-    def euclidean_distance(transform1, transform2):
-        # Convert the transformation matrices to homogeneous coordinates
-        homog1 = np.array([transform1.translation.x,
-                           transform1.translation.y,
-                           transform1.translation.z])
-        homog2 = np.array([transform2.translation.x,
-                           transform2.translation.y,
-                           transform2.translation.z])
+    def calculate_distance_to_truth(frame, truth_translation):
+        translation_columns = ['Translation X', 'Translation Y', 'Translation Z']
+        translations = frame[translation_columns]
 
-        # Compute the Euclidean distance between the homogeneous coordinates
-        distance = np.linalg.norm(homog1 - homog2)
+        distances = np.linalg.norm(translations - truth_translation, axis=1)
 
-        return distance
+        result_frame = pd.DataFrame({'Category': frame['Category'], 'Distance': distances})
+        return result_frame
 
     @staticmethod
-    def distance_between(transforms, stamped_truth):
-        distances = list()
-        for stamped_transform in transforms:
-            transform = stamped_transform.transform
-            distances.append(ErrorEstimator.euclidean_distance(transform, stamped_truth.transform))
+    def calculate_standard_deviation_by_category(data_frame):
+        std_deviation_frame = data_frame.groupby('Category').std()
+        return std_deviation_frame
 
-        return distances
 
-    @staticmethod
-    def calculate_stds(transforms):
 
-        num_transforms = len(transforms)
-        translations = np.zeros((num_transforms, 3))
-        rotations = np.zeros((num_transforms, 4))
-
-        for i, stamped_transform in enumerate(transforms):
-            transform = stamped_transform.transform
-            translations[i] = [
-                transform.translation.x,
-                transform.translation.y,
-                transform.translation.z
-            ]
-            rotations[i] = [
-                transform.rotation.x,
-                transform.rotation.y,
-                transform.rotation.z,
-                transform.rotation.w
-            ]
-
-        translation_std = np.std(translations, axis=0)
-        rotation_std = np.std(rotations, axis=0)
-
-        return translation_std, rotation_std
 
 
 

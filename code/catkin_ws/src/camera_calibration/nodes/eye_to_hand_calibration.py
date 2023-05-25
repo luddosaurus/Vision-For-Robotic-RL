@@ -11,6 +11,7 @@ from sensor_msgs.msg import Image
 import tf
 import tf2_ros
 import random
+import pandas as pd
 
 from enum import Enum
 
@@ -23,7 +24,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from camera_calibration.utils.TypeConverter import TypeConverter
-from camera_calibration.utils.HarryPlotter import HarryPlotter
+from camera_calibration.utils.HarryPlotterAndTheChamberOfSeaborn import HarryPlotter
 from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.SaveMe import SaveMe
 from camera_calibration.utils.ErrorEstimator import ErrorEstimator
@@ -39,6 +40,7 @@ import camera_calibration.params.transform_frame_names as tfn
 
 import cv2
 from itertools import combinations
+
 
 # GOAL find offset between ee and aruco
 # subscribe to tf
@@ -425,9 +427,38 @@ class EyeToHandEstimator(object):
             parent_frame="world",
             child_frame="camera_estimate"
         )
+    # ---------------------------- Estimate Pose Transforms
+    methods = [
+        cv2.CALIB_HAND_EYE_TSAI,
+        cv2.CALIB_HAND_EYE_PARK,
+        cv2.CALIB_HAND_EYE_HORAUD,
+        cv2.CALIB_HAND_EYE_ANDREFF,
+        cv2.CALIB_HAND_EYE_DANIILIDIS
+    ]
+
+    # dict [category, list(tuple(rotation, translation)]
+    pose_estimations_samples = hand_eye_estimator.solve_all_sample_combos(solve_method=methods[0])
+    pose_estimations_methods = hand_eye_estimator.solve_all_algorithms(methods)
+    pose_estimations_method_samples = hand_eye_estimator.solve_all_method_samples(methods)
+
+    # ---------------------------- Convert to pandas
+    # Frame [Category, Translation XYZ, Rotation XYZW]
+    frame_samples = TypeConverter.convert_to_dataframe(pose_estimations_samples)
+    frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_methods)
+    frame_method_samples = TypeConverter.convert_to_dataframe(pose_estimations_methods)
+
+    # ---------------------------- Publish
+    for method in methods:
+        rotation, translation = pose_estimations_methods[method][0]
+        print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
+        publish(translation, rotation)
 
         all_pose_transforms = list()
         sample_size2transforms = dict()
+    # ---------------------------- Plot 3D
+    HarryPlotter.plot_3d_scatter(frame_samples)
+    HarryPlotter.plot_3d_scatter(frame_methods)
+    HarryPlotter.plot_3d_scatter(frame_method_samples)
 
         for sample_size, transforms in pose_estimations_samples.items():
             sample_size2transforms[sample_size] = list()
@@ -441,10 +472,15 @@ class EyeToHandEstimator(object):
                 )
                 all_pose_transforms.append(stamped_transform)
                 sample_size2transforms[sample_size].append(stamped_transform)
+    # ---------------------------- Plot 2D
+    true_translation = translation
+    true_rotation = rotation
 
         # Standard Deviations
         translation_stds, rotation_stds = ErrorEstimator.calculate_stds(all_pose_transforms)
         # HarryPlotter.plot_stds(translation_stds, rotation_stds)
+    # Standard Deviations
+    frame_std = ErrorEstimator.calculate_standard_deviation_by_category(frame_samples)
 
         # Distance
         distances = ErrorEstimator.distance_between(all_pose_transforms, truth_transform)
@@ -456,6 +492,10 @@ class EyeToHandEstimator(object):
         hand_eye_estimator.plot_pose_dict(pose_estimations_samples)
         hand_eye_estimator.plot_pose_dict(pose_estimations_methods)
         hand_eye_estimator.plot_pose_dict(pose_estimations_method_samples)
+    # Distance
+    frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
+    HarryPlotter.plot_histogram_by_category(frame_distance)
+
 
 
 if __name__ == '__main__':

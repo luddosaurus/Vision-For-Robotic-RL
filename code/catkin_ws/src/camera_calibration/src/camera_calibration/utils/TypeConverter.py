@@ -2,6 +2,7 @@ import numpy as np
 import rospy
 import tf
 import cv2
+import pandas as pd
 from scipy.spatial.transform import Rotation
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion
 
@@ -144,3 +145,33 @@ class TypeConverter:
             matrices.append(matrix)
 
         return matrices
+
+    @staticmethod
+    def convert_to_dataframe(sample_translations):
+        # Convert dict of [category, list(stamped_transform)]
+        # to panda frame [category,
+        # translationX, translationY, translationZ,
+        # rotationX, rotationY, rotationZ , rotationW]
+
+        data = []
+
+        for sample_category, poses in sample_translations.items():
+            for r_vec, t_vec in poses:
+                data.append([
+                    sample_category,
+                    t_vec[0], t_vec[1], t_vec[2],
+                    r_vec[0], r_vec[1], r_vec[2], r_vec[3]
+                ])
+
+        df = pd.DataFrame(data, columns=[
+            'Category',
+            'Translation X', 'Translation Y', 'Translation Z',
+            'Rotation X', 'Rotation Y', 'Rotation Z', 'Rotation W'
+        ])
+        return df
+
+
+
+
+
+
