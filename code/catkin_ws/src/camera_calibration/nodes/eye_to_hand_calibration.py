@@ -39,6 +39,7 @@ from camera_calibration.params.calibration import calibration_path_d455, calibra
 import camera_calibration.params.transform_frame_names as tfn
 
 import cv2
+
 from itertools import combinations
 
 
@@ -106,6 +107,7 @@ class EyeToHandEstimator(object):
         self.eye_hand_solver = None
         self.save_data = save_data
         self.eye_in_hand = eye_in_hand
+
         if load_data:
             self.load()
 
@@ -146,9 +148,15 @@ class EyeToHandEstimator(object):
 
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
-                                                 nnumber_of_transforms=len(self.transforms_camera2charuco))
+                                                 number_of_transforms=len(self.transforms_camera2charuco))
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.pretty_print_transforms(pose_estimations_all_algorithms)
+            frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_all_algorithms)
+            # if self.plot_thread is not None:
+            #     self.plot_thread.join()
+            # self.plot_thread = threading.Thread(target=HarryPlotter.plot_poses, kwargs={'dataframe': frame_methods})
+            # self.plot_thread.start()
+            HarryPlotter.plot_poses(frame_methods)
 
         elif key == ord('h'):
             self.save()
@@ -450,13 +458,16 @@ class EyeToHandEstimator(object):
         frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_methods)
         frame_method_samples = TypeConverter.convert_to_dataframe(pose_estimations_method_samples)
 
+        # --------------------------- Plot frame poses
+        HarryPlotter.plot_poses(frame_methods)
+
         # ---------------------------- Plot 3D
-        HarryPlotter.plot_3d_scatter(frame_samples)
-        HarryPlotter.plot_3d_scatter(frame_methods)
-        HarryPlotter.plot_3d_scatter(frame_method_samples)
+        # HarryPlotter.plot_3d_scatter(frame_samples)
+        # HarryPlotter.plot_3d_scatter(frame_methods)
+        # HarryPlotter.plot_3d_scatter(frame_method_samples)
 
         # ---------------------------- Plot 2D
-        true_translation = translation
+        true_translation = np.array(translation).flatten()
         true_rotation = rotation
 
         # Standard Deviations
@@ -465,6 +476,7 @@ class EyeToHandEstimator(object):
         # Distance
         frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
         HarryPlotter.plot_histogram_by_category(frame_distance)
+        HarryPlotter.plot_prop(frame_distance)
 
 
 if __name__ == '__main__':
@@ -473,10 +485,10 @@ if __name__ == '__main__':
 
     rospy.init_node('hand_eye_node')
 
-    selected_board = Board.small
+    selected_board = Board.large
 
     save = False
-    load = True
+    load = False
 
     if selected_board == Board.small:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,

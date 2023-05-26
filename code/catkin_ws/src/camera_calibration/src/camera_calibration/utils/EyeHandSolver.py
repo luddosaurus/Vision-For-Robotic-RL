@@ -34,7 +34,6 @@ class EyeHandSolver(object):
         # Hand2World
         rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
             hand2base)
-        print(f'!!!!!\n{fixed2attached}\n!!!!!!')
         # Attached2Hand
         if attached2hand_guess is not None:
             # Init Guess Fixed2Hand
@@ -62,7 +61,6 @@ class EyeHandSolver(object):
             except:
                 print('bad value')
                 return None, None
-
 
         return rot_attached2hand, tran_attached2hand
 

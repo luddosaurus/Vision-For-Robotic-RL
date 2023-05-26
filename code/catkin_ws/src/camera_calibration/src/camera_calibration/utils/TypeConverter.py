@@ -69,7 +69,6 @@ class TypeConverter:
 
         return q_normalized
 
-
     @staticmethod
     def quaternion_to_rotation_vector(quaternions):
         matrix = tf.transformations.quaternion_matrix(quaternions)
@@ -141,8 +140,6 @@ class TypeConverter:
 
         return q
 
-
-
     @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):
 
@@ -184,7 +181,7 @@ class TypeConverter:
         return matrices
 
     @staticmethod
-    def convert_to_dataframe(sample_translations):
+    def convert_to_dataframe(sample_transforms):
         # Convert dict of [category, list(stamped_transform)]
         # to panda frame [category,
         # translationX, translationY, translationZ,
@@ -192,8 +189,10 @@ class TypeConverter:
 
         data = []
 
-        for sample_category, poses in sample_translations.items():
+        for sample_category, poses in sample_transforms.items():
             for r_vec, t_vec in poses:
+                r_vec = TypeConverter.matrix_to_quaternion_vector(r_vec)
+                t_vec = np.array(t_vec).flatten()
                 data.append([
                     sample_category,
                     t_vec[0], t_vec[1], t_vec[2],

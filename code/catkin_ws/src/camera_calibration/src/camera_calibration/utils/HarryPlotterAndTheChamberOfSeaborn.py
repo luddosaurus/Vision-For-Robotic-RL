@@ -11,14 +11,13 @@ class HarryPlotter:
 
     @staticmethod
     def plot_3d_scatter(df, title="3D Scatter Plot"):
+
         sns.set(style="whitegrid")
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
         categories = df['Category'].unique()
         colors = sns.color_palette("hls", len(categories))
-
-        df[['Translation X', 'Translation Y', 'Translation Z']] *= 100
 
         for i, category in enumerate(categories):
             category_data = df[df['Category'] == category]
@@ -31,10 +30,6 @@ class HarryPlotter:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         ax.set_title(title)
-
-        ax.set_xlim(-100, 100)
-        ax.set_ylim(-100, 100)
-        ax.set_zlim(-100, 100)
 
         ax.legend()
         plt.show()
@@ -49,27 +44,19 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
-    def plot_histogram_by_category(data_frame, density=True):
-        plt.figure()
-        if density:
-            sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="stack")
-            # sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="fill")
-            # sns.kdeplot(
-            #     data=data_frame, x="Distance", hue="Category",
-            #     fill=True, common_norm=False, palette="crest",
-            #     alpha=.5, linewidth=0,
-            # )
-
-        else:
-            sns.histplot(data_frame, x="Distance", hue="Category", element="poly")
-
-        plt.title('Distances by Category')
+    def plot_histogram_by_category(data_frame):
+        print(data_frame)
+        plt.figure(figsize=(10, 6))
+        sns.histplot(data=data_frame, x='Distance', hue='Category', multiple='stack')
         plt.xlabel('Distance')
         plt.ylabel('Count')
+        plt.title('Histogram of Distances by Category')
+
         plt.show()
 
     @staticmethod
     def plot_prop(data_frame, density=True):
+        print(data_frame)
         plt.figure()
         if density:
             sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="stack")
@@ -91,6 +78,7 @@ class HarryPlotter:
     @staticmethod
     def plot_poses(dataframe):
         fig = plt.figure()
+
         ax = fig.add_subplot(111, projection='3d')
 
         translations = dataframe[['Translation X', 'Translation Y', 'Translation Z']].values
@@ -121,7 +109,9 @@ class HarryPlotter:
                 axis_end = translation + 0.1 * rot_matrix[:, j]  # Use rotational matrix for axis direction
                 ax.plot([axis_start[0], axis_end[0]], [axis_start[1], axis_end[1]], [axis_start[2], axis_end[2]],
                         color=axis_colors[j])
-
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
+        ax.set_zlim(-1, 1)
         # Set labels
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
