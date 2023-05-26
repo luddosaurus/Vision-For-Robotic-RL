@@ -119,10 +119,11 @@ class EyeToHandEstimator(object):
             print(e)
 
         self.collect_camera_target_transform()
-
-        DaVinci.draw_text(image=self.current_image,
-                          text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}')
-        cv2.imshow('External calibration display', self.current_image)
+        DaVinci.draw_text_box(self.current_image, "hej", "bottom_left")
+        # DaVinci.draw_text(image=self.current_image,
+        #                   text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}')
+        resized_image = DaVinci.resize(self.current_image.copy())
+        cv2.imshow('External calibration display', resized_image)
 
         key = cv2.waitKey(1) & 0xFF
 
