@@ -59,8 +59,8 @@ from itertools import combinations
 
 class EyeToHandEstimator(object):
 
-    def __init__(self, charuco_board_shape, charuco_marker_size, charuco_square_size, dict_type, memory_size=5,
-                 num_images_to_capture=15, load_data=False, save_data=False, eye_in_hand=False):
+    def __init__(self, charuco_board_shape, charuco_marker_size, charuco_square_size, dict_type, memory_size=30,
+                 load_data=False, save_data=False, eye_in_hand=False):
 
         # self.intrinsic_camera, self.distortion =
         with np.load(calibration_path_d435 if eye_in_hand else calibration_path_d455) as X:
@@ -99,8 +99,7 @@ class EyeToHandEstimator(object):
         self.transforms_hand2world = []
         self.transforms_camera2charuco = []
         self.start_time = time()
-        self.num_images_to_capture = num_images_to_capture
-        self.num_images_captured = 0
+
         self.memory_size = memory_size
         self.current_image = None
         self.Frame = Enum('Frame', 'camera charuco world panda_hand')
@@ -119,13 +118,9 @@ class EyeToHandEstimator(object):
 
         self.collect_camera_target_transform()
 
-        DaVinci.draw_text(image=self.current_image, text=f'{self.num_images_captured}/{self.num_images_to_capture}')
+        DaVinci.draw_text(image=self.current_image,
+                          text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}')
         cv2.imshow('External calibration display', self.current_image)
-
-        if self.num_images_captured == self.num_images_to_capture:
-            self.save()
-            self.run_solvers()
-            rospy.signal_shutdown("Calibration complete.")
 
         key = cv2.waitKey(1) & 0xFF
 
@@ -135,15 +130,14 @@ class EyeToHandEstimator(object):
         elif key == ord('s'):
             self.save_camera_target_transform()
             self.collect_robot_transforms()
-            self.num_images_captured += 1
-        elif key == ord('u') and self.num_images_captured > 0:
-            self.num_images_captured -= 1
+
+        elif key == ord('u') and len(self.transforms_camera2charuco) > 0:
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
-        elif key == ord('d') and self.num_images_captured > 0:
+        elif key == ord('d') and len(self.transforms_camera2charuco) > 3:
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
-                                                 num_images_to_capture=self.num_images_to_capture)
+                                                 number_of_transforms=len(self.transforms_camera2charuco))
             if self.save_data:
                 self.save()
             self.run_solvers()
@@ -152,7 +146,7 @@ class EyeToHandEstimator(object):
 
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
-                                                 num_images_to_capture=self.num_images_to_capture)
+                                                 nnumber_of_transforms=len(self.transforms_camera2charuco))
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.pretty_print_transforms(pose_estimations_all_algorithms)
 
@@ -164,11 +158,15 @@ class EyeToHandEstimator(object):
             image=self.current_image,
             camera_matrix=self.intrinsic_camera,
             dist_coefficients=self.distortion)
+        # print(latest_r_vec)
+        # print(latest_t_vec)
         if self.eye_in_hand:
             # latest_t_vec, latest_r_vec = TypeConverter.invert_transform(latest_t_vec, latest_r_vec)
             latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
         else:
             latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
+        latest_t_vec = np.array(latest_t_vec)
+        latest_r_vec = np.array(latest_r_vec)
         if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
             transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
                                                                    rotation=latest_r_vec,
@@ -196,7 +194,7 @@ class EyeToHandEstimator(object):
 
     def collect_robot_transforms(self):
 
-        if not self.eye_in_hand:
+        if self.eye_in_hand:
             origin = self.Frame.world.name
             child = self.Frame.panda_hand.name
         else:
@@ -475,7 +473,7 @@ if __name__ == '__main__':
 
     rospy.init_node('hand_eye_node')
 
-    selected_board = Board.large
+    selected_board = Board.small
 
     save = False
     load = True
@@ -484,7 +482,7 @@ if __name__ == '__main__':
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,
                                                 charuco_marker_size=0.008,
                                                 dict_type=cv2.aruco.DICT_4X4_50, load_data=load, save_data=save,
-                                                num_images_to_capture=6, eye_in_hand=False)
+                                                eye_in_hand=False)
     elif selected_board == Board.medium:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(18, 29), charuco_square_size=0.01,
                                                 charuco_marker_size=0.008,
@@ -493,7 +491,7 @@ if __name__ == '__main__':
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(9, 14), charuco_square_size=0.04,
                                                 charuco_marker_size=0.031,
                                                 dict_type=cv2.aruco.DICT_5X5_100, load_data=load, save_data=save,
-                                                num_images_to_capture=20, eye_in_hand=True)
+                                                eye_in_hand=True)
 
     try:
         rospy.spin()

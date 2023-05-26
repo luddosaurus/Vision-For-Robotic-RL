@@ -57,11 +57,11 @@ class TypeConverter:
     @staticmethod
     def rotation_vector_to_quaternions(rotation_vector):
         # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
-        embedded_rotation = np.eye(4)
-        embedded_rotation[:3, :3] = rotation_vector
 
+        rotation_matrix = np.eye(4)
+        rotation_matrix[:3, :3], _ = cv2.Rodrigues(rotation_vector)
         # Convert to Quaternion
-        quaternion = tf.transformations.quaternion_from_matrix(embedded_rotation)
+        quaternion = tf.transformations.quaternion_from_matrix(rotation_matrix)
 
         # Normalize the quaternion because it's important
         q_norm = np.linalg.norm(quaternion)
@@ -69,9 +69,12 @@ class TypeConverter:
 
         return q_normalized
 
-    # @staticmethod
-    # def quaternion_to_rotation_vector(quaternions):
-    #     matrix = tf.transformations.
+
+    @staticmethod
+    def quaternion_to_rotation_vector(quaternions):
+        matrix = tf.transformations.quaternion_matrix(quaternions)
+        r_vec = cv2.Rodrigues(matrix)
+        return r_vec
 
     @staticmethod
     def rotation_vector_list_to_quaternions(rotation_vector_list):
@@ -137,6 +140,8 @@ class TypeConverter:
         q = q / q_norm
 
         return q
+
+
 
     @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):
