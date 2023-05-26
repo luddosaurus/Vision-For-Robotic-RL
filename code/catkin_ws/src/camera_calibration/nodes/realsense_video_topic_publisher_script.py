@@ -7,7 +7,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-d435 = False
+d435 = True
 
 CAMERA_WIDTH = 1920 if d435 else 1280
 CAMERA_HEIGHT = 1080 if d435 else 800
@@ -24,6 +24,8 @@ def main():
     devices = ctx.query_devices()
     for dev in devices:
         dev.hardware_reset()
+
+    rospy.Rate(0.1).sleep()
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, 30)

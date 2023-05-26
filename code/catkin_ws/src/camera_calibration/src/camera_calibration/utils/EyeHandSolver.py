@@ -7,7 +7,7 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 
 
 class EyeHandSolver(object):
-    def __init__(self, transforms_hand2world, transforms_camera2charuco, num_images_to_capture):
+    def __init__(self, transforms_hand2world, transforms_camera2charuco, number_of_transforms):
         self.methods = [
             cv2.CALIB_HAND_EYE_TSAI,
             cv2.CALIB_HAND_EYE_PARK,
@@ -15,7 +15,7 @@ class EyeHandSolver(object):
             cv2.CALIB_HAND_EYE_ANDREFF,
             cv2.CALIB_HAND_EYE_DANIILIDIS
         ]
-        self.num_images_to_capture = num_images_to_capture
+        self.num_images_to_capture = number_of_transforms
         self.transforms_hand2world = transforms_hand2world
         self.transforms_camera2charuco = transforms_camera2charuco
 
@@ -34,7 +34,6 @@ class EyeHandSolver(object):
         # Hand2World
         rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
             hand2base)
-
         # Attached2Hand
         if attached2hand_guess is not None:
             # Init Guess Fixed2Hand
@@ -63,7 +62,6 @@ class EyeHandSolver(object):
                 print('bad value')
                 return None, None
 
-        # print(rot_attached2hand, tran_attached2hand)
         return rot_attached2hand, tran_attached2hand
 
     def solve_all_sample_combos(
@@ -153,8 +151,8 @@ class EyeHandSolver(object):
         poses = dict()
 
         for method in self.methods:
-            if method == self.methods[3]:
-                continue
+            # if method == self.methods[3]:
+            #     continue
             poses[method] = list()
             poses[method].append(
                 self.solve(
