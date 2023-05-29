@@ -25,7 +25,7 @@ def main():
     for dev in devices:
         dev.hardware_reset()
 
-    rospy.Rate(0.1).sleep()
+    rospy.Rate(0.5).sleep()
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, 30)

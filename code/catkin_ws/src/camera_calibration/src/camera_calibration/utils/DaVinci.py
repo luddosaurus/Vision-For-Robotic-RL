@@ -13,29 +13,30 @@ class DaVinci:
             foreground=(255, 255, 255),
             font_scale=1.0,
             thickness=2,
-            box=True):
+            box=True,
+            margin=40):
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        margin = 30
+
         # Get the image dimensions
         height, width, _ = image.shape
 
         # Set the position coordinates based on the input position
         if position == 'top_left':
             x = margin
-            y = margin + width
+            y = margin
         elif position == 'top_right':
-            x = width - margin - height
-            y = margin + width
+            x = width - margin
+            y = margin
         elif position == 'bottom_left':
             x = margin
             y = height - margin
         elif position == 'bottom_right':
-            x = width - margin - height
+            x = width - margin
             y = height - margin
         else:
-            x = width/2
-            y = height/2
+            x = width / 2
+            y = height / 2
 
         # Get the text size
         text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
@@ -83,4 +84,3 @@ class DaVinci:
         cv2.circle(img=image, center=(int(corner[0][0]), int(corner[0][1])), radius=10, color=(255, 255, 0),
                    thickness=-1)
         return image
-

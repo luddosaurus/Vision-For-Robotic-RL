@@ -127,16 +127,17 @@ class EyeToHandEstimator(object):
                "[d]elete " \
                "[p]lot " \
                "[h]save"
-        DaVinci.draw_text(
+        DaVinci.draw_text_box(
             image=self.current_image,
             text=info,
             position="bottom_left",
             thickness=1,
-            font_scale=0.4
+            font_scale=0.8
         )
-        DaVinci.draw_text(
+        DaVinci.draw_text_box(
             image=self.current_image,
-            text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}'
+            text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}',
+            position='top_left'
         )
         resized_image = DaVinci.resize(self.current_image.copy())
         cv2.imshow('External calibration display', resized_image)
