@@ -520,10 +520,10 @@ if __name__ == '__main__':
 
     rospy.init_node('hand_eye_node')
 
-    selected_board = Board.small
+    selected_board = Board.large
 
     save = False
-    load = True
+    load = False
 
     if selected_board == Board.small:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,

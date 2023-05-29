@@ -1,0 +1,8 @@
+{
+  "board": "large",
+  "camera": "d435_default",
+  "mode": "eye_in_hand",
+  "load_data": false,
+  "save_data_name": "eye_in_hand_estimate",
+  "camera_topic" : "/camera/color/image_raw"
+}

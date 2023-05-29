@@ -7,7 +7,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-d435 = False
+d435 = True
 
 CAMERA_WIDTH = 1920 if d435 else 1280
 CAMERA_HEIGHT = 1080 if d435 else 800

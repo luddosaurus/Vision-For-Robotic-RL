@@ -1,0 +1,8 @@
+{
+  "board": "small",
+  "camera": "d455",
+  "mode": "eye_to_hand",
+  "load_data": false,
+  "save_data_name": "eye_to_hand_estimate",
+  "camera_topic" : "/camera/color/image_raw"
+}
