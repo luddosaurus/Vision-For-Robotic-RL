@@ -11,11 +11,11 @@ class DaVinci:
             position="bottom_left",
             background=(255, 0, 255),
             foreground=(255, 255, 255),
+            font_scale=1.0,
+            thickness=2,
             box=True):
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1
-        thickness = 2
         margin = 30
         # Get the image dimensions
         height, width, _ = image.shape
@@ -33,6 +33,9 @@ class DaVinci:
         elif position == 'bottom_right':
             x = width - margin - height
             y = height - margin
+        else:
+            x = width/2
+            y = height/2
 
         # Get the text size
         text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
@@ -81,40 +84,3 @@ class DaVinci:
                    thickness=-1)
         return image
 
-    @staticmethod
-    def draw_text_box(image, text, position, font=cv2.FONT_HERSHEY_SIMPLEX, font_scale=1, thickness=2):
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1
-        thickness = 2
-        margin = 10
-        x = 0
-        y = 0
-
-        height, width, channels = image.shape
-        text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
-
-        if position == 'top_left':
-            x = margin
-            y = margin + text_size[1]
-        elif position == 'top_right':
-            x = width - margin - text_size[0]
-            y = margin + text_size[1]
-        elif position == 'bottom_left':
-            x = margin
-            y = height - margin
-        elif position == 'bottom_right':
-            x = width - margin - text_size[0]
-            y = height - margin
-
-
-        # Calculate the position of the box
-        box_x = position[0]
-        box_y = position[1]
-        box_width = text_size + 10  # Add some padding to the text width
-        box_height = text_size + 10  # Add some padding to the text height
-
-        # Draw the black box
-        cv2.rectangle(image, (box_x, box_y), (box_x + box_width, box_y + box_height), (0, 0, 0), cv2.FILLED)
-
-        # Draw the white text
-        cv2.putText(image, text, (box_x + 5, box_y + text_size + 5), font, font_scale, (255, 255, 255), thickness)

@@ -2,16 +2,16 @@ import cv2
 
 
 def draw_text_box(
-        image,
-        text,
-        position="bottom_left",
-        background=(255, 0, 255),
-        foreground=(255, 255, 255),
-        box=True):
+            image,
+            text,
+            position="bottom_left",
+            background=(255, 0, 255),
+            foreground=(255, 255, 255),
+            font_scale=1.0,
+            thickness=2,
+            box=True):
 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 1
-    thickness = 2
     margin = 30
     # Get the image dimensions
     height, width, _ = image.shape
@@ -65,14 +65,21 @@ def draw_text_box(
 
 # Load the image
 image = cv2.imread('test.png')
-
+info = "[q]uit " \
+       "[s]ave " \
+       "[u]ndo " \
+       "[d]elete " \
+       "[p]lot " \
+       "[h]save"
 # Draw the text box on the image
 image_with_text_box = draw_text_box(
     image=image,
-    text='Hello, World!',
+    text=info,
     position='bottom_left',
     foreground=(0, 255, 255),
-    background=(255, 0, 255))
+    background=(255, 0, 255),
+    font_scale=0.4,
+    thickness=1)
 
 # Display the image
 cv2.imshow('Image with Text Box', image_with_text_box)

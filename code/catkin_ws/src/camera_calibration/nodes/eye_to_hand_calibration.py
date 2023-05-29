@@ -119,25 +119,44 @@ class EyeToHandEstimator(object):
             print(e)
 
         self.collect_camera_target_transform()
-        DaVinci.draw_text_box(self.current_image, "hej", "bottom_left")
-        # DaVinci.draw_text(image=self.current_image,
-        #                   text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}')
+
+        # ---------------------- GUI
+        info = "[q]uit " \
+               "[s]ave " \
+               "[u]ndo " \
+               "[d]elete " \
+               "[p]lot " \
+               "[h]save"
+        DaVinci.draw_text(
+            image=self.current_image,
+            text=info,
+            position="bottom_left",
+            thickness=1,
+            font_scale=0.4
+        )
+        DaVinci.draw_text(
+            image=self.current_image,
+            text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}'
+        )
         resized_image = DaVinci.resize(self.current_image.copy())
         cv2.imshow('External calibration display', resized_image)
 
+        # ---------------------- Input
         key = cv2.waitKey(1) & 0xFF
 
-        if key == ord('q'):
+        if key == ord('q'):  # Quit
             print('Shutting down....')
             rospy.signal_shutdown('We are done here')
-        elif key == ord('s'):
+
+        elif key == ord('s'):  # Save
             self.save_camera_target_transform()
             self.collect_robot_transforms()
 
-        elif key == ord('u') and len(self.transforms_camera2charuco) > 0:
+        elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
-        elif key == ord('d') and len(self.transforms_camera2charuco) > 3:
+
+        elif key == ord('d') and len(self.transforms_camera2charuco) > 3:  # Done
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  number_of_transforms=len(self.transforms_camera2charuco))
@@ -145,7 +164,7 @@ class EyeToHandEstimator(object):
                 self.save()
             self.run_solvers()
 
-        elif key == ord('p') and len(self.transforms_camera2charuco) >= 3:
+        elif key == ord('p') and len(self.transforms_camera2charuco) >= 3:  # Plot
 
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
@@ -159,7 +178,7 @@ class EyeToHandEstimator(object):
             # self.plot_thread.start()
             HarryPlotter.plot_poses(frame_methods)
 
-        elif key == ord('h'):
+        elif key == ord('h'):  # Save
             self.save()
 
     def collect_camera_target_transform(self):
