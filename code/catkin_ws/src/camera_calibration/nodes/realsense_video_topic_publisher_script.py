@@ -7,7 +7,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-d435 = True
+d435 = False
 
 CAMERA_WIDTH = 1920 if d435 else 1280
 CAMERA_HEIGHT = 1080 if d435 else 800
@@ -102,17 +102,17 @@ def main():
 
                 if CAMERA_HEIGHT >= 720:
                     images = cv2.resize(images, None, fx=0.5, fy=0.5)
-                cv2.imshow('Realsense_color', images)
-
-                key = cv2.waitKey(1) & 0xFF
-
-                if key == ord('q'):
-                    cv2.destroyAllWindows()
-                    rospy.Rate(1).sleep()
-                    pipeline.stop()
-                    del pipeline
-                    rospy.signal_shutdown('Image view dismissed.')
-                    break
+                # cv2.imshow('Realsense_color', images)
+                #
+                # key = cv2.waitKey(1) & 0xFF
+                #
+                # if key == ord('q'):
+                #     cv2.destroyAllWindows()
+                #     rospy.Rate(1).sleep()
+                #     pipeline.stop()
+                #     del pipeline
+                #     rospy.signal_shutdown('Image view dismissed.')
+                #     break
                 # rospy.Rate(100).sleep()
         finally:
             # Stop streaming

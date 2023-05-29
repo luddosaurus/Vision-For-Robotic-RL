@@ -19,6 +19,14 @@ class ErrorEstimator:
         std_deviation_frame = data_frame.groupby('Category').std()
         return std_deviation_frame
 
+    @staticmethod
+    def calculate_variance_by_category(dataframe):
+        # Group the dataframe by "Category" and calculate variance for each group
+        grouped = dataframe.groupby("Category")
+        variance_frame = grouped.var(ddof=0).fillna(0)
+
+        return variance_frame
+
 
 
 

@@ -1,0 +1,35 @@
+{
+  "small": {
+    "charuco_board_shape": [
+      7,
+      10
+    ],
+    "charuco_square_size": 0.012,
+    "charuco_marker_size": 0.008,
+    "dict_type": "DICT_4X4_50"
+  },
+  "medium": {
+    "charuco_board_shape": [
+      18,
+      29
+    ],
+    "charuco_square_size": 0.01,
+    "charuco_marker_size": 0.008,
+    "dict_type": "DICT_5X5_1000"
+  },
+  "large": {
+    "charuco_board_shape": [
+      9,
+      14
+    ],
+    "charuco_square_size": 0.04,
+    "charuco_marker_size": 0.031,
+    "dict_type": "DICT_5X5_100"
+  },
+  "custom": {
+    "charuco_board_shape": [],
+    "charuco_square_size": 0,
+    "charuco_marker_size": 0,
+    "dict_type": "DICT"
+  }
+}
