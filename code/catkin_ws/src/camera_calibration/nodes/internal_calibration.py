@@ -11,32 +11,45 @@ import numpy as np
 
 from camera_calibration.utils.ARHelper import ARHelper
 from camera_calibration.utils.extract_realsense_parameters import ExtractParameters
+from camera_calibration.utils.JSONHelper import JSONHelper
+from camera_calibration.params.aruco_dicts import ARUCO_DICT
 
 CALIB_DATA_NAME = "calib_data_1280"
 
 
 class InternalCalibrator(object):
-    def __init__(self, board_dimensions=None, charuco_board_shape=None, charuco_marker_size=None,
-                 charuco_square_size=None,
-                 dict_type=None, chessboard_square_size=None):
-        self.bridge = CvBridge()
-        self.subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.my_callback)
+    def __init__(self, camera_name=None, factory_settings=None, board_name=None, image_topic=None):
 
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(dict_type)
-        self.board = cv2.aruco.CharucoBoard_create(charuco_board_shape[1], charuco_board_shape[0], charuco_square_size,
-                                                   charuco_marker_size, self.aruco_dict)
-        self.board_dimensions = board_dimensions
-        self.size_of_chessboard_squares_mm = chessboard_square_size
+        # Setup board and charuco data
+        self.board_parameters = JSONHelper.get_board_parameters(board_name)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[self.board_parameters['dict_type']])
+        self.board = cv2.aruco.CharucoBoard_create(squaresX=self.board_parameters['charuco_board_shape'][1],
+                                                   squaresY=self.board_parameters['charuco_board_shape'][0],
+                                                   squareLength=self.board_parameters['charuco_square_size'],
+                                                   markerLength=self.board_parameters['charuco_marker_size'],
+                                                   dictionary=self.aruco_dict)
+
+        self.board_dimensions = (
+            self.board_parameters['charuco_board_shape'][0], self.board_parameters['charuco_board_shape'][1])
+        self.arHelper = ARHelper(charuco_board_shape=self.board_dimensions,
+                                 charuco_square_size=self.board_parameters['charuco_square_size'],
+                                 charuco_marker_size=self.board_parameters['charuco_marker_size'],
+                                 dict_type=self.aruco_dict)
+        self.size_of_chessboard_squares_mm = self.board_parameters['charuco_square_size']
+
+        # Setup rospy
+        self.bridge = CvBridge()
+        self.subscriber = rospy.Subscriber(image_topic, Image, self.my_callback)
+
+        # As defined by opencv
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
+        # For saving the result
+        self.camera_name = camera_name
+
+        # Camera factory parameters for initial guess
+
         self.saved_images = list()
-        self.calib_data_path = os.path.join(rospkg.RosPack().get_path('camera_calibration'),
-                                            'calibration_data/internal_calibration')
-
-        self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
-                                 charuco_square_size=charuco_square_size, dict_type=dict_type)
-
-        self.num_images = 6
 
     def my_callback(self, image_message):
 
@@ -48,26 +61,16 @@ class InternalCalibrator(object):
         # _, board_detected = self.detect_checkerboard(image=image)
         board_detected, image = self.arHelper.detect_and_draw_charuco(image)
 
-        if len(self.saved_images) < self.num_images:
-            cv2.imshow('image subscriber', image)
+        cv2.imshow('image subscriber', image)
 
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('q'):
             rospy.signal_shutdown('We are done here')
-        elif key == ord('s') and board_detected:
+        elif key == ord('c') and board_detected:
             self.saved_images.append(original_image)
-
-        calibration_finished = False
-        if len(self.saved_images) >= self.num_images:
-            # calibration_finished = self.calibrate()
+        elif key == ord('r') and len(self.saved_images) >= 1:
             calibration_finished = self.calibrate_charuco()
-        if calibration_finished:
-            # extract_params = ExtractParameters()
-            # extract_params.print_parameters()
-            rospy.signal_shutdown('We are done here')
-
-    ################################# CHARUCO CALIBRATION ##########################################################
 
     def calibrate_charuco(self):
         corners, ids, size = self.read_chessboards()
@@ -81,17 +84,14 @@ class InternalCalibrator(object):
         allCorners = []
         allIds = []
         decimator = 0
-        # SUB PIXEL CORNER DETECTION CRITERION
+        # sub pixel corner detection criterion as defined by opencv
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
 
         for im in self.saved_images:
-            # print("=> Processing image {0}".format(im))
-            # frame = cv2.imread(im)
             gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
             corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, self.aruco_dict)
 
             if len(corners) > 0:
-                # SUB PIXEL DETECTION
                 for corner in corners:
                     cv2.cornerSubPix(gray, corner,
                                      winSize=(3, 3),
@@ -276,10 +276,15 @@ class InternalCalibrator(object):
 
 
 def main():
-    CHESSBOARD_DIM = (7, 10)
+    config_file = rospy.get_param(param_name='internal_calibration_node/config')
+
+    camera_name, factory_settings, board, image_topic = JSONHelper.get_internal_calibration_parameters(config_file)
+
     rospy.init_node('internal_calibration_node')
-    internal_calibrator = InternalCalibrator(charuco_board_shape=CHESSBOARD_DIM, charuco_marker_size=0.31,
-                                             charuco_square_size=0.4, dict_type=cv2.aruco.DICT_5X5_100)
+    internal_calibrator = InternalCalibrator(camera_name=camera_name, factory_settings=factory_settings,
+                                             board_name=board, image_topic=image_topic)
+    # internal_calibrator = InternalCalibrator(charuco_board_shape=CHESSBOARD_DIM, charuco_marker_size=0.31,
+    #                                          charuco_square_size=0.4, dict_type=cv2.aruco.DICT_5X5_100)
 
     try:
         rospy.spin()

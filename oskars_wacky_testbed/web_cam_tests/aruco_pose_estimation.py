@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import tf
 
 ARUCO_DICT = {
     "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
@@ -59,21 +60,53 @@ def aruco_display(corners, ids, rejected, image):
 def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
-    parameters = cv2.aruco.DetectorParameters()
+    parameters = cv2.aruco.DetectorParameters_create()
 
-    corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters,
-                                                                )
+    corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
 
     if len(corners) > 0:
         for i in range(0, len(ids)):
             rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.02, matrix_coefficients,
                                                                            distortion_coefficients)
+            quat_homemade = rotation_vector_to_quaternions(rvec)
+            mat, _ = cv2.Rodrigues(rvec)
+            eyes = np.eye(4)
+            eyes[:3, :3] = mat
+            quat = tf.transformations.quaternion_from_matrix(eyes)
+            mat_from_quat = tf.transformations.quaternion_matrix(quat_homemade)
+            # euler = tf.transformations.euler_from_quaternion(quat)
+
+            print(f'rvec: {rvec}\n !!!!!!!!!!!')
+            # print(f'euler: {euler}\n???????????????')
+            print(f'quat_homemade: {quat_homemade}\n???????????????')
+            print(f'quat_from_matrix: {quat}\n???????????????')
+            print(f'mat-rod: {mat}\n------------------------')
+            print(f'mat-quat: {mat_from_quat}\n#####')
 
             cv2.aruco.drawDetectedMarkers(frame, corners)
 
             cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
 
     return frame
+
+
+def rotation_vector_to_quaternions(rotation_vector):
+    # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
+    # embedded_rotation = np.eye(4)
+    # embedded_rotation[:3, :3] = rotation_vector
+    # print(f'embedded_stuff: {embedded_rotation}')
+    # Convert to Quaternion
+    eye = np.eye(4)
+    matrix, _ = cv2.Rodrigues(rotation_vector)
+    # print(matrix)
+    eye[:3, :3] = matrix
+    quaternion = tf.transformations.quaternion_from_matrix(eye)
+
+    # Normalize the quaternion because it's important
+    q_norm = np.linalg.norm(quaternion)
+    quaternion = quaternion / q_norm
+
+    return quaternion
 
 
 aruco_type = "DICT_4X4_50"

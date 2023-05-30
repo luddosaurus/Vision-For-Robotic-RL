@@ -1,11 +1,12 @@
 __all__ = [
     "ARHelper",
-    "ErrorEstimator"
-    "HarryPlotter"
+    "ErrorEstimator",
+    "HarryPlotterAndTheChamberOfSeaborn",
     "MeanHelper",
     "TFPublish",
     "TypeConverter",
     "DaVinci",
     "EyeHandSolver",
     "SaveMe",
+    "JSONHelper"
 ]
