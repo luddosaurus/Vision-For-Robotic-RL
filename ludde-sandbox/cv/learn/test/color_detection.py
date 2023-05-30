@@ -1,3 +1,4 @@
+import cv2
 from cv.utils.stack_images import *
 
 

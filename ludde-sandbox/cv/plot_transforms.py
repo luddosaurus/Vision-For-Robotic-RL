@@ -122,6 +122,13 @@ def calculate_standard_deviation_by_category(data_frame):
     return std_deviation_frame
 
 
+def calculate_variance_by_category(dataframe):
+    # Group the dataframe by "Category" and calculate variance for each group
+    variance_frame = dataframe.groupby("Category").var()
+
+    return variance_frame
+
+
 def plot_translation_rotation(dataframe):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -173,8 +180,9 @@ df = create_sample_data(num_categories_samples, num_translations_samples)
 # print(df)
 frame_distance = calculate_distance_to_mean(df)
 print(frame_distance)
-# plot_histogram_by_category(frame_distance)
-plot_prop(frame_distance)
+plot_histogram_by_category(frame_distance)
+# plot_prop(frame_distance)
 # plot_3d_scatter(df)
-
-plot_translation_rotation(df)
+# variance = calculate_variance_by_category(frame_distance)
+# variance2 = calculate_variance_by_category(frame_distance)
+# plot_translation_rotation(df)
