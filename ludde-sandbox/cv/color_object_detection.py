@@ -64,6 +64,8 @@ class ColorObjectDetector:
         
         return x, y, z
 
+def empty():
+     pass
 
 # ------------------------------ Main
 window = 'ColorDetection'
@@ -71,6 +73,13 @@ cv2.namedWindow(window)
 
 cap = cv2.VideoCapture(0)
 cd = ColorObjectDetector()
+
+cv2.createTrackbar("Hue Min", window, 0, 179, empty)
+cv2.createTrackbar("Hue Max", window, 19, 179, empty)
+cv2.createTrackbar("Sat Min", window, 110, 255, empty)
+cv2.createTrackbar("Sat Max", window, 240, 255, empty)
+cv2.createTrackbar("Val Min", window, 153, 255, empty)
+cv2.createTrackbar("Val Max", window, 255, 255, empty)
 
 # todo find target with clicking
 
@@ -87,7 +96,7 @@ while True:
     target_color = cd.code2hsv(209, 0.88, 0.9)
 
     # Mask
-    mask_image = cd.get_hsv_mask(image=image, hsv=target_color, margin=20)
+    mask_image = cd.get_hsv_mask(image=image, hsv=target_color, margin=40)
     res = cv2.bitwise_and(image, image, mask=mask_image)
     mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
@@ -103,7 +112,7 @@ while True:
 
     # Show Image
     stacked = np.hstack((res,image,mask))
-    cv2.imshow(window,cv2.resize(stacked,None,fx=0.4,fy=0.4))
+    cv2.imshow(window,cv2.resize(stacked,None,fx=0.6,fy=0.6))
 
 
     # Exit

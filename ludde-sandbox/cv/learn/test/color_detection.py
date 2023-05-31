@@ -1,5 +1,5 @@
 import cv2
-from cv.utils.stack_images import *
+from ..utils.stack_images import *
 
 
 def empty(a):
