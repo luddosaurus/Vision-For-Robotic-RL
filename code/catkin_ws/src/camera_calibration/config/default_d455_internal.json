@@ -1,5 +1,5 @@
 {
-  "camera_name": "d435",
+  "camera_name": "d455",
   "factory_settings": {
     "focal_point": [
       640.627,
@@ -17,5 +17,6 @@
       -0.0216126
     ]
   },
-  "board": "large"
+  "board_name": "large",
+  "image_topic": "/camera/color/image_raw"
 }

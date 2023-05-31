@@ -121,6 +121,7 @@ def main():
         finally:
             # Stop streaming
             cv2.destroyAllWindows()
+            pipeline.stop()
             # pipeline.stop()
             # rospy.signal_shutdown('Image view dismissed.')
 

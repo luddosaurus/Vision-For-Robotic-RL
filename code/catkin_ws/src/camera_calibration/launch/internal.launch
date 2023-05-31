@@ -1,12 +1,6 @@
 <launch>
 
-    <!--    <node-->
-    <!--            pkg="camera_calibration"-->
-    <!--            type="realsense_video_topic_publisher_script.py"-->
-    <!--            name="realsense_video_topic_publisher_node"-->
-    <!--            output="screen">-->
-    <!--    </node>-->
-
+    <arg name="config" default="default_eye_in_hand"/>
     <node
             pkg="camera_calibration"
             type="internal_calibration.py"
@@ -17,5 +11,5 @@
 
     </node>
 
-    <arg name="config" default="default_eye_in_hand"/>
+
 </launch>

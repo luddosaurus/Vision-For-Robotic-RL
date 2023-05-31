@@ -15,6 +15,6 @@
       "...distN"
     ]
   ],
-  "board": "large",
+  "board_name": "large",
   "image_topic": "/camera/color/image_raw"
 }

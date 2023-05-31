@@ -21,21 +21,19 @@ class InternalCalibrator(object):
     def __init__(self, camera_name=None, factory_settings=None, board_name=None, image_topic=None):
 
         # Setup board and charuco data
-        self.board_parameters = JSONHelper.get_board_parameters(board_name)
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[self.board_parameters['dict_type']])
-        self.board = cv2.aruco.CharucoBoard_create(squaresX=self.board_parameters['charuco_board_shape'][1],
-                                                   squaresY=self.board_parameters['charuco_board_shape'][0],
-                                                   squareLength=self.board_parameters['charuco_square_size'],
-                                                   markerLength=self.board_parameters['charuco_marker_size'],
-                                                   dictionary=self.aruco_dict)
+        self.type = None
+        self.board_dimensions = None
+        self.square_size = None
+        self.aruco_marker_size = None
+        self.aruco_dict = None
+        self.board = None
+        self.arHelper = None
 
-        self.board_dimensions = (
-            self.board_parameters['charuco_board_shape'][0], self.board_parameters['charuco_board_shape'][1])
-        self.arHelper = ARHelper(charuco_board_shape=self.board_dimensions,
-                                 charuco_square_size=self.board_parameters['charuco_square_size'],
-                                 charuco_marker_size=self.board_parameters['charuco_marker_size'],
-                                 dict_type=self.aruco_dict)
-        self.size_of_chessboard_squares_mm = self.board_parameters['charuco_square_size']
+        # Initialize above values depending on board type
+        board_parameters = JSONHelper.get_board_parameters(board_name)
+        self.setup_board(board_parameters)
+
+        self.factory_settings = factory_settings
 
         # Setup rospy
         self.bridge = CvBridge()
@@ -50,6 +48,26 @@ class InternalCalibrator(object):
         # Camera factory parameters for initial guess
 
         self.saved_images = list()
+        self.calibration_results = None
+
+    def setup_board(self, board_parameters):
+        self.type = board_parameters['type']
+        self.board_dimensions = (
+            board_parameters['board_shape'][0], board_parameters['board_shape'][1])
+        self.square_size = board_parameters['square_size']
+
+        if self.type == 'charuco':
+            self.aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[board_parameters['dict_type']])
+            self.aruco_marker_size = board_parameters['aruco_marker_size']
+            self.board = cv2.aruco.CharucoBoard_create(squaresX=self.board_dimensions[1],
+                                                       squaresY=self.board_dimensions[0],
+                                                       squareLength=self.square_size,
+                                                       markerLength=self.aruco_marker_size,
+                                                       dictionary=self.aruco_dict)
+            self.arHelper = ARHelper(charuco_board_shape=self.board_dimensions,
+                                     charuco_square_size=self.square_size,
+                                     charuco_marker_size=self.aruco_marker_size,
+                                     dict_type=self.aruco_dict)
 
     def my_callback(self, image_message):
 
@@ -58,8 +76,11 @@ class InternalCalibrator(object):
         except CvBridgeError:
             print(CvBridgeError)
         original_image = image.copy()
-        # _, board_detected = self.detect_checkerboard(image=image)
-        board_detected, image = self.arHelper.detect_and_draw_charuco(image)
+
+        if self.type == 'checkerboard':
+            board_detected, image = self.detect_checkerboard(image=image)
+        elif self.type == 'charuco':
+            board_detected, image = self.arHelper.detect_and_draw_charuco(image=image)
 
         cv2.imshow('image subscriber', image)
 
@@ -69,14 +90,27 @@ class InternalCalibrator(object):
             rospy.signal_shutdown('We are done here')
         elif key == ord('c') and board_detected:
             self.saved_images.append(original_image)
+            self.run_calibration()
         elif key == ord('r') and len(self.saved_images) >= 1:
-            calibration_finished = self.calibrate_charuco()
+            self.run_calibration()
+        elif key == ord('s') and self.calibration_results is not None:
+            JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
+                                       distortion=self.calibration_results[2], image_shape=original_image.shape)
+        elif key == ord('u') and len(self.saved_images) >= 1:
+            self.saved_images = self.saved_images[1:]
+
+    def run_calibration(self):
+        if self.type == 'checkerboard':
+            self.calibrate()
+        else:
+            self.calibrate_charuco()
+        print(self.calibration_results)
 
     def calibrate_charuco(self):
-        corners, ids, size = self.read_chessboards()
+        corners, ids, size = self.find_charuco_corners()
         return self.calibrate_camera(corners, ids, size)
 
-    def read_chessboards(self):
+    def find_charuco_corners(self):
         """
         Charuco base pose estimation.
         """
@@ -109,17 +143,19 @@ class InternalCalibrator(object):
         return allCorners, allIds, imsize
 
     def calibrate_camera(self, allCorners, allIds, imsize):
-        """
-        Calibrates the camera using the dected corners.
-        """
-        print("CAMERA CALIBRATION")
 
-        cameraMatrixInit = np.array([[640., 0., 650],
-                                     [0., 639., 401],
-                                     [0., 0., 1.]])
+        cameraMatrixInit = None
+        distCoeffsInit = None
+        flags = 0
+        if self.factory_settings is not None:
+            cameraMatrixInit = np.array(
+                [[self.factory_settings['focal_point'][0], 0., self.factory_settings['center_point'][0]],
+                 [0., self.factory_settings['focal_point'][1], self.factory_settings['center_point'][1]],
+                 [0., 0., 1.]])
 
-        # distCoeffsInit = np.zeros((5, 1))
-        distCoeffsInit = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
+            # distCoeffsInit = np.zeros((5, 1))
+            distCoeffsInit = np.array(self.factory_settings['distortion'])
+            flags = cv2.CALIB_USE_INTRINSIC_GUESS
 
         # cameraMatrixInit = np.array([[1387., 0., 946],
         #                              [0., 1388., 561],
@@ -127,7 +163,7 @@ class InternalCalibrator(object):
         #
         # distCoeffsInit = np.zeros((5, 1))
         # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_RATIONAL_MODEL + cv2.CALIB_FIX_ASPECT_RATIO)
-        flags = cv2.CALIB_USE_INTRINSIC_GUESS
+
         # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_FOCAL_LENGTH + cv2.CALIB_FIX_PRINCIPAL_POINT)
         # # flags = (cv2.CALIB_RATIONAL_MODEL)
         # (ret, camera_matrix, distortion_coefficients0,
@@ -143,7 +179,7 @@ class InternalCalibrator(object):
         #     flags=flags,
         #     criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
 
-        (ret, camera_matrix, distortion_coefficients0,
+        (reprojection_error, camera_matrix, distortion,
          rotation_vectors, translation_vectors) = cv2.aruco.calibrateCameraCharuco(
             charucoCorners=allCorners,
             charucoIds=allIds,
@@ -153,61 +189,77 @@ class InternalCalibrator(object):
             distCoeffs=distCoeffsInit,
             flags=flags,
             criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
-        print(ret)
-        if ret:
-            print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
-            np.savez(
-                f"{self.calib_data_path}/MultiMatrix_{imsize}",
-                camMatrix=camera_matrix,
-                distCoef=distortion_coefficients0,
-                rVector=rotation_vectors,
-                tVector=translation_vectors,
-            )
+        # print(ret)
+        # if ret:
+        #     print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
+        #     np.savez(
+        #         f"{self.calib_data_path}/MultiMatrix_{imsize}",
+        #         camMatrix=camera_matrix,
+        #         distCoef=distortion_coefficients0,
+        #         rVector=rotation_vectors,
+        #         tVector=translation_vectors,
+        #     )
+        #
+        #     camera_matrix = np.array([[640.627, 0, 650.553], [0, 639.93, 401.117], [0, 0, 1]])
+        #     distortion_coefficients0 = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
 
-            camera_matrix = np.array([[640.627, 0, 650.553], [0, 639.93, 401.117], [0, 0, 1]])
-            distortion_coefficients0 = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
-            print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
-            np.savez(
-                f"{self.calib_data_path}/d455_default_MultiMatrix_{imsize}",
-                camMatrix=camera_matrix,
-                distCoef=distortion_coefficients0,
-                rVector=rotation_vectors,
-                tVector=translation_vectors,
-            )
+        self.calibration_results = (reprojection_error, camera_matrix, distortion)
+        #
+        # print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
+        # np.savez(
+        #     f"{self.calib_data_path}/d455_default_MultiMatrix_{imsize}",
+        #     camMatrix=camera_matrix,
+        #     distCoef=distortion_coefficients0,
+        #     rVector=rotation_vectors,
+        #     tVector=translation_vectors,
+        # )
 
-            # Reprojection Error
-            mean_error = 0
+        # Reprojection Error
+        mean_error = 0
 
-            # for i in range(len(objpoints)):
-            #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-            #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
-            #     mean_error += error
-            #
-            # print("total error: {}".format(mean_error / len(objpoints)))
+        # for i in range(len(objpoints)):
+        #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
+        #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+        #     mean_error += error
+        #
+        # print("total error: {}".format(mean_error / len(objpoints)))
 
-            # print(translation_vectors)
-        return ret
+        # print(translation_vectors)
 
-        # return ret, camera_matrix, distortion_coefficients0, rotation_vectors, translation_vectors
+        return reprojection_error
+
+    # return ret, camera_matrix, distortion_coefficients0, rotation_vectors, translation_vectors
 
     ######################################################## CHECKERBOARD CALIBRATION ##############################################################
 
     def detect_checkerboard(self, image):
-
         gray_scale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         ret, corners = cv2.findChessboardCorners(gray_scale_image, self.board_dimensions, None)
 
         if ret:
-            corners1 = cv2.cornerSubPix(gray_scale_image, corners, (3, 3), (-1, -1), self.criteria)
-            image = cv2.drawChessboardCorners(image, self.board_dimensions, corners1, ret)
+            corners_sub = cv2.cornerSubPix(gray_scale_image, corners, (3, 3), (-1, -1), self.criteria)
+            image = cv2.drawChessboardCorners(image, self.board_dimensions, corners_sub, ret)
 
-        return image, ret
+        return ret, image
 
     def calibrate(self):
+        cameraMatrixInit = None
+        distCoeffsInit = None
+        flags = 0
+        if self.factory_settings is not None:
+            cameraMatrixInit = np.array(
+                [[self.factory_settings['focal_point'][0], 0., self.factory_settings['center_point'][0]],
+                 [0., self.factory_settings['focal_point'][1], self.factory_settings['center_point'][1]],
+                 [0., 0., 1.]])
+
+            # distCoeffsInit = np.zeros((5, 1))
+            distCoeffsInit = np.array(self.factory_settings['distortion'])
+            flags = cv2.CALIB_USE_INTRINSIC_GUESS
+
         objp = np.zeros((self.board_dimensions[0] * self.board_dimensions[1], 3), np.float32)
         objp[:, :2] = np.mgrid[0:self.board_dimensions[0], 0:self.board_dimensions[1]].T.reshape(-1, 2)
 
-        objp = objp * self.size_of_chessboard_squares_mm
+        objp = objp * self.square_size
 
         # Arrays to store object points and image points from all the images.
         objpoints = []  # 3d point in real world space
@@ -246,43 +298,54 @@ class InternalCalibrator(object):
 
         ############## CALIBRATION #######################################################
 
-        ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray_image.shape[::-1], None,
-                                                                    None)
+        reprojection_error, camera_matrix, distortion, r_vecs, t_vecs = cv2.calibrateCamera(objectPoints=objpoints,
+                                                                                            imagePoints=imgpoints,
+                                                                                            imageSize=gray_image.shape[
+                                                                                                      ::-1],
+                                                                                            cameraMatrix=cameraMatrixInit,
+                                                                                            distCoeffs=distCoeffsInit,
+                                                                                            flags=flags)
+
+        # print(camera_matrix[0])
+        # print(distortion)
+        self.calibration_results = (reprojection_error, camera_matrix, distortion)
+        # JSONHelper.save_intrinsics(self.camera_name, camera_matrix, distortion, self.saved_images[0].shape)
 
         # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
         # pickle.dump((cameraMatrix, dist), open( "calibration.pkl", "wb" ))
         # pickle.dump(cameraMatrix, open( "cameraMatrix.pkl", "wb" ))
         # pickle.dump(dist, open( "dist.pkl", "wb" ))
-        if ret:
-            print(f'camera_matrix: {cameraMatrix}\ndist: {dist}')
-            np.savez(
-                f"{self.calib_data_path}/MultiMatrix_{gray_image.shape[0]}",
-                camMatrix=cameraMatrix,
-                distCoef=dist,
-                rVector=rvecs,
-                tVector=tvecs,
-            )
+        # if ret:
+        #     print(f'camera_matrix: {cameraMatrix}\ndist: {dist}')
+        #     np.savez(
+        #         f"{self.calib_data_path}/MultiMatrix_{gray_image.shape[0]}",
+        #         camMatrix=cameraMatrix,
+        #         distCoef=dist,
+        #         rVector=rvecs,
+        #         tVector=tvecs,
+        #     )
 
-            # Reprojection Error
-            mean_error = 0
-
-            for i in range(len(objpoints)):
-                imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-                error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
-                mean_error += error
-
-            print("total error: {}".format(mean_error / len(objpoints)))
-        return ret
+        # # Reprojection Error
+        # mean_error = 0
+        #
+        # for i in range(len(objpoints)):
+        #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
+        #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+        #     mean_error += error
+        #
+        # print("total error: {}".format(mean_error / len(objpoints)))
+        return reprojection_error
 
 
 def main():
     config_file = rospy.get_param(param_name='internal_calibration_node/config')
 
-    camera_name, factory_settings, board, image_topic = JSONHelper.get_internal_calibration_parameters(config_file)
+    camera_name, factory_settings, board_name, image_topic = JSONHelper.get_internal_calibration_parameters(
+        config_file)
 
     rospy.init_node('internal_calibration_node')
     internal_calibrator = InternalCalibrator(camera_name=camera_name, factory_settings=factory_settings,
-                                             board_name=board, image_topic=image_topic)
+                                             board_name=board_name, image_topic=image_topic)
     # internal_calibrator = InternalCalibrator(charuco_board_shape=CHESSBOARD_DIM, charuco_marker_size=0.31,
     #                                          charuco_square_size=0.4, dict_type=cv2.aruco.DICT_5X5_100)
 
