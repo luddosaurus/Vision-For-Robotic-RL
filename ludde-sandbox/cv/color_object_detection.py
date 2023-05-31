@@ -36,6 +36,19 @@ class ColorObjectDetector:
             self.sat_margin = sat
             self.val_margin = val
 
+    def remove_noise(self, mask, kernel_size=3, iterations=1):
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+        cleaned_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
+
+        return cleaned_mask
+    
+    def fill_holes(self, mask, kernel_size=3, iterations=1):
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+        filled_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
+
+        return filled_mask
+
+
             
     def get_hsv_mask(self, image):
 
@@ -48,7 +61,6 @@ class ColorObjectDetector:
         
         # Create a mask using the specified lower and upper ranges
         mask = cv2.inRange(hsv_image, lower_range, upper_range)
-        
         return mask
     
     def find_mask_center(self, mask):
@@ -98,7 +110,8 @@ class ColorObjectDetector:
             self.val_margin = value
 
          
-
+def empty(value):
+    print(value)
 
 # ------------------------------ Main
 window = 'ColorDetection'
@@ -114,7 +127,7 @@ cv2.createTrackbar("Value", window, 0, 255, lambda value: cd.update_value(value)
 cv2.createTrackbar("Hue Margin", window, 19, 179, lambda value: cd.update_value(value))
 cv2.createTrackbar("Sat Margin", window, 110, 255, lambda value: cd.update_value(value))
 cv2.createTrackbar("Val Margin", window, 153, 255, lambda value: cd.update_value(value))
-
+cv2.createButton(buttonName="test", onChange=empty)
 
 # with np.load("cv/intrinsic_matrix.npz") as X:
 #             camera_matrix, distortion_coefficients, _, _ = \
@@ -131,8 +144,11 @@ while True:
 
     # Mask
     mask_image = cd.get_hsv_mask(image=image)
+    cleaned_mask = cd.fill_holes(mask_image, kernel_size=5, iterations=5)
+    cleaned_mask = cd.remove_noise(cleaned_mask, kernel_size=10, iterations=3)
     res = cv2.bitwise_and(image, image, mask=mask_image)
     mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
+    cleaned_mask = cv2.cvtColor(cleaned_mask, cv2.COLOR_GRAY2BGR)
 
     # Find center
     x, y = cd.find_mask_center(mask_image)
@@ -145,7 +161,7 @@ while True:
         # print(f"x{position[0]}\ny{position[1]}\n")
 
     # Show Image
-    stacked = np.hstack((res,image,mask))
+    stacked = np.hstack((res,image,mask, cleaned_mask))
     cv2.imshow(window,cv2.resize(stacked,None,fx=0.6,fy=0.6))
 
 
