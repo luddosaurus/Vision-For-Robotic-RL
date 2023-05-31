@@ -83,8 +83,20 @@ class ColorObjectDetector:
         
         return x, y, z
     
-    def update_value(parameter, value):
-         parameter = value
+    def update_value(self, value):
+        if "hue":
+            self.hue = value
+        elif "sat":
+            self.sat = value
+        elif "val":
+            self.val = value
+        elif "hue_margin":
+            self.hue_margin = value
+        elif "sat_margin":
+            self.sat_margin = value
+        elif "val_margin":
+            self.val_margin = value
+
          
 
 
@@ -95,13 +107,13 @@ cv2.namedWindow(window)
 cap = cv2.VideoCapture(0)
 cd = ColorObjectDetector()
 
-cv2.createTrackbar("Hue", window, 0, 179, lambda value: cd.update_value(cd.hue, value))
-cv2.createTrackbar("Saturation", window, 0, 255, lambda value: cd.update_value(cd.sat, value))
-cv2.createTrackbar("Value", window, 0, 255, lambda value: cd.update_value(cd.val, value))
+cv2.createTrackbar("Hue", window, 0, 179, lambda value: cd.update_value(value))
+cv2.createTrackbar("Saturation", window, 0, 255, lambda value: cd.update_value(value))
+cv2.createTrackbar("Value", window, 0, 255, lambda value: cd.update_value(value))
 
-cv2.createTrackbar("Hue Margin", window, 19, 179, lambda value: cd.update_value(cd.hue_margin, value))
-cv2.createTrackbar("Sat Margin", window, 110, 255, lambda value: cd.update_value(cd.sat_margin, value))
-cv2.createTrackbar("Val Margin", window, 153, 255, lambda value: cd.update_value(cd.val_margin, value))
+cv2.createTrackbar("Hue Margin", window, 19, 179, lambda value: cd.update_value(value))
+cv2.createTrackbar("Sat Margin", window, 110, 255, lambda value: cd.update_value(value))
+cv2.createTrackbar("Val Margin", window, 153, 255, lambda value: cd.update_value(value))
 
 
 # with np.load("cv/intrinsic_matrix.npz") as X:
