@@ -8,20 +8,39 @@ class ColorObjectDetector:
     sat_max = 255
     value_max = 255
 
+
+    hue = 0
+    sat = 0
+    val = 0
+
+    hue_margin = 0
+    sat_margin = 0
+    val_margin = 0
+
+    
     def __init__(self) -> None:
         pass
 
-    def code2hsv(self, hue, sat, val):
-        return [
-        int(self.hue_max*(hue/360)),
-        int(self.sat_max*sat),
-        int(self.value_max*val),
-    ]
+    def set_color(self, hue, sat, val):
+        self.hue = self.hue_max*(hue/360)
+        self.sat = self.sat_max*sat 
+        self.val = self.value_max*val
+        
+    def set_margin(self, hue=0, sat=0, val=0, all=0):
+        if all != 0:
+            self.hue_margin = all
+            self.sat_margin = all
+            self.val_margin = all
+        else:
+            self.hue_margin = hue
+            self.sat_margin = sat
+            self.val_margin = val
 
-    def get_hsv_mask(self, image, hsv, margin=20):
+            
+    def get_hsv_mask(self, image):
 
-        lower_range = np.array(hsv) - margin
-        upper_range = np.array(hsv) + margin
+        lower_range = np.array((self.hue-self.hue_margin, self.sat-self.sat_margin, self.val-self.val_margin))
+        upper_range = np.array((self.hue+self.hue_margin, self.sat+self.sat_margin, self.val+self.val_margin))
 
 
         # Convert the image to HSV color space
@@ -63,9 +82,11 @@ class ColorObjectDetector:
         z = depth_value
         
         return x, y, z
+    
+    def update_value(parameter, value):
+         parameter = value
+         
 
-def empty():
-     pass
 
 # ------------------------------ Main
 window = 'ColorDetection'
@@ -74,29 +95,30 @@ cv2.namedWindow(window)
 cap = cv2.VideoCapture(0)
 cd = ColorObjectDetector()
 
-cv2.createTrackbar("Hue Min", window, 0, 179, empty)
-cv2.createTrackbar("Hue Max", window, 19, 179, empty)
-cv2.createTrackbar("Sat Min", window, 110, 255, empty)
-cv2.createTrackbar("Sat Max", window, 240, 255, empty)
-cv2.createTrackbar("Val Min", window, 153, 255, empty)
-cv2.createTrackbar("Val Max", window, 255, 255, empty)
+cv2.createTrackbar("Hue", window, 0, 179, lambda value: cd.update_value(cd.hue, value))
+cv2.createTrackbar("Saturation", window, 0, 255, lambda value: cd.update_value(cd.sat, value))
+cv2.createTrackbar("Value", window, 0, 255, lambda value: cd.update_value(cd.val, value))
 
-# todo find target with clicking
+cv2.createTrackbar("Hue Margin", window, 19, 179, lambda value: cd.update_value(cd.hue_margin, value))
+cv2.createTrackbar("Sat Margin", window, 110, 255, lambda value: cd.update_value(cd.sat_margin, value))
+cv2.createTrackbar("Val Margin", window, 153, 255, lambda value: cd.update_value(cd.val_margin, value))
 
-with np.load("cv/intrinsic_matrix.npz") as X:
-            camera_matrix, distortion_coefficients, _, _ = \
-                [X[i] for i in ('matrix', 'distortion', 'rotation_vectors', 'translation_vectors')]
+
+# with np.load("cv/intrinsic_matrix.npz") as X:
+#             camera_matrix, distortion_coefficients, _, _ = \
+#                 [X[i] for i in ('matrix', 'distortion', 'rotation_vectors', 'translation_vectors')]
+
+cd.set_color(209, 0.88, 0.9)
+cd.set_margin(all=40)
 
 while True:
     # Get Image
     ret, image = cap.read()
     if not ret:
         break
-    
-    target_color = cd.code2hsv(209, 0.88, 0.9)
 
     # Mask
-    mask_image = cd.get_hsv_mask(image=image, hsv=target_color, margin=40)
+    mask_image = cd.get_hsv_mask(image=image)
     res = cv2.bitwise_and(image, image, mask=mask_image)
     mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
@@ -105,10 +127,10 @@ while True:
     if x is not None:
         cd.draw_dot(res, x, y)
 
-        # Find 3D point
-        depth = 0.4
-        position = cd.pixel_to_3d_coordinate((x,y), depth, camera_matrix)
-        print(f"x{position[0]}\ny{position[1]}\n")
+        # # Find 3D point
+        # depth = 0.4
+        # position = cd.pixel_to_3d_coordinate((x,y), depth, camera_matrix)
+        # print(f"x{position[0]}\ny{position[1]}\n")
 
     # Show Image
     stacked = np.hstack((res,image,mask))
