@@ -1,9 +1,0 @@
-<launch>
-    <node pkg="param_test" type="param_test.py" name="param_test_node" output="screen">
-
-        <param name="test" value="$(arg test)">
-        </param>
-
-    </node>
-    <arg name="test" default="hello"/>
-</launch>

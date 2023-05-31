@@ -226,10 +226,6 @@ class InternalCalibrator(object):
 
         # print(translation_vectors)
 
-        return reprojection_error
-
-    # return ret, camera_matrix, distortion_coefficients0, rotation_vectors, translation_vectors
-
     ######################################################## CHECKERBOARD CALIBRATION ##############################################################
 
     def detect_checkerboard(self, image):

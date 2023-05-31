@@ -134,7 +134,7 @@ class EyeToHandEstimator(object):
                "[u]ndo " \
                "[d]elete " \
                "[p]lot " \
-               "[h]save"
+               "[c]ollect"
         DaVinci.draw_text_box(
             image=self.current_image,
             text=info,
@@ -157,9 +157,11 @@ class EyeToHandEstimator(object):
             print('Shutting down....')
             rospy.signal_shutdown('We are done here')
 
-        elif key == ord('s'):  # Save
+        elif key == ord('c'):  # Collect
             self.save_camera_target_transform()
             self.collect_robot_transforms()
+            if len(self.transforms_camera2charuco) > len(self.transforms_hand2world):
+                self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
 
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
@@ -188,7 +190,7 @@ class EyeToHandEstimator(object):
             HarryPlotter.plot_poses(frame_methods)
             self.cameras_published = True
 
-        elif key == ord('h'):  # Save
+        elif key == ord('s'):  # Save
             self.save()
 
     def collect_camera_target_transform(self):
@@ -217,16 +219,12 @@ class EyeToHandEstimator(object):
     def save_camera_target_transform(self):
 
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.transform_memory)
-        # if self.eye_in_hand:
-        #     mean_translation, mean_rotation = TypeConverter.invert_transform(mean_translation, mean_rotation)
 
         average_stamped_transform = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                rotation=mean_rotation,
                                                                                parent_frame=self.Frame.camera.name,
                                                                                child_frame=self.Frame.charuco.name)
 
-        # if self.eye_in_hand:
-        #     average_stamped_transform = TypeConverter.invert_stamped_transform(average_stamped_transform)
         print(average_stamped_transform)
         self.transforms_camera2charuco.append(average_stamped_transform)
 
@@ -242,172 +240,6 @@ class EyeToHandEstimator(object):
         hand2world = self.get_transform_between(origin=origin, to=child)
         if hand2world is not None:
             self.transforms_hand2world.append(hand2world)
-
-    #
-    #     rate = rospy.Rate(1)
-    #     # camera = "camera_to_aruco_[0]"
-    #     # camera = "charuco_to_camera"
-    #     # aruco = "charuco"
-    #     world = "world"
-    #     hand = "panda_hand"
-    #     while len(self.transforms_camera2aruco) < self.num_images_to_capture:
-    #         # let the tfs start publishing
-    #         rate.sleep()
-    #         input()
-    #         # Attached to gripper
-    #         camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-    #         hand2world = self.get_transform_between(origin=hand, to=world)
-    #
-    #         # Base to Camera
-    #         # camera2aruco = self.get_transform_between(origin=camera, to=aruco)
-    #         # hand2world = self.get_transform_between(origin=world, to=hand)
-    #
-    #         # print(camera2aruco)
-    #         # print(hand2world)
-    #         if hand2world is not None and camera2aruco is not None:
-    #             # self.transforms_camera2aruco.append(camera2aruco)
-    #             self.transforms_hand2world.append(hand2world)
-    #         # print(len(self.transforms_camera2aruco))
-    #
-    # # def run_solvers(self):
-    #
-    # @staticmethod
-    # def solve(fixed2attached, hand2base, solve_method, attached2hand_guess=None):
-    #     # fixed = thing on table
-    #     # attached = thing on arm
-    #     # hand = gripper
-    #     # bases = world
-    #     # Solves AX=XB with hand2base being A and fixed2attached B
-    #
-    #     # Fixed2Attached
-    #     rot_fixed2attached, tran_fixed2attached = TypeConverter.transform_to_matrices(
-    #         fixed2attached)
-    #
-    #     # Hand2World
-    #     rot_hand2world, tran_hand2world = TypeConverter.transform_to_matrices(
-    #         hand2base)
-    #
-    #     # Attached2Hand
-    #     if attached2hand_guess is not None:
-    #         # Init Guess Fixed2Hand
-    #         rot_attached2hand_guess, trand_attached2hand_guess = TypeConverter.transform_to_matrices(
-    #             attached2hand_guess
-    #         )
-    #         rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
-    #             R_gripper2base=rot_hand2world,
-    #             t_gripper2base=tran_hand2world,
-    #             R_target2cam=rot_fixed2attached,
-    #             t_target2cam=tran_fixed2attached,
-    #             R_cam2gripper=rot_attached2hand_guess,
-    #             t_cam2gripper=trand_attached2hand_guess,
-    #             method=solve_method
-    #         )
-    #     else:
-    #         try:
-    #             rot_attached2hand, tran_attached2hand = cv2.calibrateHandEye(
-    #                 R_gripper2base=rot_hand2world,
-    #                 t_gripper2base=tran_hand2world,
-    #                 R_target2cam=rot_fixed2attached,
-    #                 t_target2cam=tran_fixed2attached,
-    #                 method=solve_method
-    #             )
-    #         except:
-    #             print('bad value')
-    #             return None, None
-    #
-    #     # print(rot_attached2hand, tran_attached2hand)
-    #     return rot_attached2hand, tran_attached2hand
-    #
-    # def solve_all_sample_combos(
-    #         self,
-    #         solve_method=cv2.CALIB_HAND_EYE_DANIILIDIS,
-    #         start_sample_size=15,
-    #         end_sample_size=21,
-    #         step_size=1):
-    #
-    #     if end_sample_size is None:
-    #         end_sample_size = self.num_images_to_capture + 1
-    #
-    #     poses = dict()
-    #     list_size = len(self.transforms_camera2aruco)
-    #     max_iterations = 0
-    #     # For every sample size
-    #     for sample_size in range(start_sample_size, end_sample_size, step_size):
-    #         print(sample_size)
-    #         poses[sample_size] = list()
-    #
-    #         # For every index combination
-    #         for sample_indices in combinations(range(list_size), sample_size):
-    #             # Take out subset of indices
-    #             camera2aruco_subset = [self.transforms_camera2aruco[index] for index in sample_indices]
-    #             hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
-    #
-    #             # Do and save estimation
-    #             rot, tran = self.solve(
-    #                 fixed2attached=camera2aruco_subset,
-    #                 hand2base=hand2base_subset,
-    #                 solve_method=solve_method
-    #             )
-    #             if rot is not None and tran is not None:
-    #                 poses[sample_size].append(
-    #                     (rot, tran)
-    #                 )
-    #             max_iterations += 1
-    #             if max_iterations >= 300:
-    #                 break
-    #         max_iterations = 0
-    #
-    #     return poses
-    #
-    # def solve_all_method_samples(
-    #         self,
-    #         solve_methods,
-    #         start_sample_size=20,
-    #         end_sample_size=None,
-    #         step_size=1):
-    #
-    #     # Solve all sample sizes for each algorithm
-    #     if end_sample_size is None:
-    #         end_sample_size = self.num_images_to_capture + 1
-    #     poses = dict()
-    #     max_iterations = 0
-    #     for method in solve_methods:
-    #         poses[method] = list()
-    #
-    #         for sample_size in range(start_sample_size, end_sample_size, step_size):
-    #             sample_indices = random.sample(range(len(self.transforms_camera2aruco)), sample_size)
-    #             camera2aruco_subset = [self.transforms_camera2aruco[index] for index in sample_indices]
-    #             hand2base_subset = [self.transforms_hand2world[index] for index in sample_indices]
-    #
-    #             poses[method].append(
-    #                 self.solve(
-    #                     fixed2attached=camera2aruco_subset,
-    #                     hand2base=hand2base_subset,
-    #                     solve_method=method
-    #                 )
-    #             )
-    #             max_iterations += 1
-    #             if max_iterations >= 300:
-    #                 break
-    #         max_iterations = 0
-    #
-    #     return poses
-    #
-    # def solve_all_algorithms(self, solve_methods):
-    #
-    #     poses = dict()
-    #
-    #     for method in solve_methods:
-    #         poses[method] = list()
-    #         poses[method].append(
-    #             self.solve(
-    #                 fixed2attached=self.transforms_camera2aruco,
-    #                 hand2base=self.transforms_hand2world,
-    #                 solve_method=method
-    #             )
-    #         )
-    #
-    #     return poses
 
     def get_transform_between(self, origin, to):
         try:
