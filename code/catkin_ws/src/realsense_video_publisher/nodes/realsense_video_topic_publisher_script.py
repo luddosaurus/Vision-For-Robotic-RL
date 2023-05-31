@@ -89,7 +89,7 @@ def main():
                 aligned_depth_frame = frames.get_depth_frame()
                 aligned_colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
                 colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
-                images = np.hstack((color_image, colorized_depth))
+                # images = np.hstack((color_image, colorized_depth))
 
                 try:
                     img_message_color = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
@@ -102,8 +102,6 @@ def main():
                 if align:
                     pub_aligned_depth.publish(img_message_aligned_depth)
 
-                if CAMERA_HEIGHT >= 720:
-                    images = cv2.resize(images, None, fx=0.5, fy=0.5)
 
                 # Show images
                 # cv2.imshow('Realsense_color', images)

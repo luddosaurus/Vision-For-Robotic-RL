@@ -20,13 +20,14 @@ class DaVinci:
 
         # Get the image dimensions
         height, width, _ = image.shape
+        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
 
         # Set the position coordinates based on the input position
         if position == 'top_left':
             x = margin
             y = margin
         elif position == 'top_right':
-            x = width - margin
+            x = width - text_size[0] - margin
             y = margin
         elif position == 'bottom_left':
             x = margin
@@ -39,7 +40,7 @@ class DaVinci:
             y = height / 2
 
         # Get the text size
-        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+
 
         if box:
             # Calculate the box coordinates

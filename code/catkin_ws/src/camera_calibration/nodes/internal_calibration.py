@@ -13,6 +13,7 @@ from camera_calibration.utils.ARHelper import ARHelper
 from camera_calibration.utils.extract_realsense_parameters import ExtractParameters
 from camera_calibration.utils.JSONHelper import JSONHelper
 from camera_calibration.params.aruco_dicts import ARUCO_DICT
+from camera_calibration.utils.DaVinci import DaVinci
 
 CALIB_DATA_NAME = "calib_data_1280"
 
@@ -82,7 +83,32 @@ class InternalCalibrator(object):
         elif self.type == 'charuco':
             board_detected, image = self.arHelper.detect_and_draw_charuco(image=image)
 
-        cv2.imshow('image subscriber', image)
+        # ---------------------- GUI
+        info = "[q]uit " \
+               "[s]ave " \
+               "[u]ndo " \
+               "[r]un " \
+               "[c]ollect"
+        DaVinci.draw_text_box(
+            image=image,
+            text=info,
+            position="bottom_left",
+            thickness=1,
+            font_scale=0.8
+        )
+        DaVinci.draw_text_box(
+            image=image,
+            text=f'Number of images captured: {len(self.saved_images)}',
+            position='top_left'
+        )
+
+        if self.calibration_results is not None:
+            text = "Reprojection Error: :.3f".format(self.calibration_results[0])
+            DaVinci.draw_text_box(image=image, text=f'Reprojection Error: {self.calibration_results[0]:.3f}',
+                                  position='top_right')
+        resized_image = image # DaVinci.resize(image.copy())
+
+        cv2.imshow('image subscriber', resized_image)
 
         key = cv2.waitKey(1) & 0xFF
 
@@ -90,14 +116,14 @@ class InternalCalibrator(object):
             rospy.signal_shutdown('We are done here')
         elif key == ord('c') and board_detected:
             self.saved_images.append(original_image)
-            self.run_calibration()
+            # self.run_calibration()
         elif key == ord('r') and len(self.saved_images) >= 1:
             self.run_calibration()
         elif key == ord('s') and self.calibration_results is not None:
             JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
                                        distortion=self.calibration_results[2], image_shape=original_image.shape)
         elif key == ord('u') and len(self.saved_images) >= 1:
-            self.saved_images = self.saved_images[1:]
+            self.saved_images = self.saved_images[:-1]
 
     def run_calibration(self):
         if self.type == 'checkerboard':
@@ -162,25 +188,18 @@ class InternalCalibrator(object):
         #                              [0., 0., 1.]])
         #
         # distCoeffsInit = np.zeros((5, 1))
-        # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_RATIONAL_MODEL + cv2.CALIB_FIX_ASPECT_RATIO)
 
-        # flags = (cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_FOCAL_LENGTH + cv2.CALIB_FIX_PRINCIPAL_POINT)
-        # # flags = (cv2.CALIB_RATIONAL_MODEL)
-        # (ret, camera_matrix, distortion_coefficients0,
-        #  rotation_vectors, translation_vectors,
-        #  stdDeviationsIntrinsics, stdDeviationsExtrinsics,
-        #  perViewErrors) = cv2.aruco.calibrateCameraCharucoExtended(
-        #     charucoCorners=allCorners,
-        #     charucoIds=allIds,
-        #     board=self.board,
-        #     imageSize=imsize,
-        #     cameraMatrix=cameraMatrixInit,
-        #     distCoeffs=distCoeffsInit,
-        #     flags=flags,
-        #     criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
+        # (reprojection_error, camera_matrix, distortion, rotation_vectors,
+        #  translation_vectors) = cv2.aruco.calibrateCameraCharuco(charucoCorners=allCorners, charucoIds=allIds,
+        #                                                          board=self.board, imageSize=imsize,
+        #                                                          cameraMatrix=cameraMatrixInit,
+        #                                                          distCoeffs=distCoeffsInit, flags=flags, criteria=(
+        #     cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
 
         (reprojection_error, camera_matrix, distortion,
-         rotation_vectors, translation_vectors) = cv2.aruco.calibrateCameraCharuco(
+         rotation_vectors, translation_vectors,
+         stdDeviationsIntrinsics, stdDeviationsExtrinsics,
+         perViewErrors) = cv2.aruco.calibrateCameraCharucoExtended(
             charucoCorners=allCorners,
             charucoIds=allIds,
             board=self.board,
@@ -189,42 +208,10 @@ class InternalCalibrator(object):
             distCoeffs=distCoeffsInit,
             flags=flags,
             criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
-        # print(ret)
-        # if ret:
-        #     print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
-        #     np.savez(
-        #         f"{self.calib_data_path}/MultiMatrix_{imsize}",
-        #         camMatrix=camera_matrix,
-        #         distCoef=distortion_coefficients0,
-        #         rVector=rotation_vectors,
-        #         tVector=translation_vectors,
-        #     )
-        #
-        #     camera_matrix = np.array([[640.627, 0, 650.553], [0, 639.93, 401.117], [0, 0, 1]])
-        #     distortion_coefficients0 = np.array([-0.0560283, 0.0681727, -0.000458755, 0.000510362, -0.0216126])
+
+        print(perViewErrors)
 
         self.calibration_results = (reprojection_error, camera_matrix, distortion)
-        #
-        # print(f'camera_matrix: \n{camera_matrix}\ndist: \n{distortion_coefficients0}')
-        # np.savez(
-        #     f"{self.calib_data_path}/d455_default_MultiMatrix_{imsize}",
-        #     camMatrix=camera_matrix,
-        #     distCoef=distortion_coefficients0,
-        #     rVector=rotation_vectors,
-        #     tVector=translation_vectors,
-        # )
-
-        # Reprojection Error
-        mean_error = 0
-
-        # for i in range(len(objpoints)):
-        #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-        #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
-        #     mean_error += error
-        #
-        # print("total error: {}".format(mean_error / len(objpoints)))
-
-        # print(translation_vectors)
 
     ######################################################## CHECKERBOARD CALIBRATION ##############################################################
 

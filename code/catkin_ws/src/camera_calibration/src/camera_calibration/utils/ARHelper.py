@@ -20,7 +20,7 @@ class ARHelper:
         # self.tvec = np.zeros((3, 1))
         self.param_markers = cv2.aruco.DetectorParameters_create()
 
-        self.aruco_dict = cv2.aruco.Dictionary_get(dict_type)
+        self.aruco_dict = dict_type
         self.charuco_board = cv2.aruco.CharucoBoard_create(
             charuco_board_shape[1], charuco_board_shape[0], charuco_square_size,
             charuco_marker_size, self.aruco_dict)

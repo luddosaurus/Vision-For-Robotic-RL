@@ -1,7 +1,7 @@
 {
   "small": {
     "type": "charuco",
-    "_board_shape": [
+    "board_shape": [
       7,
       10
     ],

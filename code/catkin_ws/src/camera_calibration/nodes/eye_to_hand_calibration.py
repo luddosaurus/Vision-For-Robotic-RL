@@ -132,7 +132,7 @@ class EyeToHandEstimator(object):
         info = "[q]uit " \
                "[s]ave " \
                "[u]ndo " \
-               "[d]elete " \
+               "[r]un " \
                "[p]lot " \
                "[c]ollect"
         DaVinci.draw_text_box(
@@ -167,7 +167,7 @@ class EyeToHandEstimator(object):
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
 
-        elif key == ord('d') and len(self.transforms_camera2charuco) >= 3:  # Done
+        elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Run
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  number_of_transforms=len(self.transforms_camera2charuco))
