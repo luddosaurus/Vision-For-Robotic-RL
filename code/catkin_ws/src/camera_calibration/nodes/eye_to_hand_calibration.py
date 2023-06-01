@@ -135,14 +135,14 @@ class EyeToHandEstimator(object):
                "[r]un " \
                "[p]lot " \
                "[c]ollect"
-        DaVinci.draw_text_box(
+        DaVinci.draw_text_box_in_corner(
             image=self.current_image,
             text=info,
             position="bottom_left",
             thickness=1,
             font_scale=0.8
         )
-        DaVinci.draw_text_box(
+        DaVinci.draw_text_box_in_corner(
             image=self.current_image,
             text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}',
             position='top_left'

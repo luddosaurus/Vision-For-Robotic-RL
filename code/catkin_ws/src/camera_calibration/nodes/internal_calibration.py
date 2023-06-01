@@ -1,4 +1,4 @@
-#! /usr/bin/python3.8
+#! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 import rospy
 from sensor_msgs.msg import Image
@@ -89,24 +89,26 @@ class InternalCalibrator(object):
                "[u]ndo " \
                "[r]un " \
                "[c]ollect"
-        DaVinci.draw_text_box(
+        DaVinci.draw_text_box_in_corner(
             image=image,
             text=info,
             position="bottom_left",
             thickness=1,
             font_scale=0.8
         )
-        DaVinci.draw_text_box(
+        DaVinci.draw_text_box_in_corner(
             image=image,
             text=f'Number of images captured: {len(self.saved_images)}',
-            position='top_left'
+            position='top_left', thickness=1, font_scale=0.8
         )
 
         if self.calibration_results is not None:
             text = "Reprojection Error: :.3f".format(self.calibration_results[0])
-            DaVinci.draw_text_box(image=image, text=f'Reprojection Error: {self.calibration_results[0]:.3f}',
-                                  position='top_right')
-        resized_image = image # DaVinci.resize(image.copy())
+            DaVinci.draw_text_box_in_corner(image=image, text=f'Reprojection Error: {self.calibration_results[0]:.3f}',
+                                            position='top_right', thickness=1, font_scale=0.8)
+        resized_image = image  # DaVinci.resize(image.copy())
+
+        self.display_results()
 
         cv2.imshow('image subscriber', resized_image)
 
@@ -121,7 +123,8 @@ class InternalCalibrator(object):
             self.run_calibration()
         elif key == ord('s') and self.calibration_results is not None:
             JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
-                                       distortion=self.calibration_results[2], image_shape=original_image.shape)
+                                       distortion=self.calibration_results[2].flatten(),
+                                       image_shape=original_image.shape)
         elif key == ord('u') and len(self.saved_images) >= 1:
             self.saved_images = self.saved_images[:-1]
 
@@ -130,7 +133,6 @@ class InternalCalibrator(object):
             self.calibrate()
         else:
             self.calibrate_charuco()
-        print(self.calibration_results)
 
     def calibrate_charuco(self):
         corners, ids, size = self.find_charuco_corners()
@@ -141,8 +143,8 @@ class InternalCalibrator(object):
         Charuco base pose estimation.
         """
         print("POSE ESTIMATION STARTS:")
-        allCorners = []
-        allIds = []
+        all_corners = []
+        all_ids = []
         decimator = 0
         # sub pixel corner detection criterion as defined by opencv
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
@@ -160,27 +162,26 @@ class InternalCalibrator(object):
                 res2 = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, self.board)
 
                 if res2[1] is not None and res2[2] is not None and len(res2[1]) > 5 and decimator % 1 == 0:
-                    allCorners.append(res2[1])
-                    allIds.append(res2[2])
+                    all_corners.append(res2[1])
+                    all_ids.append(res2[2])
 
             decimator += 1
 
         imsize = gray.shape
-        return allCorners, allIds, imsize
+        return all_corners, all_ids, imsize
 
-    def calibrate_camera(self, allCorners, allIds, imsize):
+    def calibrate_camera(self, all_corners, all_ids, image_size):
 
-        cameraMatrixInit = None
-        distCoeffsInit = None
+        camera_matrix_init = None
+        dist_coeffs_init = None
         flags = 0
         if self.factory_settings is not None:
-            cameraMatrixInit = np.array(
+            camera_matrix_init = np.array(
                 [[self.factory_settings['focal_point'][0], 0., self.factory_settings['center_point'][0]],
                  [0., self.factory_settings['focal_point'][1], self.factory_settings['center_point'][1]],
                  [0., 0., 1.]])
 
-            # distCoeffsInit = np.zeros((5, 1))
-            distCoeffsInit = np.array(self.factory_settings['distortion'])
+            dist_coeffs_init = np.array(self.factory_settings['distortion'])
             flags = cv2.CALIB_USE_INTRINSIC_GUESS
 
         # cameraMatrixInit = np.array([[1387., 0., 946],
@@ -200,16 +201,14 @@ class InternalCalibrator(object):
          rotation_vectors, translation_vectors,
          stdDeviationsIntrinsics, stdDeviationsExtrinsics,
          perViewErrors) = cv2.aruco.calibrateCameraCharucoExtended(
-            charucoCorners=allCorners,
-            charucoIds=allIds,
+            charucoCorners=all_corners,
+            charucoIds=all_ids,
             board=self.board,
-            imageSize=imsize,
-            cameraMatrix=cameraMatrixInit,
-            distCoeffs=distCoeffsInit,
+            imageSize=image_size,
+            cameraMatrix=camera_matrix_init,
+            distCoeffs=dist_coeffs_init,
             flags=flags,
             criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
-
-        print(perViewErrors)
 
         self.calibration_results = (reprojection_error, camera_matrix, distortion)
 
@@ -226,17 +225,17 @@ class InternalCalibrator(object):
         return ret, image
 
     def calibrate(self):
-        cameraMatrixInit = None
-        distCoeffsInit = None
+        camera_matrix_init = None
+        dist_coeffs_init = None
         flags = 0
         if self.factory_settings is not None:
-            cameraMatrixInit = np.array(
+            camera_matrix_init = np.array(
                 [[self.factory_settings['focal_point'][0], 0., self.factory_settings['center_point'][0]],
                  [0., self.factory_settings['focal_point'][1], self.factory_settings['center_point'][1]],
                  [0., 0., 1.]])
 
             # distCoeffsInit = np.zeros((5, 1))
-            distCoeffsInit = np.array(self.factory_settings['distortion'])
+            dist_coeffs_init = np.array(self.factory_settings['distortion'])
             flags = cv2.CALIB_USE_INTRINSIC_GUESS
 
         objp = np.zeros((self.board_dimensions[0] * self.board_dimensions[1], 3), np.float32)
@@ -251,10 +250,7 @@ class InternalCalibrator(object):
         num_used_images = 0
 
         for calibration_image in self.saved_images:
-            # color_image = cv2.imread(calibration_image)
-            # print(color_image.shape)
-            # cv2.imshow('test', calibration_image)
-            # cv2.waitKey(0)
+
             gray_image = cv2.cvtColor(calibration_image, cv2.COLOR_BGR2GRAY)
 
             # Find the chess board corners
@@ -285,8 +281,8 @@ class InternalCalibrator(object):
                                                                                             imagePoints=imgpoints,
                                                                                             imageSize=gray_image.shape[
                                                                                                       ::-1],
-                                                                                            cameraMatrix=cameraMatrixInit,
-                                                                                            distCoeffs=distCoeffsInit,
+                                                                                            cameraMatrix=camera_matrix_init,
+                                                                                            distCoeffs=dist_coeffs_init,
                                                                                             flags=flags)
 
         # print(camera_matrix[0])
@@ -318,6 +314,24 @@ class InternalCalibrator(object):
         #
         # print("total error: {}".format(mean_error / len(objpoints)))
         return reprojection_error
+
+    def display_results(self):
+        if self.calibration_results is not None:
+            black_image = np.zeros(self.saved_images[0].shape)
+            resized_black_image = cv2.resize(black_image, None, fx=0.7, fy=0.7)
+            camera_matrix = self.calibration_results[1]
+            distortion = self.calibration_results[2].flatten()
+            print(distortion)
+            result_string = ['Camera matrix:',
+                             f'[[{camera_matrix[0][0]}, {camera_matrix[0][1]}, {camera_matrix[0][2]}]',
+                             f'[{camera_matrix[1][0]}, {camera_matrix[1][1]}, {camera_matrix[1][2]}]',
+                             f'[{camera_matrix[2][0]}, {camera_matrix[2][1]}, {camera_matrix[2][2]}]]',
+                             'Distortion:',
+                             f'{distortion}']
+            DaVinci.draw_text_box_in_center(image=resized_black_image,
+                                            text=result_string,
+                                            thickness=1, font_scale=0.7)
+            cv2.imshow('results', resized_black_image)
 
 
 def main():

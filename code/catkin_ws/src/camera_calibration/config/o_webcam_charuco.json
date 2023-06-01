@@ -1,6 +1,6 @@
 {
   "camera_name": "oskar_webcam",
   "factory_settings": null,
-  "board_name": "checkerboard_8x11_0.015",
+  "board_name": "printed_charuco",
   "image_topic": "/webcam"
 }

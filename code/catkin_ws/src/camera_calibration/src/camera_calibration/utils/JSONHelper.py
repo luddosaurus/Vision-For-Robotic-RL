@@ -32,7 +32,7 @@ class JSONHelper(object):
         if JSONHelper.check_name(camera_name):
             camera_name = f'{camera_name} - {str(datetime.now())}'
 
-        json_data = JSONHelper.read_json('cameras_for_tests')
+        json_data = JSONHelper.read_json('cameras')
         with open(f'{config_path}/cameras.json', 'w') as json_file:
             json_data[camera_name] = {
                 'camera_matrix': [[camera_matrix[0][0], camera_matrix[0][1], camera_matrix[0][2]],
@@ -41,8 +41,6 @@ class JSONHelper(object):
                 'distortion': [value for value in distortion],
                 'resolution': [image_shape[1], image_shape[0]]
             }
-
-            print(json_data)
             json.dump(json_data, json_file)
 
     @staticmethod
