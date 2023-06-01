@@ -78,6 +78,7 @@ class EyeToHandEstimator(object):
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
+        self.pub_charuco_position = tf2_ros.StaticTransformBroadcaster()
         self.listener = tf.TransformListener()
 
         self.camera_subscriber = rospy.Subscriber('/camera/color/image_raw', Image, self.camera_callback)
@@ -107,6 +108,7 @@ class EyeToHandEstimator(object):
         self.eye_hand_solver = None
         self.save_data = save_data
         self.eye_in_hand = eye_in_hand
+        self.cameras_published = False
 
         if load_data:
             self.load()
@@ -119,6 +121,12 @@ class EyeToHandEstimator(object):
             print(e)
 
         self.collect_camera_target_transform()
+
+        if self.cameras_published:
+            TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+                                                       parent_name='camera_estimate0',
+                                                       child_name='charuco',
+                                                       transform_stamped=self.transform_memory[-1])
 
         # ---------------------- GUI
         info = "[q]uit " \
@@ -157,7 +165,7 @@ class EyeToHandEstimator(object):
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
 
-        elif key == ord('d') and len(self.transforms_camera2charuco) > 3:  # Done
+        elif key == ord('d') and len(self.transforms_camera2charuco) >= 3:  # Done
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  number_of_transforms=len(self.transforms_camera2charuco))
@@ -178,6 +186,7 @@ class EyeToHandEstimator(object):
             # self.plot_thread = threading.Thread(target=HarryPlotter.plot_poses, kwargs={'dataframe': frame_methods})
             # self.plot_thread.start()
             HarryPlotter.plot_poses(frame_methods)
+            self.cameras_published = True
 
         elif key == ord('h'):  # Save
             self.save()
@@ -497,7 +506,12 @@ class EyeToHandEstimator(object):
         # Distance
         frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
         HarryPlotter.plot_histogram_by_category(frame_distance)
-        HarryPlotter.plot_prop(frame_distance)
+        HarryPlotter.plot_prop(frame_distance, x_axis='Distance')
+
+        # # Variance
+        # frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
+        #
+        # HarryPlotter.stacked_histogram(frame_variance)
 
 
 if __name__ == '__main__':
@@ -506,10 +520,10 @@ if __name__ == '__main__':
 
     rospy.init_node('hand_eye_node')
 
-    selected_board = Board.large
+    selected_board = Board.small
 
     save = False
-    load = False
+    load = True
 
     if selected_board == Board.small:
         hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,

@@ -1,0 +1,5 @@
+<launch>
+
+    <node pkg="testing_dependency" type="testing_stuff.py" name="test_node" output="screen">
+    </node>
+</launch>

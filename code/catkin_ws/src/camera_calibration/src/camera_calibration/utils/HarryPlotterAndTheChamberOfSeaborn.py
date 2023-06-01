@@ -55,11 +55,11 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
-    def plot_prop(data_frame, density=True):
+    def plot_prop(data_frame, density=True, x_axis=None):
         print(data_frame)
         plt.figure()
         if density:
-            sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="stack")
+            sns.kdeplot(data=data_frame, x=x_axis, hue="Category", multiple="stack")
             # sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="fill")
             # sns.kdeplot(
             #     data=data_frame, x="Distance", hue="Category",
@@ -68,10 +68,10 @@ class HarryPlotter:
             # )
 
         else:
-            sns.histplot(data_frame, x="Distance", hue="Category", element="poly")
+            sns.histplot(data_frame, x=x_axis, hue="Category", element="poly")
 
-        plt.title('Distances by Category')
-        plt.xlabel('Distance')
+        plt.title(f'{x_axis} by Category')
+        plt.xlabel(f'{x_axis}')
         plt.ylabel('Count')
         plt.show()
 
@@ -117,4 +117,43 @@ class HarryPlotter:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
 
+        plt.show()
+
+    @staticmethod
+    def plot_variance(dataframe):
+        # Calculate the variance for each column
+        variance = dataframe
+
+        # Plot the variance using seaborn
+        # sns.barplot(x=variance.index, y=variance.values)
+        sns.barplot(data=variance.reset_index(), x='Category', y=variance.values)
+
+        # Set labels and title
+        plt.xlabel("Columns")
+        plt.ylabel("Variance")
+        plt.title("Variance of Columns")
+
+        # Rotate x-axis labels if needed
+        plt.xticks(rotation=90)
+
+        # Display the plot
+        plt.show()
+
+    @staticmethod
+    def stacked_histogram(dataframe):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
+
+        # Set the style
+        sns.set(style="whitegrid")
+
+        # Plot the stacked histogram
+        sns.histplot(data=dataframe.reset_index(), x="Category", multiple="stack", stat="count", binwidth=1)
+
+        # Set the labels and title
+        plt.xlabel("Category")
+        plt.ylabel("Count")
+        plt.title("Stacked Histogram")
+
+        # Show the plot
         plt.show()
