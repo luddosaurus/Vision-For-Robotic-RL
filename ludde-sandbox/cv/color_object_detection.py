@@ -136,7 +136,7 @@ class ColorObjectDetector:
     
     def set_rgb(image, x, y):
         b, g, r = image[y, x]
-        
+
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
         print(f"h{h}, s{s}, v{v}")
@@ -248,7 +248,7 @@ cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda 
 cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
 
 image = None
-cv2.setMouseCallback(windowName=window, callable=click, param=image)
+cv2.setMouseCallback(window, click, image)
 
 pose_esitmate = True
 if pose_esitmate:
