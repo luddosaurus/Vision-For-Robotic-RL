@@ -150,26 +150,27 @@ def draw_text_box(
         # Get the image dimensions
         height, width, _ = image.shape
 
+         # Get the text size
+        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+
         # Set the position coordinates based on the input position
         if position == 'top_left':
             x = margin
             y = margin
         elif position == 'top_right':
-            x = width - margin
+            x = width - margin - text_size[0]
             y = margin
         elif position == 'bottom_left':
             x = margin
             y = height - margin
         elif position == 'bottom_right':
-            x = width - margin
+            x = width - margin - text_size[0]
             y = height - margin
         else:
             x = width / 2
             y = height / 2
 
-        # Get the text size
-        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-
+       
         if box:
             # Calculate the box coordinates
             box_x1 = x
@@ -229,9 +230,12 @@ cv2.createTrackbar("Val Margin", window, start_state[cd.VALUE_MARGIN], cd.VAL_MA
 cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda value: cd.update_value(value, cd.NOISE))
 cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
 
-# with np.load("cv/intrinsic_matrix.npz") as X:
-#             camera_matrix, distortion_coefficients, _, _ = \
-#                 [X[i] for i in ('matrix', 'distortion', 'rotation_vectors', 'translation_vectors')]
+
+pose_esitmate = True
+if pose_esitmate:
+    with np.load("cv/intrinsic_matrix.npz") as X:
+                camera_matrix, distortion_coefficients, _, _ = \
+                    [X[i] for i in ('matrix', 'distortion', 'rotation_vectors', 'translation_vectors')]
 
 while True:
     # Get Image
@@ -246,13 +250,15 @@ while True:
 
     # Find center
     x, y = cd.find_mask_center(mask_image)
+    pose_info = ""
     if x is not None:
         cd.draw_dot(res, x, y)
 
-        # # Find 3D point
-        # depth = 0.4
-        # position = cd.pixel_to_3d_coordinate((x,y), depth, camera_matrix)
-        # print(f"x{position[0]}\ny{position[1]}\n")
+        # Find 3D point
+        if pose_esitmate:
+            depth = 0.4
+            position = cd.pixel_to_3d_coordinate((x,y), depth, camera_matrix)
+            pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}" 
 
     # Show Image
     stacked = np.hstack((image, res))
@@ -269,6 +275,13 @@ while True:
         text=slot_info,
         position="top_left"
     )
+
+    if pose_esitmate and pose_info != "":
+        draw_text_box(
+            image=stacked,
+            text=pose_info,
+            position="top_right"
+        )
     scale = 0.8
     cv2.imshow(window,cv2.resize(stacked, None, fx=scale, fy=scale))
 
