@@ -133,6 +133,14 @@ class ColorObjectDetector:
 
     def get_state(self):
         return self.saved_states[self.current_state_index]
+    
+    def set_rgb(image, x, y):
+        b, g, r = image[y, x]
+        
+        hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
+        h, s, v = hsv[0][0]
+        print(f"h{h}, s{s}, v{v}")
+
         
 def draw_text_box(
             image,
@@ -211,6 +219,15 @@ def update_trackbars(window_name):
     cv2.setTrackbarPos("Noise", window_name, current_state[cd.NOISE])
     cv2.setTrackbarPos("Fill", window_name, current_state[cd.FILL])
 
+
+def click(event, x, y, flags, param):
+    if param is not None:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            image = param
+            print("click!")
+            cd.set_rgb(image, x, y)
+
+
 # ------------------------------ Main
 window = 'ColorDetection'
 cv2.namedWindow(window)
@@ -230,6 +247,8 @@ cv2.createTrackbar("Val Margin", window, start_state[cd.VALUE_MARGIN], cd.VAL_MA
 cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda value: cd.update_value(value, cd.NOISE))
 cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
 
+image = None
+cv2.setMouseCallback(windowName=window, callable=click, param=image)
 
 pose_esitmate = True
 if pose_esitmate:
@@ -263,13 +282,13 @@ while True:
     # Show Image
     stacked = np.hstack((image, res))
 
-    info = "[0-9]slots, [m]ove to, [q]uit"
+    info = "[0-9] states, [m]ove to, [q]uit"
     draw_text_box(
         image=stacked,
         text=info
     )
     
-    slot_info = f"Color Slot [{cd.current_state_index}]"
+    slot_info = f"Color State [{cd.current_state_index}]"
     draw_text_box(
         image=stacked,
         text=slot_info,
@@ -289,7 +308,7 @@ while True:
     key = cv2.waitKey(1) & 0xFF
     key_str = chr(key)
 
-    if key_str.isdigit() and int(key_str) >= 0 and int(key_str) <= 9:
+    if key_str.isdigit() and 0 <= int(key_str) <= 9:
         key_number = int(key_str)
         cd.current_state_index = key_number
         update_trackbars(window_name=window)
