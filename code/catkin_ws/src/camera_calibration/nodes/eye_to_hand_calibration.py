@@ -1,6 +1,4 @@
-#! /home/csproj_vision/PycharmProjects/Vision-For-Robotic-RL/venv3/bin/python
-# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
-# /home/dat14lja/thesis/Vision-For-Robotic-RL/code/venv/bin/python
+#! /usr/bin/env/python3.8
 
 import rospy
 

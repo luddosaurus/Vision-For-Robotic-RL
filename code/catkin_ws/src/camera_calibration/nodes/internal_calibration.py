@@ -1,4 +1,5 @@
-#! /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+#! /usr/bin/env python3.8
+# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
 
 import rospy
 from sensor_msgs.msg import Image
@@ -108,8 +109,6 @@ class InternalCalibrator(object):
                                             position='top_right', thickness=1, font_scale=0.8)
         resized_image = image  # DaVinci.resize(image.copy())
 
-        self.display_results()
-
         cv2.imshow('image subscriber', resized_image)
 
         key = cv2.waitKey(1) & 0xFF
@@ -121,6 +120,7 @@ class InternalCalibrator(object):
             # self.run_calibration()
         elif key == ord('r') and len(self.saved_images) >= 1:
             self.run_calibration()
+            print(f'Camera matrix:\n{self.calibration_results[1]}\nDistortion:\n{self.calibration_results[2].flatten()}')
         elif key == ord('s') and self.calibration_results is not None:
             JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
                                        distortion=self.calibration_results[2].flatten(),
@@ -271,7 +271,7 @@ class InternalCalibrator(object):
                 # Draw and display the corners
 
                 # cv2.waitKey(1000)
-        print(num_used_images)
+
 
         cv2.destroyAllWindows()
 
@@ -285,53 +285,11 @@ class InternalCalibrator(object):
                                                                                             distCoeffs=dist_coeffs_init,
                                                                                             flags=flags)
 
-        # print(camera_matrix[0])
-        # print(distortion)
+
         self.calibration_results = (reprojection_error, camera_matrix, distortion)
-        # JSONHelper.save_intrinsics(self.camera_name, camera_matrix, distortion, self.saved_images[0].shape)
 
-        # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
-        # pickle.dump((cameraMatrix, dist), open( "calibration.pkl", "wb" ))
-        # pickle.dump(cameraMatrix, open( "cameraMatrix.pkl", "wb" ))
-        # pickle.dump(dist, open( "dist.pkl", "wb" ))
-        # if ret:
-        #     print(f'camera_matrix: {cameraMatrix}\ndist: {dist}')
-        #     np.savez(
-        #         f"{self.calib_data_path}/MultiMatrix_{gray_image.shape[0]}",
-        #         camMatrix=cameraMatrix,
-        #         distCoef=dist,
-        #         rVector=rvecs,
-        #         tVector=tvecs,
-        #     )
-
-        # # Reprojection Error
-        # mean_error = 0
-        #
-        # for i in range(len(objpoints)):
-        #     imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-        #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
-        #     mean_error += error
-        #
-        # print("total error: {}".format(mean_error / len(objpoints)))
         return reprojection_error
 
-    def display_results(self):
-        if self.calibration_results is not None:
-            black_image = np.zeros(self.saved_images[0].shape)
-            resized_black_image = cv2.resize(black_image, None, fx=0.7, fy=0.7)
-            camera_matrix = self.calibration_results[1]
-            distortion = self.calibration_results[2].flatten()
-            print(distortion)
-            result_string = ['Camera matrix:',
-                             f'[[{camera_matrix[0][0]}, {camera_matrix[0][1]}, {camera_matrix[0][2]}]',
-                             f'[{camera_matrix[1][0]}, {camera_matrix[1][1]}, {camera_matrix[1][2]}]',
-                             f'[{camera_matrix[2][0]}, {camera_matrix[2][1]}, {camera_matrix[2][2]}]]',
-                             'Distortion:',
-                             f'{distortion}']
-            DaVinci.draw_text_box_in_center(image=resized_black_image,
-                                            text=result_string,
-                                            thickness=1, font_scale=0.7)
-            cv2.imshow('results', resized_black_image)
 
 
 def main():
