@@ -134,11 +134,28 @@ class ColorObjectDetector:
     def get_state(self):
         return self.saved_states[self.current_state_index]
     
-    def set_rgb(image, x, y):
-        b, g, r = image[y, x]
+    def set_coordinate_color(self, image, x, y):
+        r = 10
 
+        b, g, r = image[y, x]
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
+
+        roi = image[y-r:y+r, x-r:x+r]
+        hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        hsv_lower = np.min(hsv_roi, axis=(0, 1))
+        hsv_upper = np.max(hsv_roi, axis=(0, 1))
+
+        hue_diff = (hsv_upper[0] - hsv_lower[0]) * 3
+        sat_diff = (hsv_upper[1] - hsv_lower[1]) * 3
+        val_diff = (hsv_upper[2] - hsv_lower[2]) * 3
+
+        self.update_value(h, cd.HUE)
+        self.update_value(s, cd.SATURATION)
+        self.update_value(v, cd.VALUE)
+        self.update_value(hue_diff, cd.HUE_MARGIN)
+        self.update_value(sat_diff, cd.SATURATION_MARGIN)
+        self.update_value(val_diff, cd.VALUE_MARGIN)
         print(f"h{h}, s{s}, v{v}")
 
         
@@ -208,24 +225,24 @@ def draw_text_box(
 
         return image
 
-def update_trackbars(window_name):
+
+def update_trackbars():
     current_state = cd.get_state()
-    cv2.setTrackbarPos("Hue", window_name, current_state[cd.HUE])
-    cv2.setTrackbarPos("Saturation", window_name, current_state[cd.SATURATION])
-    cv2.setTrackbarPos("Value", window_name, current_state[cd.VALUE])
-    cv2.setTrackbarPos("Hue Margin", window_name, current_state[cd.HUE_MARGIN])
-    cv2.setTrackbarPos("Sat Margin", window_name, current_state[cd.SATURATION_MARGIN])
-    cv2.setTrackbarPos("Val Margin", window_name, current_state[cd.VALUE_MARGIN])
-    cv2.setTrackbarPos("Noise", window_name, current_state[cd.NOISE])
-    cv2.setTrackbarPos("Fill", window_name, current_state[cd.FILL])
+    cv2.setTrackbarPos("Hue", window, current_state[cd.HUE])
+    cv2.setTrackbarPos("Saturation", window, current_state[cd.SATURATION])
+    cv2.setTrackbarPos("Value", window, current_state[cd.VALUE])
+    cv2.setTrackbarPos("Hue Margin", window, current_state[cd.HUE_MARGIN])
+    cv2.setTrackbarPos("Sat Margin", window, current_state[cd.SATURATION_MARGIN])
+    cv2.setTrackbarPos("Val Margin", window, current_state[cd.VALUE_MARGIN])
+    cv2.setTrackbarPos("Noise", window, current_state[cd.NOISE])
+    cv2.setTrackbarPos("Fill", window, current_state[cd.FILL])
 
 
 def click(event, x, y, flags, param):
-    if param is not None:
-        if event == cv2.EVENT_LBUTTONDOWN:
-            image = param
-            print("click!")
-            cd.set_rgb(image, x, y)
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print("click!")
+        cd.set_coordinate_color(image, x, y)
+        update_trackbars()
 
 
 # ------------------------------ Main
@@ -248,9 +265,9 @@ cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda 
 cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
 
 image = None
-cv2.setMouseCallback(window, click, image)
+cv2.setMouseCallback(window, click)
 
-pose_esitmate = True
+pose_esitmate = False
 if pose_esitmate:
     with np.load("cv/intrinsic_matrix.npz") as X:
                 camera_matrix, distortion_coefficients, _, _ = \
@@ -277,7 +294,7 @@ while True:
         if pose_esitmate:
             depth = 0.4
             position = cd.pixel_to_3d_coordinate((x,y), depth, camera_matrix)
-            pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}" 
+            pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
 
     # Show Image
     stacked = np.hstack((image, res))
@@ -301,7 +318,7 @@ while True:
             text=pose_info,
             position="top_right"
         )
-    scale = 0.8
+    scale = 0.5
     cv2.imshow(window,cv2.resize(stacked, None, fx=scale, fy=scale))
 
     # Input
@@ -311,7 +328,7 @@ while True:
     if key_str.isdigit() and 0 <= int(key_str) <= 9:
         key_number = int(key_str)
         cd.current_state_index = key_number
-        update_trackbars(window_name=window)
+        update_trackbars()
         print(f"Switching to {key_number}")
 
     elif key == ord('m'):
