@@ -22,11 +22,11 @@ class ColorObjectFinder:
     # hue, sat, val , margin, noise, fill
     saved_states = [
         [103, 224, 229, 40, 40, 40, 5, 10],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
+        [4, 165, 203, 13, 49, 54, 5, 3],  # orange
+        [168, 177, 167, 26, 40, 76, 2, 3],  # red
+        [104, 152, 150, 18, 81, 82, 3, 3],  # blue
+        [25, 194, 225, 5, 118, 79, 3, 5],  # yellow
+        [60, 107, 184, 21, 50, 74, 1, 3],  # green
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -75,15 +75,15 @@ class ColorObjectFinder:
         current_state = self.get_state()
 
         lower_range = np.array((
-            current_state[cd.HUE] - current_state[cd.HUE_MARGIN],
-            current_state[cd.SATURATION] - current_state[cd.SATURATION_MARGIN],
-            current_state[cd.VALUE] - current_state[cd.VALUE_MARGIN]
+            current_state[self.HUE] - current_state[self.HUE_MARGIN],
+            current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN],
+            current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
         ))
 
         upper_range = np.array((
-            current_state[cd.HUE] + current_state[cd.HUE_MARGIN],
-            current_state[cd.SATURATION] + current_state[cd.SATURATION_MARGIN],
-            current_state[cd.VALUE] + current_state[cd.VALUE_MARGIN]
+            current_state[self.HUE] + current_state[self.HUE_MARGIN],
+            current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN],
+            current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
         ))
 
         # Convert the image to HSV color space
@@ -91,16 +91,16 @@ class ColorObjectFinder:
 
         mask = cv2.inRange(hsv_image, lower_range, upper_range)
 
-        if current_state[cd.FILL] != 0:
-            mask = cd.fill_holes(mask)
+        if current_state[self.FILL] != 0:
+            mask = self.fill_holes(mask)
 
-        if current_state[cd.NOISE] != 0:
-            mask = cd.remove_noise(mask)
+        if current_state[self.NOISE] != 0:
+            mask = self.remove_noise(mask)
 
         return mask
 
     @staticmethod
-    def find_mask_center(self, mask):
+    def find_mask_center(mask):
         try:
             moments = cv2.moments(mask)
             cx = int(moments['m10'] / moments['m00'])
@@ -112,11 +112,11 @@ class ColorObjectFinder:
             return None, None
 
     @staticmethod
-    def draw_dot(self, image, x, y, color=(255, 0, 255), radius=20, thickness=3):
+    def draw_dot(image, x, y, color=(255, 0, 255), radius=20, thickness=3):
         cv2.circle(image, (x, y), radius, color, thickness)
 
     @staticmethod
-    def pixel_to_3d_coordinate(self, pixel_coord, depth_value, camera_matrix):
+    def pixel_to_3d_coordinate(pixel_coord, depth_value, camera_matrix):
         fx = camera_matrix[0, 0]
         fy = camera_matrix[1, 1]
         cx = camera_matrix[0, 2]
@@ -151,10 +151,10 @@ class ColorObjectFinder:
         sat_diff = (hsv_upper[1] - hsv_lower[1]) * 3
         val_diff = (hsv_upper[2] - hsv_lower[2]) * 3
 
-        self.update_value(h, cd.HUE)
-        self.update_value(s, cd.SATURATION)
-        self.update_value(v, cd.VALUE)
-        self.update_value(hue_diff, cd.HUE_MARGIN)
-        self.update_value(sat_diff, cd.SATURATION_MARGIN)
-        self.update_value(val_diff, cd.VALUE_MARGIN)
+        self.update_value(h, self.HUE)
+        self.update_value(s, self.SATURATION)
+        self.update_value(v, self.VALUE)
+        self.update_value(hue_diff, self.HUE_MARGIN)
+        self.update_value(sat_diff, self.SATURATION_MARGIN)
+        self.update_value(val_diff, self.VALUE_MARGIN)
         print(f"h{h}, s{s}, v{v}")

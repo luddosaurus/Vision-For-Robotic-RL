@@ -4,7 +4,7 @@ import rospy
 import cv2
 import numpy as np
 
-from params.calibration import calibration_path_d455, calibration_path_d435
+from camera_calibration.params.calibration import calibration_path_d455, calibration_path_d435
 
 from utils.DaVinci import DaVinci
 from utils.ColorObjectFinder import ColorObjectFinder
@@ -12,6 +12,7 @@ from utils.ColorObjectFinder import ColorObjectFinder
 from cv_bridge import CvBridge, CvBridgeError
 
 from sensor_msgs.msg import Image
+
 
 # todo
 # add finding system
@@ -27,17 +28,18 @@ class ObjectFinder:
         self.pose_estimate = False
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
-
-        self.camera_subscriber = rospy.Subscriber(
-            '/camera/aligned_depth_to_color/image_raw',
-            Image, self.camera_callback)
+        self.cv_bridge = CvBridge()
 
         # todo get camera pose in world frame
-
-        start_state = self.cof.get_state()
         self.window = 'ColorDetection'
+        self.gui_created = False
+        self.start_state = self.cof.get_state()
         self.current_image = None
-        self.create_layout()
+
+        self.camera_subscriber = rospy.Subscriber(
+            '/camera/color/image_raw',
+            Image, self.camera_callback)
+
 
     def create_layout(self):
         cv2.namedWindow(self.window)
@@ -85,7 +87,7 @@ class ObjectFinder:
     def click(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
-            self.cof.set_coordinate_color(self.current_image, x, y)
+            self.cof.set_image_coordinate_color(self.current_image, x, y)
             self.update_trackbars()
 
     def camera_callback(self, input_image):
@@ -93,75 +95,78 @@ class ObjectFinder:
             self.current_image = self.cv_bridge.imgmsg_to_cv2(
                 input_image, desired_encoding="bgr8")
 
-            image = self.current_image
-            # Mask
-            mask_image = self.cof.get_hsv_mask(image=image)
-            res = cv2.bitwise_and(image, image, mask=mask_image)
-            mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
-
-            # Find center
-            x, y = self.cof.find_mask_center(mask_image)
-            pose_info = ""
-            if x is not None:
-                self.cof.draw_dot(res, x, y)
-
-                # Find 3D point
-                if self.pose_esitmate:
-                    depth_array = np.array(image, dtype=np.float32)
-                    depth = depth_array[x][y] / 1000
-                    print('center depth:', depth)
-
-                    # todo find depth of coordinate (x,y)
-                    position = self.cof.pixel_to_3d_coordinate((x, y), depth, self.intrinsic_matrix)
-                    pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
-
-                    # todo convert to world frame
-                    # todo publish
-
-            # Show Image
-            stacked = np.hstack((image, res))
-
-            info = "[0-9] states, [m]ove to, [q]uit"
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=info
-            )
-
-            slot_info = f"Color State [{self.cof.current_state_index}]"
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=slot_info,
-                position="top_left"
-            )
-
-            if self.pose_esitmate and pose_info != "":
-                DaVinci.draw_text_box(
-                    image=stacked,
-                    text=pose_info,
-                    position="top_right"
-                )
-
-            scale = 0.5
-            cv2.imshow(self.window, cv2.resize(stacked, None, fx=scale, fy=scale))
-
-            # Input
-            key = cv2.waitKey(1) & 0xFF
-            key_str = chr(key)
-
-            if key_str.isdigit() and 0 <= int(key_str) <= 9:
-                key_number = int(key_str)
-                self.cof.current_state_index = key_number
-                self.update_trackbars()
-                print(f"Switching to state {key_number}")
-
-            elif key == ord('m'):
-                print("Going to...")
-
-            elif key == ord('q'):
-                rospy.signal_shutdown('Bye :)')
-
         except CvBridgeError as e:
             print(e)
+        if not self.gui_created:
+            self.create_layout()
+            self.gui_created = True
+        image = self.current_image
+
+        # Mask
+        mask_image = self.cof.get_hsv_mask(image=image)
+        res = cv2.bitwise_and(image, image, mask=mask_image)
+        mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
+
+        # Find center
+        x, y = self.cof.find_mask_center(mask_image)
+        pose_info = ""
+        if x is not None:
+            self.cof.draw_dot(res, x, y)
+
+            # Find 3D point
+            if self.pose_estimate:
+                depth_array = np.array(image, dtype=np.float32)
+                depth = depth_array[x][y] / 1000
+                print('center depth:', depth)
+
+                # todo find depth of coordinate (x,y)
+                position = self.cof.pixel_to_3d_coordinate((x, y), depth, self.intrinsic_matrix)
+                pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
+
+                # todo convert to world frame
+                # todo publish
+
+        # Show Image
+        stacked = np.hstack((image, res))
+
+        info = "[0-9] states, [m]ove to, [q]uit"
+        DaVinci.draw_text_box(
+            image=stacked,
+            text=info
+        )
+
+        slot_info = f"Color State [{self.cof.current_state_index}]"
+        DaVinci.draw_text_box(
+            image=stacked,
+            text=slot_info,
+            position="top_left"
+        )
+
+        if self.pose_estimate and pose_info != "":
+            DaVinci.draw_text_box(
+                image=stacked,
+                text=pose_info,
+                position="top_right"
+            )
+
+        scale = 0.5
+        cv2.imshow(self.window, cv2.resize(stacked, None, fx=scale, fy=scale))
+
+        # Input
+        key = cv2.waitKey(1) & 0xFF
+        key_str = chr(key)
+
+        if key_str.isdigit() and 0 <= int(key_str) <= 9:
+            key_number = int(key_str)
+            self.cof.current_state_index = key_number
+            self.update_trackbars()
+            print(f"Switching to state {key_number}")
+
+        elif key == ord('m'):
+            print("Going to...")
+
+        elif key == ord('q'):
+            rospy.signal_shutdown('Bye :)')
 
 
 def load_intrinsics(eye_in_hand):
@@ -184,5 +189,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Shutting down.')
     cv2.destroyAllWindows()
-
-
