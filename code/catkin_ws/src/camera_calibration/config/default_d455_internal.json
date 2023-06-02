@@ -1,0 +1,22 @@
+{
+  "camera_name": "d455",
+  "factory_settings": {
+    "focal_point": [
+      640.627,
+      639.93
+    ],
+    "center_point": [
+      650.553,
+      401.117
+    ],
+    "distortion": [
+      -0.0560283,
+      0.0681727,
+      -0.000458755,
+      0.000510362,
+      -0.0216126
+    ]
+  },
+  "board_name": "large",
+  "image_topic": "/camera/color/image_raw"
+}

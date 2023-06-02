@@ -1,0 +1,20 @@
+{
+  "camera_name": "d435",
+  "factory_settings": [
+    [
+      "fx",
+      "fy"
+    ],
+    [
+      "cx",
+      "cy"
+    ],
+    [
+      "dist0",
+      "dist1",
+      "...distN"
+    ]
+  ],
+  "board_name": "large",
+  "image_topic": "/camera/color/image_raw"
+}

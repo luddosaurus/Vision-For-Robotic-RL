@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="publish_webcam" type="publish_webcam_topic.py" name="webcam_node" output="screen">
+    </node>
+</launch>

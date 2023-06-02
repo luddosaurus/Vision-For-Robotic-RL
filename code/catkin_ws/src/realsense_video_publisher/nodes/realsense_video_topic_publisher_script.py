@@ -1,4 +1,4 @@
-#! /usr/bin/python3.8
+#! /usr/bin/env python3.8
 
 import cv2
 import pyrealsense2 as rs
@@ -7,39 +7,44 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
-d435 = False
 
-CAMERA_WIDTH = 1920 if d435 else 1280
-CAMERA_HEIGHT = 1080 if d435 else 800
+def get_parameters():
+    color_height = rospy.get_param('realsense_video_topic_publisher_node/color_height')
+    color_width = rospy.get_param('realsense_video_topic_publisher_node/color_width')
+    depth_height = rospy.get_param('realsense_video_topic_publisher_node/depth_height')
+    depth_width = rospy.get_param('realsense_video_topic_publisher_node/depth_width')
+    align = rospy.get_param('realsense_video_topic_publisher_node/align')
 
-MAX_WIDTH_DEPTH = 1280
-MAX_HEIGHT_DEPTH = 720
+    return color_height, color_width, depth_height, depth_width, align
 
 
 def main():
     rospy.init_node('realsense_video_topic_publisher_node')
+
+    color_height, color_width, depth_height, depth_width, align = get_parameters()
+
+    # Topic publishers
     pub_color = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
+    pub_depth = rospy.Publisher('/camera/depth/image_raw', Image, queue_size=10)
     pub_aligned_depth = rospy.Publisher('/camera/aligned/image_raw', Image, queue_size=10)
+
+    # Restart any connected realsense device, sleep allows it to boot up again
     ctx = rs.context()
     devices = ctx.query_devices()
     for dev in devices:
         dev.hardware_reset()
-
     rospy.Rate(0.5).sleep()
+
     pipeline = rs.pipeline()
     config = rs.config()
-    config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, 30)
-    # config.enable_stream(rs.stream.color, min(CAMERA_WIDTH, MAX_WIDTH_DEPTH),
-    #                      min(CAMERA_HEIGHT, MAX_HEIGHT_DEPTH), rs.format.bgr8, 30)
-    config.enable_stream(rs.stream.depth, min(CAMERA_WIDTH, MAX_WIDTH_DEPTH),
-                         min(CAMERA_HEIGHT, MAX_HEIGHT_DEPTH),
-                         rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, color_width, color_height, rs.format.bgr8, 30)
 
-    # Get device product line for setting a supporting resolution
+    config.enable_stream(rs.stream.depth, depth_width, depth_height, rs.format.z16, 30)
+
+    # Realsense boilerplate
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
     pipeline_profile = config.resolve(pipeline_wrapper)
     device = pipeline_profile.get_device()
-    device_product_line = str(device.get_info(rs.camera_info.product_line))
 
     found_rgb = False
     for s in device.sensors:
@@ -53,17 +58,11 @@ def main():
     # Start streaming
     profile = pipeline.start(config)
 
-
-
     # Skip some frames for auto exposure
-
     for x in range(5):
         pipeline.wait_for_frames()
 
-
     cv_bridge = CvBridge()
-
-    send_continuous = True
 
     while not rospy.is_shutdown():
         try:
@@ -83,25 +82,29 @@ def main():
 
                 color_image = np.asanyarray(color_frame.get_data())
 
+                # Align depth and color frames
                 align = rs.align(align_to=rs.stream.color)
                 frames = align.process(frames)
 
                 aligned_depth_frame = frames.get_depth_frame()
-                colorized_depth = colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+                img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(np.asanyarray(aligned_depth_frame),
+                                                                          encoding="z16")
+                aligned_colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+                colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
+                # images = np.hstack((color_image, colorized_depth))
 
-                images = np.hstack((color_image, colorized_depth))
-
-                # Show images
                 try:
                     img_message_color = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
                     img_message_aligned_depth = cv_bridge.cv2_to_imgmsg(colorized_depth, encoding="bgr8")
+                    img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(aligned_depth_frame, encoding="z16")
                 except CvBridgeError as e:
                     print(e)
                 pub_color.publish(img_message_color)
-                pub_aligned_depth.publish(img_message_aligned_depth)
+                pub_depth.publish(img_message_depth_aligned_depth)
+                if align:
+                    pub_aligned_depth.publish(img_message_aligned_depth)
 
-                if CAMERA_HEIGHT >= 720:
-                    images = cv2.resize(images, None, fx=0.5, fy=0.5)
+                # Show images
                 # cv2.imshow('Realsense_color', images)
                 #
                 # key = cv2.waitKey(1) & 0xFF
@@ -117,6 +120,7 @@ def main():
         finally:
             # Stop streaming
             cv2.destroyAllWindows()
+            pipeline.stop()
             # pipeline.stop()
             # rospy.signal_shutdown('Image view dismissed.')
 

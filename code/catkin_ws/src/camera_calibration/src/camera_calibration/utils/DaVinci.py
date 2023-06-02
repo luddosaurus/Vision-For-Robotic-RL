@@ -5,7 +5,37 @@ import cv2
 class DaVinci:
 
     @staticmethod
-    def draw_text_box(
+    def draw_text_box_in_center(
+            image,
+            text,
+            background=(255, 0, 255),
+            foreground=(255, 255, 255),
+            font_scale=1.0,
+            thickness=2,
+            margin=40):
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        # Get the image dimensions
+        height, width, _ = image.shape
+
+        # Get the text size
+        text_size_list = []
+        for line in text:
+            text_size, _ = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+            text_size_list.append(text_size)
+
+        for i, line in enumerate(text):
+            x = int(image.shape[1] / 2 - text_size_list[i][0] / 2)
+            y = margin * (i + 1) + text_size_list[i][1]
+
+            image = DaVinci.draw_text_box(image=image, text_size=text_size_list[i], x=x,
+                                          y=y, text=line, foreground=foreground,
+                                          background=(0, 0, 0), thickness=thickness, font_scale=font_scale)
+        return image
+
+    @staticmethod
+    def draw_text_box_in_corner(
             image,
             text,
             position="bottom_left",
@@ -21,12 +51,15 @@ class DaVinci:
         # Get the image dimensions
         height, width, _ = image.shape
 
+        # Get the text size
+        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+
         # Set the position coordinates based on the input position
         if position == 'top_left':
             x = margin
             y = margin
         elif position == 'top_right':
-            x = width - margin
+            x = width - text_size[0] - margin
             y = margin
         elif position == 'bottom_left':
             x = margin
@@ -38,22 +71,9 @@ class DaVinci:
             x = width / 2
             y = height / 2
 
-        # Get the text size
-        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-
         if box:
-            # Calculate the box coordinates
-            box_x1 = x
-            box_y1 = y - text_size[1] - 20
-            box_x2 = x + text_size[0] + 20
-            box_y2 = y
-
-            # Draw the rectangle as the box background
-            cv2.rectangle(image, (box_x1, box_y1), (box_x2, box_y2), background, -1)
-
-            # Put the text inside the box
-            cv2.putText(image, text, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, foreground, thickness,
-                        cv2.LINE_AA)
+            image = DaVinci.draw_text_box(text=text, x=x, y=y, text_size=text_size, image=image, foreground=foreground,
+                                          background=background, thickness=thickness, font_scale=font_scale)
 
         else:
             # Border
@@ -67,6 +87,32 @@ class DaVinci:
                     cv2.putText(image, text, (x + dx, y + dy), font, font_scale, outline_color, thickness)
             # Draw the main text
             cv2.putText(image, text, (x, y), font, font_scale, foreground, thickness)
+
+        return image
+
+    @staticmethod
+    def draw_text_box(
+            image,
+            text,
+            x,
+            y,
+            text_size,
+            background=(255, 0, 255),
+            foreground=(255, 255, 255),
+            font_scale=1.0,
+            thickness=2):
+        # Calculate the box coordinates
+        box_x1 = x
+        box_y1 = y - text_size[1] - 20
+        box_x2 = x + text_size[0] + 20
+        box_y2 = y
+
+        # Draw the rectangle as the box background
+        cv2.rectangle(image, (box_x1, box_y1), (box_x2, box_y2), background, -1)
+
+        # Put the text inside the box
+        cv2.putText(image, text, (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, foreground, thickness,
+                    cv2.LINE_AA)
 
         return image
 

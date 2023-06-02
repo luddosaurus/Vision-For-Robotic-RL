@@ -1,58 +1,15 @@
 <launch>
-<!--        <node-->
-<!--                pkg="camera_calibration"-->
-<!--                type="aruco_camera.py"-->
-<!--                name="aruco_camera_node"-->
-<!--                output="screen">-->
-<!--    &lt;!&ndash;                 <arg name="camera_to_aruco" default="true"/> &ndash;&gt;-->
 
-<!--        </node>-->
-
-<!--            <node-->
-<!--                pkg="camera_calibration"-->
-<!--                type="eye_to_hand_calibration.py"-->
-<!--                name="hand_eye_node"-->
-<!--                output="screen">-->
-<!--        </node>-->
-    <node
-            pkg="camera_calibration"
-            type="realsense_video_topic_publisher_script.py"
-            name="realsense_video_topic_publisher_node"
-            output="screen">
-    </node>
-
+    <arg name="config" default="default_eye_in_hand"/>
     <node
             pkg="camera_calibration"
             type="internal_calibration.py"
             name="internal_calibration_node"
             output="screen">
+
+        <param name="config" value="$(arg config)"/>
+
     </node>
-<!--        <node-->
-<!--                pkg="camera_calibration"-->
-<!--                type="external_camera_estimate_broadcaster.py"-->
-<!--                name="external_camera_estimate_broadcaster_node"-->
-<!--                output="screen">-->
-<!--        </node>-->
+
+
 </launch>
-
-
-
-
-    <!--    <node-->
-    <!--            pkg="camera_calibration"-->
-    <!--            type="attached_arucos.py"-->
-    <!--            name="attached_aruco_broadcaster"-->
-    <!--            output="screen">-->
-    <!--    </node>-->
-    <!--     <node -->
-    <!--             pkg="camera_calibration" -->
-    <!--             type="external_camera_seperate_arucos.py" -->
-    <!--             name="external_camera_node" -->
-    <!--             output="screen"> -->
-    <!--     </node> -->
-    <!--    <node-->
-    <!--            pkg="camera_calibration"-->
-    <!--            type="detected_aruco_markers_publisher.py"-->
-    <!--            name="detected_aruco_markers_node"-->
-    <!--            output="screen">-->
-    <!--    </node>-->
