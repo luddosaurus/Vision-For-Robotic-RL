@@ -60,13 +60,16 @@ from itertools import combinations
 
 class EyeToHandEstimator(object):
 
-    def __init__(self, charuco_board_shape, charuco_marker_size, charuco_square_size, dict_type, memory_size=30,
+    def __init__(self, charuco_board_shape, charuco_marker_size,
+                 charuco_square_size, dict_type, memory_size=30,
                  load_data=False, save_data=False, eye_in_hand=False):
 
         # self.intrinsic_camera, self.distortion =
         with np.load(calibration_path_d435 if eye_in_hand else calibration_path_d455) as X:
             self.intrinsic_camera, self.distortion, _, _ = [X[i] for i in
-                                                            ('camMatrix', 'distCoef', 'rVector', 'tVector')]
+                                                            ('camMatrix', 'distCoef',
+                                                             'rVector', 'tVector')]
+
         print("ArUcoFinder launched with internal parameters:")
         print(self.intrinsic_camera, self.distortion)
 
@@ -85,8 +88,12 @@ class EyeToHandEstimator(object):
         # self.camera_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
         #                                           self.camera_callback)
         self.cv_bridge = CvBridge()
-        self.arHelper = ARHelper(charuco_board_shape=charuco_board_shape, charuco_marker_size=charuco_marker_size,
-                                 charuco_square_size=charuco_square_size, dict_type=dict_type)
+        self.arHelper = ARHelper(
+            charuco_board_shape=charuco_board_shape,
+            charuco_marker_size=charuco_marker_size,
+            charuco_square_size=charuco_square_size,
+            dict_type=dict_type
+        )
 
         self.methods = [
             cv2.CALIB_HAND_EYE_TSAI,
