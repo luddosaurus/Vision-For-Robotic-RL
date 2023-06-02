@@ -3,7 +3,7 @@
   "camera_name": "d455_default",
   "mode": "eye_to_hand",
   "camera_topic": "/camera/color/image_raw",
-  "memory_size": 30,
-  "load_data_directory": "testing_json",
-  "save_data_directory": "testing_json"
+  "memory_size": 50,
+  "load_data_directory": "wip_calc",
+  "save_data_directory": "wip_calc"
 }

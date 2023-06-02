@@ -133,6 +133,12 @@ class ExtrinsicEstimator(object):
             self.collect_robot_transforms()
             if len(self.transforms_camera2charuco) > len(self.transforms_hand2world):
                 self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
+            self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
+                                                 transforms_camera2charuco=self.transforms_camera2charuco,
+                                                 number_of_transforms=len(self.transforms_camera2charuco))
+            pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
+            self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_all_algorithms)
+            self.pretty_print_transforms(pose_estimations_all_algorithms)
 
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
@@ -152,6 +158,7 @@ class ExtrinsicEstimator(object):
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_all_algorithms)
 
+
             self.pretty_print_transforms(pose_estimations_all_algorithms)
             frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_all_algorithms)
             self.calculate_mean_estimate()
@@ -162,6 +169,8 @@ class ExtrinsicEstimator(object):
             JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
                                            hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
                                            directory_name=self.save_directory)
+            # self.save()
+
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -286,10 +295,10 @@ class ExtrinsicEstimator(object):
 
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
-        self.camera_estimates['MEAN'] = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
+        self.camera_estimates.append(TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                    rotation=mean_rotation,
                                                                                    parent_frame=self.Frame.world.name,
-                                                                                   child_frame='camera_estimate_MEAN')
+                                                                                   child_frame='camera_estimate_MEAN'))
 
 
 if __name__ == '__main__':

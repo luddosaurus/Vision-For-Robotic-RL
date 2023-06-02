@@ -87,6 +87,8 @@ def main():
                 frames = align.process(frames)
 
                 aligned_depth_frame = frames.get_depth_frame()
+                img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(np.asanyarray(aligned_depth_frame),
+                                                                          encoding="z16")
                 aligned_colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
                 colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
                 # images = np.hstack((color_image, colorized_depth))
@@ -94,14 +96,13 @@ def main():
                 try:
                     img_message_color = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
                     img_message_aligned_depth = cv_bridge.cv2_to_imgmsg(colorized_depth, encoding="bgr8")
-                    img_message_depth = cv_bridge.cv2_to_imgmsg(colorized_depth, encoding="bgr8")
+                    img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(aligned_depth_frame, encoding="z16")
                 except CvBridgeError as e:
                     print(e)
                 pub_color.publish(img_message_color)
-                pub_depth.publish(img_message_depth)
+                pub_depth.publish(img_message_depth_aligned_depth)
                 if align:
                     pub_aligned_depth.publish(img_message_aligned_depth)
-
 
                 # Show images
                 # cv2.imshow('Realsense_color', images)

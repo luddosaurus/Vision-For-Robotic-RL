@@ -47,7 +47,7 @@ class HarryPlotter:
     def plot_histogram_by_category(data_frame):
         print(data_frame)
         plt.figure(figsize=(10, 6))
-        sns.histplot(data=data_frame, x='Distance', hue='Category', multiple='stack')
+        sns.histplot(data=data_frame, x='Distance', hue='Category', multiple='stack', palette='bright')
         plt.xlabel('Distance')
         plt.ylabel('Count')
         plt.title('Histogram of Distances by Category')
@@ -59,7 +59,7 @@ class HarryPlotter:
         print(data_frame)
         plt.figure()
         if density:
-            sns.kdeplot(data=data_frame, x=x_axis, hue="Category", multiple="stack")
+            sns.kdeplot(data=data_frame, x=x_axis, hue="Category", multiple="stack", palette='bright')
             # sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="fill")
             # sns.kdeplot(
             #     data=data_frame, x="Distance", hue="Category",
