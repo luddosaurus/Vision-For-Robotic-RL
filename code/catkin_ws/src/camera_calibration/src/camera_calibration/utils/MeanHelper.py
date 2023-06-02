@@ -17,18 +17,21 @@ class MeanHelper:
     def riemannian_mean(transformations):
         translations = list()
         rotations = list()
+        if type(transformations) is dict:
+            transformations = [value for value in transformations.values()]
         for stamped_transform in transformations:
             transform = stamped_transform.transform
             rotations.append(
                 np.array([transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w]))
             translations.append(
                 np.array([stamped_transform.transform.translation.x,
-                        stamped_transform.transform.translation.y,
-                        stamped_transform.transform.translation.z]))
+                          stamped_transform.transform.translation.y,
+                          stamped_transform.transform.translation.z]))
         # print(len(translations))
         clean_translations, clean_rotations = MeanHelper.remove_outliers(np.array(translations), np.array(rotations))
 
-        return MeanHelper.riemannian_mean_translation(clean_translations), MeanHelper.riemannian_mean_rotation(clean_rotations)
+        return MeanHelper.riemannian_mean_translation(clean_translations), MeanHelper.riemannian_mean_rotation(
+            clean_rotations)
 
     def riemannian_mean_translation(translations):
         # Compute the Riemannian mean of the vectors
@@ -107,9 +110,3 @@ class MeanHelper:
 
             return translational_vectors_clean, rotational_vectors_clean
         return translational_vectors, rotational_vectors
-
-
-
-
-
-

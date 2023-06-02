@@ -154,13 +154,14 @@ class ExtrinsicEstimator(object):
 
             self.pretty_print_transforms(pose_estimations_all_algorithms)
             frame_methods = TypeConverter.convert_to_dataframe(pose_estimations_all_algorithms)
+            self.calculate_mean_estimate()
             HarryPlotter.plot_poses(frame_methods)
             self.cameras_published = True
 
         elif key == ord('s'):  # Save
             JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
-                                           hand2world=self.transforms_hand2world, estimates=self.camera_estimates, directory_name=self.save_directory)
-            # self.save()
+                                           hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
+                                           directory_name=self.save_directory)
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -235,7 +236,8 @@ class ExtrinsicEstimator(object):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
         pose_estimations_methods = self.eye_hand_solver.solve_all_algorithms()
         pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples()
-        self.camera_estimates = pose_estimations_methods
+        self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods)
+        self.calculate_mean_estimate()
         for method in self.methods:
             rotation, translation = pose_estimations_methods[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
@@ -282,6 +284,13 @@ class ExtrinsicEstimator(object):
         #
         # HarryPlotter.stacked_histogram(frame_variance)
 
+    def calculate_mean_estimate(self):
+        mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
+        self.camera_estimates['MEAN'] = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
+                                                                                   rotation=mean_rotation,
+                                                                                   parent_frame=self.Frame.world.name,
+                                                                                   child_frame='camera_estimate_MEAN')
+
 
 if __name__ == '__main__':
 
@@ -295,28 +304,6 @@ if __name__ == '__main__':
                                              camera_topic=camera_topic,
                                              memory_size=memory_size, load_data_directory=load_data_directory,
                                              save_data_directory=save_data_directory)
-
-    Board = Enum('Board', 'small medium large')
-
-    # selected_board = Board.large
-    #
-    # save = False
-    # load = False
-    #
-    # if selected_board == Board.small:
-    #     hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(7, 10), charuco_square_size=0.012,
-    #                                             charuco_marker_size=0.008,
-    #                                             dict_type=cv2.aruco.DICT_4X4_50, load_data=load, save_data=save,
-    #                                             eye_in_hand=False)
-    # elif selected_board == Board.medium:
-    #     hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(18, 29), charuco_square_size=0.01,
-    #                                             charuco_marker_size=0.008,
-    #                                             dict_type=cv2.aruco.DICT_5X5_1000, load_data=load, save_data=save)
-    # elif selected_board == Board.large:
-    #     hand_eye_estimator = EyeToHandEstimator(charuco_board_shape=(9, 14), charuco_square_size=0.04,
-    #                                             charuco_marker_size=0.031,
-    #                                             dict_type=cv2.aruco.DICT_5X5_100, load_data=load, save_data=save,
-    #                                             eye_in_hand=True)
 
     try:
         rospy.spin()

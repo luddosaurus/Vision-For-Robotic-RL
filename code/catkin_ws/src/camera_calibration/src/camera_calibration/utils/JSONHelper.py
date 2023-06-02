@@ -143,7 +143,7 @@ class JSONHelper(object):
 
     @staticmethod
     def save_estimates(estimates, path):
-        methods = ['TSAI', 'PARK', 'HORAUD', 'ANDREFF', 'DANIILIDIS']
+        methods = ['TSAI', 'PARK', 'HORAUD', 'ANDREFF', 'DANIILIDIS', 'MEAN']
         estimates_json = {}
         for (method, entry) in zip(methods, estimates):
             estimates_json[method] = {
