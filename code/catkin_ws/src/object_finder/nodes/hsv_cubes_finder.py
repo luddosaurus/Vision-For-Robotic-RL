@@ -52,7 +52,8 @@ class ObjectFinder:
         self.center_y = None
         self.center_z = None
 
-        self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
+        # self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
+        self.center_broadcaster = tf2_ros.TransformBroadcaster()
 
     def create_layout(self):
         cv2.namedWindow(self.window)

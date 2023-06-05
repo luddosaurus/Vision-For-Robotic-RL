@@ -79,6 +79,7 @@ class ExtrinsicEstimator(object):
 
         self.eye_in_hand = eye_in_hand
         self.cameras_published = False
+        self.published = False
 
         if load_data_directory is not None:
             self.load(load_data_directory)
@@ -234,13 +235,14 @@ class ExtrinsicEstimator(object):
             rotation, translation = transforms[method][0]
             rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
-            if not np.isnan(rotation).any() and not np.isnan(translation).any():
-                pub_tf_static = tf2_ros.StaticTransformBroadcaster()
+            if not np.isnan(rotation).any() and not np.isnan(translation).any() and not self.published:
+                pub_tf_static = tf2_ros.TransformBroadcaster()
                 parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
                 TFPublish.publish_static_transform(publisher=pub_tf_static,
                                                    parent_name=parent_frame,
                                                    child_name=f'camera_estimate{method}',
                                                    rotation=rotation, translation=translation)
+                self.published = True
 
     def run_solvers(self):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
