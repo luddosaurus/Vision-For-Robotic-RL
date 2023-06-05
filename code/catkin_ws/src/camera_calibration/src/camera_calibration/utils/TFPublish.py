@@ -55,7 +55,7 @@ class TFPublish:
 
         tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
 
-        publisher.publish(tfm)
+        publisher.sendTransform(tfm)
 
     @staticmethod
     def publish_static_transform(publisher, parent_name, child_name, translation, rotation):

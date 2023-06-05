@@ -118,8 +118,8 @@ class ExtrinsicEstimator(object):
             text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}',
             position='top_left'
         )
-        resized_image = DaVinci.resize(self.current_image.copy())
-        cv2.imshow('External calibration display', resized_image)
+        # resized_image = DaVinci.resize(self.current_image.copy())
+        cv2.imshow('External calibration display', self.current_image)
 
         # ---------------------- Input
         key = cv2.waitKey(1) & 0xFF
@@ -137,8 +137,9 @@ class ExtrinsicEstimator(object):
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  number_of_transforms=len(self.transforms_camera2charuco))
             pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
-            self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_all_algorithms)
-            self.pretty_print_transforms(pose_estimations_all_algorithms)
+            if len(self.transforms_camera2charuco) >= 3:
+                self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_all_algorithms)
+                self.pretty_print_transforms(pose_estimations_all_algorithms)
 
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
@@ -308,8 +309,12 @@ if __name__ == '__main__':
     board_name, camera_name, mode, camera_topic, memory_size, load_data_directory, save_data_directory = JSONHelper.get_extrinsic_calibration_parameters(
         config_file)
     rospy.init_node('hand_eye_node')
+    if mode == 'eye_in_hand':
+        eye_in_hand = True
+    else:
+        eye_in_hand = False
     extrinsic_estimator = ExtrinsicEstimator(board_name=board_name, camera_name=camera_name,
-                                             eye_in_hand=mode == 'eye_in_hand',
+                                             eye_in_hand=eye_in_hand,
                                              camera_topic=camera_topic,
                                              memory_size=memory_size, load_data_directory=load_data_directory,
                                              save_data_directory=save_data_directory)

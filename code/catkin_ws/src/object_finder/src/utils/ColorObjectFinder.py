@@ -22,10 +22,10 @@ class ColorObjectFinder:
     # hue, sat, val , margin, noise, fill
     saved_states = [
         [103, 224, 229, 40, 40, 40, 5, 10],
-        [4, 165, 203, 13, 49, 54, 5, 3],  # orange
+        [4, 165, 203, 13, 35, 54, 5, 4],  # orange
         [168, 177, 167, 26, 40, 76, 2, 3],  # red
         [104, 152, 150, 18, 81, 82, 3, 3],  # blue
-        [25, 194, 225, 5, 118, 79, 3, 5],  # yellow
+        [25, 194, 225, 5, 89, 103, 5, 3],  # yellow
         [60, 107, 184, 21, 50, 74, 1, 3],  # green
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -121,7 +121,7 @@ class ColorObjectFinder:
         fy = camera_matrix[1, 1]
         cx = camera_matrix[0, 2]
         cy = camera_matrix[1, 2]
-
+        # print(depth_value)
         # Calculate the 3D coordinates
         x = (pixel_coord[0] - cx) * depth_value / fx
         y = (pixel_coord[1] - cy) * depth_value / fy
@@ -136,13 +136,15 @@ class ColorObjectFinder:
         return self.saved_states[self.current_state_index]
 
     def set_image_coordinate_color(self, image, x, y):
-        r = 10
+        roi_range = 10
 
         b, g, r = image[y, x]
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
 
-        roi = image[y - r:y + r, x - r:x + r]
+        roi = image[y - roi_range:y + roi_range, x - roi_range:x + roi_range]
+        # mean_color = np.mean(roi, axis=0)
+        # print(mean_color)
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         hsv_lower = np.min(hsv_roi, axis=(0, 1))
         hsv_upper = np.max(hsv_roi, axis=(0, 1))
