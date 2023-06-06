@@ -29,8 +29,8 @@ import tf2_ros
 
 class ObjectFinder:
 
-    def __init__(self, intrinsic_matrix):
-        self.pose_estimate = True
+    def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None):
+        self.pose_estimate = pose_estimate
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
@@ -42,21 +42,25 @@ class ObjectFinder:
         self.current_image = None
 
         self.camera_subscriber = rospy.Subscriber(
-            '/camera/color/image_raw',
+            camera_topic,
             Image, self.camera_color_callback)
-
-        self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
-                                                         self.camera_depth_aligned_callback)
+        if self.pose_estimate:
+            self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
+                                                             self.camera_depth_aligned_callback)
 
         self.center_x = None
         self.center_y = None
         self.center_z = None
+
+        self.scale = 0.5
+        self.roi_size = 10
 
         # self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self.center_broadcaster = tf2_ros.TransformBroadcaster()
 
     def create_layout(self):
         cv2.namedWindow(self.window)
+        # cv2.setWindowProperty(self.window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         cv2.createTrackbar("Hue", self.window,
                            self.start_state[self.cof.HUE], self.cof.HUE_MAX,
@@ -87,6 +91,9 @@ class ObjectFinder:
 
         cv2.setMouseCallback(self.window, self.click)
 
+    def update_scale(self, value):
+        self.scale = value / 100
+
     def update_trackbars(self):
         current_state = self.cof.get_state()
         cv2.setTrackbarPos("Hue", self.window, current_state[self.cof.HUE])
@@ -101,7 +108,7 @@ class ObjectFinder:
     def click(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
-            self.cof.set_image_coordinate_color(self.current_image, x, y)
+            self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
             self.update_trackbars()
 
     def camera_depth_aligned_callback(self, aligned_depth):
@@ -117,7 +124,7 @@ class ObjectFinder:
         # print(aligned_input_depth[a])
         # Find 3D point
         # cv2.imshow('test', aligned_input_depth)
-        if self.pose_estimate and self.center_x is not None and aligned_input_depth is not None:
+        if self.center_x is not None and aligned_input_depth is not None:
             depth_array = np.array(aligned_input_depth, dtype=np.float32)
             # print(depth_array.shape)
             if self.center_x <= depth_array.shape[1] and self.center_y <= depth_array.shape[0]:
@@ -200,8 +207,8 @@ class ObjectFinder:
                 position="top_right"
             )
 
-        scale = 0.5
-        cv2.imshow(self.window, cv2.resize(stacked, None, fx=scale, fy=scale))
+        cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
+        # cv2.imshow(self.window, stacked)
 
         # Input
         key = cv2.waitKey(1) & 0xFF
@@ -218,6 +225,13 @@ class ObjectFinder:
 
         elif key == ord('q'):
             rospy.signal_shutdown('Bye :)')
+
+        elif key == ord('o'):
+            self.scale -= 0.05
+            self.roi_size -= 1
+        elif key == ord('p'):
+            self.scale += 0.05
+            self.roi_size += 1
 
 
 def load_intrinsics(eye_in_hand):
@@ -237,9 +251,12 @@ def load_intrinsics(eye_in_hand):
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
-
-    intrinsic_camera = load_intrinsics(eye_in_hand=True)
-    object_finder = ObjectFinder(intrinsic_matrix=intrinsic_camera)
+    find_pose = True if rospy.get_param(param_name='object_detection/find_pose') == 'true' else False
+    camera_topic = rospy.get_param(param_name='object_detection/camera_topic')
+    intrinsic_camera = None
+    if find_pose:
+        intrinsic_camera = load_intrinsics(eye_in_hand=True)
+    object_finder = ObjectFinder(pose_estimate=find_pose, camera_topic=camera_topic, intrinsic_matrix=intrinsic_camera)
 
     try:
         rospy.spin()

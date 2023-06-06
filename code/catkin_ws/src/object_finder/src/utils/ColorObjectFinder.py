@@ -43,11 +43,11 @@ class ColorObjectFinder:
         self.saved_states[self.current_state_index][self.SATURATION] = self.SAT_MAX * sat
         self.saved_states[self.current_state_index][self.VALUE] = self.VAL_MAX * val
 
-    def set_margin(self, hue=0, sat=0, val=0, all=0):
-        if all != 0:
-            self.saved_states[self.current_state_index][self.HUE_MARGIN] = all
-            self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = all
-            self.saved_states[self.current_state_index][self.VALUE_MARGIN] = all
+    def set_margin(self, hue=0, sat=0, val=0, all_sliders=0):
+        if all_sliders != 0:
+            self.saved_states[self.current_state_index][self.HUE_MARGIN] = all_sliders
+            self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = all_sliders
+            self.saved_states[self.current_state_index][self.VALUE_MARGIN] = all_sliders
         else:
             self.saved_states[self.current_state_index][self.HUE_MARGIN] = hue
             self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = sat
@@ -135,23 +135,25 @@ class ColorObjectFinder:
     def get_state(self):
         return self.saved_states[self.current_state_index]
 
-    def set_image_coordinate_color(self, image, x, y):
-        roi_range = 10
+    def set_image_coordinate_color(self, image, x, y, scale, roi_size):
 
-        b, g, r = image[y, x]
+        b, g, r = image[int(y / scale), int(x / scale)]
+        print(b, g, r)
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
 
-        roi = image[y - roi_range:y + roi_range, x - roi_range:x + roi_range]
+        roi = image[y - roi_size:y + roi_size, x - roi_size:x + roi_size]
         # mean_color = np.mean(roi, axis=0)
         # print(mean_color)
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         hsv_lower = np.min(hsv_roi, axis=(0, 1))
         hsv_upper = np.max(hsv_roi, axis=(0, 1))
-
-        hue_diff = (hsv_upper[0] - hsv_lower[0]) * 3
-        sat_diff = (hsv_upper[1] - hsv_lower[1]) * 3
-        val_diff = (hsv_upper[2] - hsv_lower[2]) * 3
+        hue_diff_factor = 1
+        sat_diff_factor = 4
+        val_diff_factor = 5
+        hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
+        sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
+        val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor
 
         self.update_value(h, self.HUE)
         self.update_value(s, self.SATURATION)
