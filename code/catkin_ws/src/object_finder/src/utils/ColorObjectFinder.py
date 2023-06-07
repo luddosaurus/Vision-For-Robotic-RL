@@ -73,23 +73,71 @@ class ColorObjectFinder:
 
     def get_hsv_mask(self, image):
         current_state = self.get_state()
+        hue_range_l1 = current_state[self.HUE] - current_state[self.HUE_MARGIN]
 
-        lower_range = np.array((
-            current_state[self.HUE] - current_state[self.HUE_MARGIN],
-            current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN],
-            current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
+        sat_range_l1 = current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN]
+
+        val_range_l1 = current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
+
+        lower_range_1 = np.array((
+            hue_range_l1,
+            sat_range_l1,
+            val_range_l1
         ))
 
-        upper_range = np.array((
-            current_state[self.HUE] + current_state[self.HUE_MARGIN],
-            current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN],
-            current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
+        hue_range_u1 = current_state[self.HUE] + current_state[self.HUE_MARGIN]
+
+        sat_range_u1 = current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN]
+
+        val_range_u1 = current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
+
+        upper_range_1 = np.array((
+            hue_range_u1,
+            sat_range_u1,
+            val_range_u1
         ))
+
+        lower_range_2 = lower_range_1.copy()
+        lower_range_2_compare = upper_range_1.copy()
+
+        if hue_range_l1 < 0:
+            lower_range_2[0] = self.HUE_MAX + hue_range_l1
+            lower_range_2_compare[0] = self.HUE_MAX
+        if sat_range_l1 < 0:
+            lower_range_2[1] = self.SAT_MAX + sat_range_l1
+            lower_range_2_compare[1] = self.SAT_MAX
+        if val_range_l1 < 0:
+            lower_range_2[2] = self.VAL_MAX + val_range_l1
+            lower_range_2_compare[2] = self.VAL_MAX
+
+        print(lower_range_1)
+        print(lower_range_2)
+        print(lower_range_2_compare)
+
+        upper_range_2 = upper_range_1.copy()
+        upper_range_2_compare = lower_range_1.copy()
+
+        if hue_range_u1 > self.HUE_MAX:
+            upper_range_2[0] = hue_range_u1 - self.HUE_MAX
+            upper_range_2_compare[0] = 0
+        if sat_range_u1 > self.SAT_MAX:
+            upper_range_2[1] = sat_range_u1 - self.SAT_MAX
+            upper_range_2_compare[1] = 0
+        if val_range_u1 > self.VAL_MAX:
+            upper_range_2[2] = val_range_u1 - self.VAL_MAX
+            upper_range_2_compare[2] = 0
+
+        print(upper_range_1)
 
         # Convert the image to HSV color space
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        mask = cv2.inRange(hsv_image, lower_range, upper_range)
+        mask = cv2.inRange(hsv_image, lower_range_1, upper_range_1)
+        lower_wrap_mask = cv2.inRange(hsv_image, lower_range_2, lower_range_2_compare)
+        upper_wrap_mask = cv2.inRange(hsv_image, upper_range_2_compare, upper_range_2)
+
+        mask = cv2.bitwise_or(mask, lower_wrap_mask)
+        mask = cv2.bitwise_or(mask, upper_wrap_mask)
 
         if current_state[self.FILL] != 0:
             mask = self.fill_holes(mask)
@@ -149,8 +197,8 @@ class ColorObjectFinder:
         hsv_lower = np.min(hsv_roi, axis=(0, 1))
         hsv_upper = np.max(hsv_roi, axis=(0, 1))
         hue_diff_factor = 1
-        sat_diff_factor = 4
-        val_diff_factor = 5
+        sat_diff_factor = 3
+        val_diff_factor = 3
         hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
         sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
         val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor

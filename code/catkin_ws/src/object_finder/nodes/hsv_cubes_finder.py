@@ -54,6 +54,9 @@ class ObjectFinder:
         self.center_y = None
         self.center_z = None
 
+        self.hovered_x = None
+        self.hovered_y = None
+
         self.position = None
 
         self.scale = 0.5
@@ -110,12 +113,10 @@ class ObjectFinder:
         cv2.setTrackbarPos("Fill", self.window, current_state[self.cof.FILL])
 
     def click(self, event, x, y, flags, param):
-        print('drawing :D')
-        # self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(x / self.scale),
-        #                                                 y=int(y / self.scale),
-        #                                                 roi=self.roi_size)
-        self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(480/2),
-                                                        y=int(640/2),
+        self.hovered_x = x
+        self.hovered_y = y
+        self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(480 / 2),
+                                                        y=int(640 / 2),
                                                         roi=self.roi_size)
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
@@ -183,6 +184,11 @@ class ObjectFinder:
             self.create_layout()
             self.gui_created = True
         # image = self.current_image
+        if self.hovered_x is not None:
+            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
+                                                            x=int(self.hovered_x / self.scale),
+                                                            y=int(self.hovered_y / self.scale),
+                                                            roi=self.roi_size)
 
         # Mask
         mask_image = self.cof.get_hsv_mask(image=self.current_image)
