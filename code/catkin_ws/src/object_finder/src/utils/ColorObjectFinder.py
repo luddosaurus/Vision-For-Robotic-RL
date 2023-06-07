@@ -103,12 +103,12 @@ class ColorObjectFinder:
         if hue_range_l1 < 0:
             lower_range_2[0] = self.HUE_MAX + hue_range_l1
             lower_range_2_compare[0] = self.HUE_MAX
-        if sat_range_l1 < 0:
-            lower_range_2[1] = self.SAT_MAX + sat_range_l1
-            lower_range_2_compare[1] = self.SAT_MAX
-        if val_range_l1 < 0:
-            lower_range_2[2] = self.VAL_MAX + val_range_l1
-            lower_range_2_compare[2] = self.VAL_MAX
+        # if sat_range_l1 < 0:
+        #     lower_range_2[1] = self.SAT_MAX + sat_range_l1
+        #     lower_range_2_compare[1] = self.SAT_MAX
+        # if val_range_l1 < 0:
+        #     lower_range_2[2] = self.VAL_MAX + val_range_l1
+        #     lower_range_2_compare[2] = self.VAL_MAX
 
         print(lower_range_1)
         print(lower_range_2)
@@ -120,12 +120,12 @@ class ColorObjectFinder:
         if hue_range_u1 > self.HUE_MAX:
             upper_range_2[0] = hue_range_u1 - self.HUE_MAX
             upper_range_2_compare[0] = 0
-        if sat_range_u1 > self.SAT_MAX:
-            upper_range_2[1] = sat_range_u1 - self.SAT_MAX
-            upper_range_2_compare[1] = 0
-        if val_range_u1 > self.VAL_MAX:
-            upper_range_2[2] = val_range_u1 - self.VAL_MAX
-            upper_range_2_compare[2] = 0
+        # if sat_range_u1 > self.SAT_MAX:
+        #     upper_range_2[1] = sat_range_u1 - self.SAT_MAX
+        #     upper_range_2_compare[1] = 0
+        # if val_range_u1 > self.VAL_MAX:
+        #     upper_range_2[2] = val_range_u1 - self.VAL_MAX
+        #     upper_range_2_compare[2] = 0
 
         print(upper_range_1)
 
