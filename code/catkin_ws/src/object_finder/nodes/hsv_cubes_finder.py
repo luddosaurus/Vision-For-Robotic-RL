@@ -30,6 +30,7 @@ import tf2_ros
 class ObjectFinder:
 
     def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None):
+        print(pose_estimate)
         self.pose_estimate = pose_estimate
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
@@ -45,12 +46,15 @@ class ObjectFinder:
             camera_topic,
             Image, self.camera_color_callback)
         if self.pose_estimate:
+            print('estimating pose')
             self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
         self.center_x = None
         self.center_y = None
         self.center_z = None
+
+        self.position = None
 
         self.scale = 0.5
         self.roi_size = 10
@@ -106,6 +110,13 @@ class ObjectFinder:
         cv2.setTrackbarPos("Fill", self.window, current_state[self.cof.FILL])
 
     def click(self, event, x, y, flags, param):
+        print('drawing :D')
+        # self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(x / self.scale),
+        #                                                 y=int(y / self.scale),
+        #                                                 roi=self.roi_size)
+        self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(480/2),
+                                                        y=int(640/2),
+                                                        roi=self.roi_size)
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
             self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
@@ -140,6 +151,7 @@ class ObjectFinder:
                 print(pose_info)
                 self.center_z = position[2]
                 self.position = position
+
                 self.broadcast_point()
 
                 # todo convert to world frame
@@ -160,10 +172,9 @@ class ObjectFinder:
                                            translation=self.position)
 
     def camera_color_callback(self, input_image):
-
+        print(self.roi_size)
         try:
-            self.current_image = self.cv_bridge.imgmsg_to_cv2(
-                input_image, desired_encoding="bgr8")
+            self.current_image = self.cv_bridge.imgmsg_to_cv2(input_image, desired_encoding="bgr8")
 
         except CvBridgeError as e:
             print(e)
@@ -171,11 +182,11 @@ class ObjectFinder:
         if not self.gui_created:
             self.create_layout()
             self.gui_created = True
-        image = self.current_image
+        # image = self.current_image
 
         # Mask
-        mask_image = self.cof.get_hsv_mask(image=image)
-        res = cv2.bitwise_and(image, image, mask=mask_image)
+        mask_image = self.cof.get_hsv_mask(image=self.current_image)
+        res = cv2.bitwise_and(self.current_image, self.current_image, mask=mask_image)
         mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
         # Find center
@@ -185,7 +196,7 @@ class ObjectFinder:
             self.cof.draw_dot(res, self.center_x, self.center_y)
 
         # Show Image
-        stacked = np.hstack((image, res))
+        stacked = np.hstack((self.current_image, res))
 
         info = "[0-9] states, [m]ove to, [q]uit"
         DaVinci.draw_text_box(
@@ -222,22 +233,20 @@ class ObjectFinder:
 
         elif key == ord('m'):
             print("Going to...")
-
         elif key == ord('q'):
             rospy.signal_shutdown('Bye :)')
-
         elif key == ord('o'):
             self.scale -= 0.05
-            self.roi_size -= 1
         elif key == ord('p'):
             self.scale += 0.05
+        elif key == ord('k'):
+            self.roi_size -= 1
+        elif key == ord('l'):
             self.roi_size += 1
 
 
 def load_intrinsics(eye_in_hand):
     camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_480p_testing')
-    # board_data = JSONHelper.get_board_parameters(board_name)
-
     camera_matrix = np.array(camera_intrinsics['camera_matrix'])
     distortion = np.array(camera_intrinsics['distortion'])
 
@@ -251,7 +260,8 @@ def load_intrinsics(eye_in_hand):
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
-    find_pose = True if rospy.get_param(param_name='object_detection/find_pose') == 'true' else False
+    find_pose = rospy.get_param(param_name='object_detection/find_pose')
+
     camera_topic = rospy.get_param(param_name='object_detection/camera_topic')
     intrinsic_camera = None
     if find_pose:

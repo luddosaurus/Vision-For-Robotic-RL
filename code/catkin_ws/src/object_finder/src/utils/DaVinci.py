@@ -5,6 +5,21 @@ import cv2
 class DaVinci:
 
     @staticmethod
+    def draw_roi_rectangle(image, x, y, roi):
+        print(image.shape)
+        print('drawing', x, y)
+        x1 = int(x - roi / 2)
+        y1 = int(y - roi / 2)
+        x2 = int(x + roi / 2)
+        y2 = int(y + roi / 2)
+        color = (0, 255, 255)
+
+        # cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
+        cv2.circle(image, (x, y), 20, color, thickness=3)
+
+        return image
+
+    @staticmethod
     def draw_text_box(
             image,
             text,
