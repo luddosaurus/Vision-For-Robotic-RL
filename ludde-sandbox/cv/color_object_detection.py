@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import DaVinci
 
+
 class ColorObjectDetector:
     # HSV = Hue, Saturation, Value
     HUE_MAX = 179
@@ -267,7 +268,7 @@ cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda val
 image = None
 cv2.setMouseCallback(window, click)
 
-pose_esitmate = True
+pose_esitmate = False
 if pose_esitmate:
     with np.load("cv/intrinsic_matrix.npz") as X:
                 camera_matrix, distortion_coefficients, _, _ = \

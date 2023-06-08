@@ -34,6 +34,7 @@ class ColorObjectFinder:
     ]
     current_state_index = 0
 
+
     def __init__(self) -> None:
         pass
 
@@ -186,7 +187,6 @@ class ColorObjectFinder:
     def set_image_coordinate_color(self, image, x, y, scale, roi_size):
 
         b, g, r = image[int(y / scale), int(x / scale)]
-        print(b, g, r)
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
 

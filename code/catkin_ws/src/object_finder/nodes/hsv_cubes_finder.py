@@ -36,11 +36,12 @@ class ObjectFinder:
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
 
-        # todo get camera pose in world frame
         self.window = 'ColorDetection'
         self.gui_created = False
         self.start_state = self.cof.get_state()
         self.current_image = None
+
+        self.hover_color = (255, 0, 255)
 
         self.camera_subscriber = rospy.Subscriber(
             camera_topic,
@@ -96,7 +97,7 @@ class ObjectFinder:
                            self.start_state[self.cof.FILL], self.cof.FILL_MAX,
                            lambda value: self.cof.update_value(value, self.cof.FILL))
 
-        cv2.setMouseCallback(self.window, self.click)
+        cv2.setMouseCallback(self.window, self.on_mouse_callback)
 
     def update_scale(self, value):
         self.scale = value / 100
@@ -112,14 +113,20 @@ class ObjectFinder:
         cv2.setTrackbarPos("Noise", self.window, current_state[self.cof.NOISE])
         cv2.setTrackbarPos("Fill", self.window, current_state[self.cof.FILL])
 
-    def click(self, event, x, y, flags, param):
+    def on_mouse_callback(self, event, x, y, flags, param):
+        # ROI Marker
         self.hovered_x = x
         self.hovered_y = y
         self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(480 / 2),
                                                         y=int(640 / 2),
                                                         roi=self.roi_size)
+
+        # Color Zoomer
+        b, g, r = self.current_image[int(y / self.scale), int(x / self.scale)]
+        self.hover_color = (b, g, r)
+
+        # Select color
         if event == cv2.EVENT_LBUTTONDOWN:
-            print("click!")
             self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
             self.update_trackbars()
 
@@ -144,7 +151,6 @@ class ObjectFinder:
                 depth = depth_array[self.center_y][self.center_x] / 1000
                 print('center depth:', depth)
 
-                # todo find depth of coordinate (x,y)
                 position = self.cof.pixel_to_3d_coordinate((self.center_x, self.center_y), depth, self.intrinsic_matrix)
                 # print(position)
                 pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
@@ -154,9 +160,6 @@ class ObjectFinder:
                 self.position = position
 
                 self.broadcast_point()
-
-                # todo convert to world frame
-                # todo publish
 
     def broadcast_point(self):
         # transform = TypeConverter.vectors_to_stamped_transform(translation=[self.x, self.y, self.z],
@@ -197,7 +200,7 @@ class ObjectFinder:
 
         # Find center
         self.center_x, self.center_y = self.cof.find_mask_center(mask_image)
-        pose_info = ""
+        pose_info = " "
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
 
@@ -217,12 +220,14 @@ class ObjectFinder:
             position="top_left"
         )
 
-        if self.pose_estimate and pose_info != "":
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=pose_info,
-                position="top_right"
-            )
+        # if self.pose_estimate and pose_info != "":
+        # todo try hover color
+        DaVinci.draw_text_box(
+            image=stacked,
+            text=pose_info,
+            position="top_right",
+            background=self.hover_color
+        )
 
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
