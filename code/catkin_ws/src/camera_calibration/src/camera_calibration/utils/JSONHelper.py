@@ -163,3 +163,8 @@ class JSONHelper(object):
             }
         with open(path, 'w') as f:
             json.dump(estimates_json, f)
+
+    @staticmethod
+    def get_camera_estimates(file):
+        data = JSONHelper.read_json(file)
+        return data

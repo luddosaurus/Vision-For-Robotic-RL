@@ -1,0 +1,7 @@
+<launch>
+    <arg name="camera_transforms" default="my_cameras"/>
+    <node pkg="camera_estimate_broadcaster" type="camera_estimates.py" name="camera_estimates" output="screen">
+
+        <param name="camera_transforms" value="$(arg camera_transforms)"/>
+    </node>
+</launch>
