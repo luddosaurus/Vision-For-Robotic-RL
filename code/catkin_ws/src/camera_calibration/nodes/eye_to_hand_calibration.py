@@ -286,7 +286,12 @@ class ExtrinsicEstimator(object):
         # Distance
         frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
         HarryPlotter.plot_histogram_by_category(frame_distance)
-        HarryPlotter.plot_prop(frame_distance, x_axis='Distance')
+        HarryPlotter.plot_prop(frame_distance, x='Distance')
+
+        # Each value
+        HarryPlotter.plot_prop(frame_samples, x='Translation X')
+        HarryPlotter.plot_prop(frame_samples, x='Translation Y')
+        HarryPlotter.plot_prop(frame_samples, x='Translation Z')
 
         # # Variance
         # frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
