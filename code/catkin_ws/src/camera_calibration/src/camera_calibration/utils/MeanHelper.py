@@ -14,13 +14,14 @@ from camera_calibration.utils.TypeConverter import TypeConverter
 class MeanHelper:
 
     @staticmethod
-    def riemannian_mean(transformations):
+    def riemannian_mean(transformations, clean_translation=True, clean_rotation=True):
         translations = list()
         rotations = list()
         if type(transformations) is dict:
             transformations = [value for value in transformations.values()]
         for stamped_transform in transformations:
             transform = stamped_transform.transform
+
             rotations.append(
                 np.array([transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w]))
             translations.append(
@@ -28,11 +29,14 @@ class MeanHelper:
                           stamped_transform.transform.translation.y,
                           stamped_transform.transform.translation.z]))
         # print(len(translations))
-        clean_translations, clean_rotations = MeanHelper.remove_outliers(np.array(translations), np.array(rotations))
+
+        clean_translations, clean_rotations = MeanHelper.remove_outliers(np.array(translations), np.array(rotations),
+                                                                         clean_translation, clean_rotation)
 
         return MeanHelper.riemannian_mean_translation(clean_translations), MeanHelper.riemannian_mean_rotation(
             clean_rotations)
 
+    @staticmethod
     def riemannian_mean_translation(translations):
         # Compute the Riemannian mean of the vectors
         # print_t = np.array(translations)
@@ -48,6 +52,7 @@ class MeanHelper:
         # print("Mean vector:", mean_vector)
         return mean_vector
 
+    @staticmethod
     def riemannian_mean_rotation(quaternions):
         # Convert the quaternion vectors to Rotation objects
         rotations = Rotation.from_quat(quaternions)
@@ -62,7 +67,9 @@ class MeanHelper:
         # print("Mean quaternion:", mean_quaternion.as_quat())
         return mean_quaternion.as_quat()
 
-    def remove_outliers(translational_vectors, rotational_vectors, threshold=1):
+    @staticmethod
+    def remove_outliers(translational_vectors, rotational_vectors, clean_translation, clean_rotation, threshold=1.5):
+
         # might be problem here
         # if translational_vectors.shape[0] == 0 or rotational_vectors.shape[0] == 0:
         #     print("so triggered :D")
@@ -74,12 +81,18 @@ class MeanHelper:
         rotational_vectors_std = np.std(rotational_vectors, axis=0)
         translational_vectors_std = np.std(translational_vectors, axis=0)
 
+
         # Compute the Z-scores of each element in the two lists
 
         if not np.isin(translational_vectors_std, 0).any() or not np.isin(rotational_vectors_std, 0).any():
             rotational_vectors_zscores = np.abs((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
             translational_vectors_zscores = np.abs(
                 (translational_vectors - translational_vectors_mean) / translational_vectors_std)
+            print((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
+
+            # print(translational_vectors_zscores)
+            # print('--------------')
+            # print(rotational_vectors_zscores)
         else:
             return translational_vectors, rotational_vectors
 
@@ -109,4 +122,5 @@ class MeanHelper:
             translational_vectors_clean = np.delete(translational_vectors, to_remove, axis=0)
 
             return translational_vectors_clean, rotational_vectors_clean
+
         return translational_vectors, rotational_vectors

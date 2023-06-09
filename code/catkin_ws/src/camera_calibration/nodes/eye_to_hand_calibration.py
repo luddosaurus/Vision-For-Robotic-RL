@@ -316,7 +316,8 @@ class ExtrinsicEstimator(object):
         # HarryPlotter.stacked_histogram(frame_variance)
 
     def calculate_mean_estimate(self):
-        mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
+        mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates, remove_outliers=True)
+        print(mean_translation, mean_rotation)
         self.camera_estimates.append(TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                 rotation=mean_rotation,
                                                                                 parent_frame=self.Frame.world.name,

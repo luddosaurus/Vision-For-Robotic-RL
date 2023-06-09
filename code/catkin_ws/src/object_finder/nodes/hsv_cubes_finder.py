@@ -164,7 +164,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='camera_estimate0',
+                                           parent_name='eye_in_hand',
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)

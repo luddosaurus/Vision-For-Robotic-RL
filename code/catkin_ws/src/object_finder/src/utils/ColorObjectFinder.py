@@ -16,6 +16,11 @@ class ColorObjectFinder:
     HUE_MARGIN = 3
     SATURATION_MARGIN = 4
     VALUE_MARGIN = 5
+
+    HUE_MARGIN_MAX_CLICK = 40
+    SAT_MARGIN_MAX_CLICK = 40
+    VAL_MARGIN_MAX_CLICK = 40
+
     NOISE = 6
     FILL = 7
 
@@ -205,7 +210,7 @@ class ColorObjectFinder:
         self.update_value(h, self.HUE)
         self.update_value(s, self.SATURATION)
         self.update_value(v, self.VALUE)
-        self.update_value(hue_diff, self.HUE_MARGIN)
-        self.update_value(sat_diff, self.SATURATION_MARGIN)
-        self.update_value(val_diff, self.VALUE_MARGIN)
+        self.update_value(min(hue_diff, self.HUE_MARGIN_MAX_CLICK), self.HUE_MARGIN)
+        self.update_value(min(sat_diff, self.SAT_MARGIN_MAX_CLICK), self.SATURATION_MARGIN)
+        self.update_value(min(val_diff, self.VAL_MARGIN_MAX_CLICK), self.VALUE_MARGIN)
         print(f"h{h}, s{s}, v{v}")

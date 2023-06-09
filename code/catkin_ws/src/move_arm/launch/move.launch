@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="move_arm" type="move_script.py" name="move_arm_node" output="screen"/>
+</launch>
