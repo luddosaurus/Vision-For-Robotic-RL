@@ -1,0 +1,22 @@
+{
+  "camera_name": "d435_480p_testing",
+  "factory_settings": {
+    "focal_point": [
+      616.68,
+      617.031
+    ],
+    "center_point": [
+      314.182,
+      249.473
+    ],
+    "distortion": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "board_name": "large",
+  "image_topic": "/camera/color/image_raw"
+}

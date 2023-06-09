@@ -25,8 +25,8 @@ def main():
 
     # Topic publishers
     pub_color = rospy.Publisher('/camera/color/image_raw', Image, queue_size=10)
-    pub_depth = rospy.Publisher('/camera/depth/image_raw', Image, queue_size=10)
-    pub_aligned_depth = rospy.Publisher('/camera/aligned/image_raw', Image, queue_size=10)
+    pub_depth = rospy.Publisher('/camera/aligned_depth_to_color/image_raw', Image, queue_size=10)
+    pub_aligned_depth = rospy.Publisher('/camera/aligned_depth_to_color_colorized/image_raw', Image, queue_size=10)
 
     # Restart any connected realsense device, sleep allows it to boot up again
     ctx = rs.context()
@@ -63,7 +63,7 @@ def main():
         pipeline.wait_for_frames()
 
     cv_bridge = CvBridge()
-
+    align = rs.align(align_to=rs.stream.color)
     while not rospy.is_shutdown():
         try:
             while True:
@@ -83,26 +83,30 @@ def main():
                 color_image = np.asanyarray(color_frame.get_data())
 
                 # Align depth and color frames
-                align = rs.align(align_to=rs.stream.color)
+
                 frames = align.process(frames)
 
                 aligned_depth_frame = frames.get_depth_frame()
-                img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(np.asanyarray(aligned_depth_frame),
-                                                                          encoding="z16")
-                aligned_colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+                # img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(np.asanyarray(aligned_depth_frame),
+                #                                                           encoding="z16")
+                # aligned_colorized_depth = np.asanyarray(colorizer.colorize(aligned_depth_frame).get_data())
+                aligned_depth_frame_array = np.asanyarray(aligned_depth_frame.get_data())
                 colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
                 # images = np.hstack((color_image, colorized_depth))
 
                 try:
                     img_message_color = cv_bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
                     img_message_aligned_depth = cv_bridge.cv2_to_imgmsg(colorized_depth, encoding="bgr8")
-                    img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(aligned_depth_frame, encoding="z16")
+
+                    img_message_depth_aligned_depth = cv_bridge.cv2_to_imgmsg(aligned_depth_frame_array, encoding="16UC1")
+                    pub_color.publish(img_message_color)
+                    pub_depth.publish(img_message_depth_aligned_depth)
+                    if align:
+                        pub_aligned_depth.publish(img_message_aligned_depth)
                 except CvBridgeError as e:
                     print(e)
-                pub_color.publish(img_message_color)
-                pub_depth.publish(img_message_depth_aligned_depth)
-                if align:
-                    pub_aligned_depth.publish(img_message_aligned_depth)
+
+
 
                 # Show images
                 # cv2.imshow('Realsense_color', images)

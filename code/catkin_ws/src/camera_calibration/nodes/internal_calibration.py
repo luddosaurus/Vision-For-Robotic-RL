@@ -181,34 +181,34 @@ class InternalCalibrator(object):
                  [0., self.factory_settings['focal_point'][1], self.factory_settings['center_point'][1]],
                  [0., 0., 1.]])
 
-            dist_coeffs_init = np.array(self.factory_settings['distortion'])
+            dist_coeffs_init = np.array(self.factory_settings['distortion']).transpose()
             flags = cv2.CALIB_USE_INTRINSIC_GUESS
-
+            # dist_copy = dist_coeffs_init.copy()
         # cameraMatrixInit = np.array([[1387., 0., 946],
         #                              [0., 1388., 561],
         #                              [0., 0., 1.]])
         #
         # distCoeffsInit = np.zeros((5, 1))
 
-        # (reprojection_error, camera_matrix, distortion, rotation_vectors,
-        #  translation_vectors) = cv2.aruco.calibrateCameraCharuco(charucoCorners=allCorners, charucoIds=allIds,
-        #                                                          board=self.board, imageSize=imsize,
-        #                                                          cameraMatrix=cameraMatrixInit,
-        #                                                          distCoeffs=distCoeffsInit, flags=flags, criteria=(
-        #     cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
+        (reprojection_error, camera_matrix, distortion, rotation_vectors,
+         translation_vectors) = cv2.aruco.calibrateCameraCharuco(charucoCorners=all_corners, charucoIds=all_ids,
+                                                                 board=self.board, imageSize=image_size,
+                                                                 cameraMatrix=camera_matrix_init,
+                                                                 distCoeffs=dist_coeffs_init, flags=flags, criteria=(
+            cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
 
-        (reprojection_error, camera_matrix, distortion,
-         rotation_vectors, translation_vectors,
-         stdDeviationsIntrinsics, stdDeviationsExtrinsics,
-         perViewErrors) = cv2.aruco.calibrateCameraCharucoExtended(
-            charucoCorners=all_corners,
-            charucoIds=all_ids,
-            board=self.board,
-            imageSize=image_size,
-            cameraMatrix=camera_matrix_init,
-            distCoeffs=dist_coeffs_init,
-            flags=flags,
-            criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
+        # (reprojection_error, camera_matrix, distortion,
+        #  rotation_vectors, translation_vectors,
+        #  stdDeviationsIntrinsics, stdDeviationsExtrinsics,
+        #  perViewErrors) = cv2.aruco.calibrateCameraCharucoExtended(
+        #     charucoCorners=all_corners,
+        #     charucoIds=all_ids,
+        #     board=self.board,
+        #     imageSize=image_size,
+        #     cameraMatrix=camera_matrix_init,
+        #     distCoeffs=dist_coeffs_init,
+        #     flags=flags,
+        #     criteria=(cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
 
         self.calibration_results = (reprojection_error, camera_matrix, distortion)
 

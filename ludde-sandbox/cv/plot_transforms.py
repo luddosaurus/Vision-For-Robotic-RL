@@ -45,7 +45,7 @@ def create_sample_data(num_categories, translation_samples, std=True):
 
         if std:
             for j in range(translation_samples):
-                mean_translation = [0.5, 0.05, 0.4]
+                mean_translation = [0.5, 0.2, 0.4]
                 mean_rotation = [0.0, 0.0, 0.0, 0.0]
                 std_dev = 0.2
 
@@ -102,6 +102,13 @@ def plot_std_deviation(std_deviation_frame, target='Translation X'):
 def calculate_standard_deviation_by_category(data_frame):
     std_deviation_frame = data_frame.groupby('Category').std()
     return std_deviation_frame
+
+
+def calculate_variance_by_category(dataframe):
+    # Group the dataframe by "Category" and calculate variance for each group
+    variance_frame = dataframe.groupby("Category").var()
+
+    return variance_frame
 
 
 def plot_translation_rotation(dataframe):
@@ -185,6 +192,13 @@ plot_distance_density(df, columns)
 columns = ["Rotation X", "Rotation Y", "Rotation Z"]
 plot_distance_density(df, columns)
 
+frame_distance = calculate_distance_to_mean(df)
+print(frame_distance)
+plot_histogram_by_category(frame_distance)
+# plot_prop(frame_distance)
 # plot_3d_scatter(df)
+# variance = calculate_variance_by_category(frame_distance)
+# variance2 = calculate_variance_by_category(frame_distance)
+# plot_translation_rotation(df)
 
 # plot_translation_rotation(df)
