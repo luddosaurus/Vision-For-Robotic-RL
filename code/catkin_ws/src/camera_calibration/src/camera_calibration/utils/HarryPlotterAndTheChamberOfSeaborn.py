@@ -59,7 +59,7 @@ class HarryPlotter:
         plt.figure()
         sns.kdeplot(data=data_frame, x=x, hue=sort, multiple="stack")
 
-        plt.title(f'{x} by {y}')
+        plt.title(f'{x} by {sort}')
         plt.xlabel(x)
         plt.ylabel("Density")
         plt.show()
