@@ -65,6 +65,17 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
+    def plot_distance_density(frame, cols=["Translation X", "Translation Y", "Translation Z"]):
+        data = frame[cols].abs()
+
+        sns.kdeplot(data=data, fill=True)
+
+        plt.xlabel("Distance")
+        plt.ylabel("Density")
+        plt.title("Distance Distribution")
+        plt.show()
+
+    @staticmethod
     def plot_poses(dataframe):
         fig = plt.figure()
 

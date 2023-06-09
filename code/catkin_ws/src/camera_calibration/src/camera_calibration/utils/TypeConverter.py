@@ -196,7 +196,7 @@ class TypeConverter:
                 data.append([
                     sample_category,
                     t_vec[0], t_vec[1], t_vec[2],
-                    r_vec[0], r_vec[1], r_vec[2], r_vec[3]
+                    r_vec[-0], r_vec[1], r_vec[2], r_vec[3]
                 ])
 
         df = pd.DataFrame(data, columns=[
@@ -219,4 +219,3 @@ class TypeConverter:
                                                                    f'camera_estimate_{methods[i]}')
             estimate_transforms.append(transform)
         return estimate_transforms
-

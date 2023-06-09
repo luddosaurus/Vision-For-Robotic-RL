@@ -5,7 +5,7 @@ class Camera:
 
     INTERNAL = 0
     EXTERNAL = 1
-    camera_type = EXTERNAL
+    camera_type = INTERNAL
 
     # Camera Size
     # camera_width = 640

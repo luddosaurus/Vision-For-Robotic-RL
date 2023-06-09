@@ -1,4 +1,15 @@
 <launch>
-    <node pkg="object_finder" type="hsv_cubes_finder.py" name="object_finder_node" output="screen">
+    <arg name="find_pose" default="true"/>
+    <arg name="camera_topic" default="/camera/color/image_raw"/>
+    <node
+            pkg="object_finder"
+            type="hsv_cubes_finder.py"
+            name="object_detection"
+            output="screen">
+
+        <param name="find_pose" value="$(arg find_pose)"/>
+        <param name="camera_topic" value="$(arg camera_topic)"/>
+
     </node>
+
 </launch>

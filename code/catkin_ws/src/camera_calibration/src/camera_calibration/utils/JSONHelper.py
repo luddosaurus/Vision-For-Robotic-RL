@@ -19,7 +19,6 @@ class JSONHelper(object):
         json_data = JSONHelper.read_json(f'{config_path}/{file}')
         camera_name = json_data['camera_name']
         factory_settings = json_data['factory_settings']
-
         board_name = json_data['board_name']
         image_topic = json_data['image_topic']
         return camera_name, factory_settings, board_name, image_topic
@@ -164,3 +163,8 @@ class JSONHelper(object):
             }
         with open(path, 'w') as f:
             json.dump(estimates_json, f)
+
+    @staticmethod
+    def get_camera_estimates(file):
+        data = JSONHelper.read_json(file)
+        return data
