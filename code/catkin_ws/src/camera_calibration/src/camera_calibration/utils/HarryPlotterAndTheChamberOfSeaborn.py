@@ -55,24 +55,13 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
-    def plot_prop(data_frame, density=True, x_axis=None):
-        print(data_frame)
+    def plot_prop(data_frame, x="Distance", sort="Category"):
         plt.figure()
-        if density:
-            sns.kdeplot(data=data_frame, x=x_axis, hue="Category", multiple="stack", palette='bright')
-            # sns.kdeplot(data=data_frame, x="Distance", hue="Category", multiple="fill")
-            # sns.kdeplot(
-            #     data=data_frame, x="Distance", hue="Category",
-            #     fill=True, common_norm=False, palette="crest",
-            #     alpha=.5, linewidth=0,
-            # )
+        sns.kdeplot(data=data_frame, x=x, hue=sort, multiple="stack")
 
-        else:
-            sns.histplot(data_frame, x=x_axis, hue="Category", element="poly")
-
-        plt.title(f'{x_axis} by Category')
-        plt.xlabel(f'{x_axis}')
-        plt.ylabel('Count')
+        plt.title(f'{x} by {sort}')
+        plt.xlabel(x)
+        plt.ylabel("Density")
         plt.show()
 
     @staticmethod
