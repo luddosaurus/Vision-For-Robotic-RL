@@ -164,6 +164,7 @@ class ColorObjectFinder:
 
     @staticmethod
     def pixel_to_3d_coordinate(pixel_coord, depth_value, camera_matrix):
+        # print(pixel_coord, depth_value, camera_matrix)
         fx = camera_matrix[0, 0]
         fy = camera_matrix[1, 1]
         cx = camera_matrix[0, 2]

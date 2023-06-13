@@ -100,25 +100,25 @@ class MoveArmActionServer(object):
         group.go(wait=True)
         group.clear_pose_targets()
 
-        client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
-
-        client.wait_for_server()
-
-        goal = GripperCommandGoal()
-        goal.command.position = joint_state
-        goal.command.max_effort = 10
-
-        client.send_goal(goal, done_cb=self.mini_goal_callback)
-
-        rospy.Rate(1).sleep()
-
-        group.set_pose_target(target_pose)
-        group.go(wait=True)
-        group.clear_pose_targets()
-
-        group.go(ready_state)
-        group.clear_pose_targets()
-        group.stop()
+        # client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
+        #
+        # client.wait_for_server()
+        #
+        # goal = GripperCommandGoal()
+        # goal.command.position = joint_state
+        # goal.command.max_effort = 10
+        #
+        # client.send_goal(goal, done_cb=self.mini_goal_callback)
+        #
+        # rospy.Rate(1).sleep()
+        #
+        # group.set_pose_target(target_pose)
+        # group.go(wait=True)
+        # group.clear_pose_targets()
+        #
+        # group.go(ready_state)
+        # group.clear_pose_targets()
+        # group.stop()
 
         #
         # # Instantiate a GripperCommander object for the gripper
