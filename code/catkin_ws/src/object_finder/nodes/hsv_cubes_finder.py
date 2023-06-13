@@ -17,6 +17,8 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
 import tf2_ros
+import actionlib
+from my_robot_msgs.msg import MoveArmAction, MoveArmGoal, MoveArmResult, MoveArmFeedback
 
 
 # todo
@@ -50,6 +52,9 @@ class ObjectFinder:
             self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
+        self.tf_buffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tf_buffer)
+
         self.center_x = None
         self.center_y = None
         self.center_z = None
@@ -64,6 +69,8 @@ class ObjectFinder:
 
         # self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self.center_broadcaster = tf2_ros.TransformBroadcaster()
+        self.action_client = actionlib.SimpleActionClient('/pick_and_place', MoveArmAction)
+        self.action_client.wait_for_server()
 
     def create_layout(self):
         cv2.namedWindow(self.window)
@@ -139,14 +146,12 @@ class ObjectFinder:
             if self.center_x <= depth_array.shape[1] and self.center_y <= depth_array.shape[0]:
                 # print(self.center_x, depth_array.shape[1])
                 depth = depth_array[self.center_y][self.center_x] / 1000
-                print('center depth:', depth)
 
                 # todo find depth of coordinate (x,y)
                 position = self.cof.pixel_to_3d_coordinate((self.center_x, self.center_y), depth, self.intrinsic_matrix)
                 # print(position)
                 pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
 
-                print(pose_info)
                 self.center_z = position[2]
                 self.position = position
 
@@ -235,7 +240,16 @@ class ObjectFinder:
             print(f"Switching to state {key_number}")
 
         elif key == ord('m'):
-            print("Going to...")
+            world_to_cube = None
+            while world_to_cube is None:
+                try:
+                    world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    print(f"No transform found between 'world' and 'cube'.")
+            self.call_move_arm(world_to_cube)
+
+
+
         elif key == ord('q'):
             rospy.signal_shutdown('Bye :)')
         elif key == ord('o'):
@@ -247,6 +261,30 @@ class ObjectFinder:
                 self.roi_size -= 2
         elif key == ord('l'):
             self.roi_size += 2
+
+    def call_move_arm(self, pick_pose):
+        pick_pose_translation = pick_pose.transform.translation
+        pick_translation = [pick_pose_translation.x, pick_pose_translation.y, pick_pose_translation.z]
+        random_y = np.random.uniform(-0.3, 0.4)
+        random_x = np.random.uniform(0.2, 0.45)
+        place_translation = pick_translation[:1] + [random_y] + pick_translation[2:]
+
+        move_arm_goal = MoveArmGoal()
+        move_arm_goal.pickup_pose.position.x = pick_translation[0]
+        move_arm_goal.pickup_pose.position.y = pick_translation[1]
+        move_arm_goal.pickup_pose.position.z = pick_translation[2]
+
+        move_arm_goal.place_pose.position.x = random_x
+        move_arm_goal.place_pose.position.y = random_y
+        move_arm_goal.place_pose.position.z = pick_translation[2]
+
+        self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
+        # status = self.action_client.get_state()
+        # self.action_client.wait_for_result()
+        # print(self.action_client.get_state())
+
+    def feedback_callback(self, m):
+        print(m)
 
 
 def load_intrinsics(eye_in_hand):

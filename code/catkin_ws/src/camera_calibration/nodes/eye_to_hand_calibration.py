@@ -45,7 +45,7 @@ class ExtrinsicEstimator(object):
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
         self.pub_charuco_position = tf2_ros.StaticTransformBroadcaster()
-        self.listener = tf.TransformListener()
+        # self.listener = tf.TransformListener()
 
         self.camera_subscriber = rospy.Subscriber(camera_topic, Image, self.camera_callback)
 

@@ -44,8 +44,13 @@ def main():
     data = JSONHelper.get_camera_estimates(cameras_path)
 
     broadcaster = ExternalCameraEstimateBroadcaster(camera_data=data)
+    first_broadcast = True
     rate = rospy.Rate(0.1)
     while not rospy.is_shutdown():
+        if first_broadcast:
+            for i in range(10):
+                broadcaster.broadcast()
+            first_broadcast = False
         broadcaster.broadcast()
         rate.sleep()
 
