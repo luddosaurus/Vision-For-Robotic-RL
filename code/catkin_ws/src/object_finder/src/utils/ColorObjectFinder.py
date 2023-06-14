@@ -110,10 +110,6 @@ class ColorObjectFinder:
         #     lower_range_2[2] = self.VAL_MAX + val_range_l1
         #     lower_range_2_compare[2] = self.VAL_MAX
 
-        print(lower_range_1)
-        print(lower_range_2)
-        print(lower_range_2_compare)
-
         upper_range_2 = upper_range_1.copy()
         upper_range_2_compare = lower_range_1.copy()
 
@@ -126,8 +122,6 @@ class ColorObjectFinder:
         # if val_range_u1 > self.VAL_MAX:
         #     upper_range_2[2] = val_range_u1 - self.VAL_MAX
         #     upper_range_2_compare[2] = 0
-
-        print(upper_range_1)
 
         # Convert the image to HSV color space
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -184,21 +178,26 @@ class ColorObjectFinder:
         return self.saved_states[self.current_state_index]
 
     def set_image_coordinate_color(self, image, x, y, scale, roi_size):
-
-        b, g, r = image[int(y / scale), int(x / scale)]
+        x = int(x / scale)
+        y = int(y / scale)
+        print(image.shape)
+        b, g, r = image[y, x]
         print(b, g, r)
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
         h, s, v = hsv[0][0]
-
-        roi = image[y - roi_size:y + roi_size, x - roi_size:x + roi_size]
+        y_lower = max(y - roi_size, 0)
+        y_upper = min(image.shape[0], y + roi_size)
+        x_lower = max(x - roi_size, 0)
+        x_upper = min(image.shape[1], x + roi_size)
+        roi = image[y_lower: y_upper, x_lower: x_upper]
         # mean_color = np.mean(roi, axis=0)
         # print(mean_color)
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         hsv_lower = np.min(hsv_roi, axis=(0, 1))
         hsv_upper = np.max(hsv_roi, axis=(0, 1))
         hue_diff_factor = 1
-        sat_diff_factor = 3
-        val_diff_factor = 3
+        sat_diff_factor = 1
+        val_diff_factor = 1
         hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
         sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
         val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor

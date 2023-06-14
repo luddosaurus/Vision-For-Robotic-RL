@@ -298,10 +298,17 @@ class ExtrinsicEstimator(object):
         # Standard Deviations
         frame_std = ErrorEstimator.calculate_standard_deviation_by_category(frame_samples)
 
-        # Distance
+        # Distance density (Truth to Pose estimations)
         frame_distance = ErrorEstimator.calculate_distance_to_truth(frame_samples, true_translation)
         HarryPlotter.plot_histogram_by_category(frame_distance)
         HarryPlotter.plot_prop(frame_distance, x_axis='Distance')
+
+        # Distance density (World Center to Pose estimations)
+        translation_columns = ["Translation X", "Translation Y", "Translation Z"]
+        HarryPlotter.plot_distance_density(frame_samples, translation_columns)
+
+        rotation_columns = ["Rotation X", "Rotation Y", "Rotation Z", "Rotation W"]
+        HarryPlotter.plot_distance_density(frame_samples, rotation_columns)
 
         # # Variance
         # frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)

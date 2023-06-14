@@ -6,12 +6,11 @@ class DaVinci:
 
     @staticmethod
     def draw_roi_rectangle(image, x, y, roi):
-        print(image.shape)
-        print('drawing', x, y)
-        x1 = x - int(roi / 2)
-        y1 = y - int(roi / 2)
-        x2 = x + int(roi / 2)
-        y2 = y + int(roi / 2)
+        roi_minus_one = roi - 1
+        x1 = x - int(roi_minus_one / 2)
+        y1 = y - int(roi_minus_one / 2)
+        x2 = x + int(roi_minus_one / 2)
+        y2 = y + int(roi_minus_one / 2)
         color = (0, 255, 255)
 
         cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=1)

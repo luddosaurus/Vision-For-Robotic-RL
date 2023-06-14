@@ -60,7 +60,7 @@ class ObjectFinder:
         self.position = None
 
         self.scale = 0.5
-        self.roi_size = 10
+        self.roi_size = 9
 
         # self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self.center_broadcaster = tf2_ros.TransformBroadcaster()
@@ -115,9 +115,6 @@ class ObjectFinder:
     def click(self, event, x, y, flags, param):
         self.hovered_x = x
         self.hovered_y = y
-        self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image, x=int(480 / 2),
-                                                        y=int(640 / 2),
-                                                        roi=self.roi_size)
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
             self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
@@ -173,7 +170,6 @@ class ObjectFinder:
                                            translation=self.position)
 
     def camera_color_callback(self, input_image):
-        print(self.roi_size)
         try:
             self.current_image = self.cv_bridge.imgmsg_to_cv2(input_image, desired_encoding="bgr8")
 
@@ -184,11 +180,6 @@ class ObjectFinder:
             self.create_layout()
             self.gui_created = True
         # image = self.current_image
-        if self.hovered_x is not None:
-            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
-                                                            x=int(self.hovered_x / self.scale),
-                                                            y=int(self.hovered_y / self.scale),
-                                                            roi=self.roi_size)
 
         # Mask
         mask_image = self.cof.get_hsv_mask(image=self.current_image)
@@ -200,6 +191,12 @@ class ObjectFinder:
         pose_info = ""
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
+
+        if self.hovered_x is not None:
+            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
+                                                            x=int(self.hovered_x / self.scale),
+                                                            y=int(self.hovered_y / self.scale),
+                                                            roi=self.roi_size)
 
         # Show Image
         stacked = np.hstack((self.current_image, res))
@@ -246,9 +243,10 @@ class ObjectFinder:
         elif key == ord('p'):
             self.scale += 0.05
         elif key == ord('k'):
-            self.roi_size -= 1
+            if self.roi_size > 1:
+                self.roi_size -= 2
         elif key == ord('l'):
-            self.roi_size += 1
+            self.roi_size += 2
 
 
 def load_intrinsics(eye_in_hand):
