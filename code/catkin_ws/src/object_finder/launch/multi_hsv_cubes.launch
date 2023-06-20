@@ -1,0 +1,28 @@
+<launch>
+    <arg name="camera_depth_topics"
+         default='[
+                    "/camera_attached/aligned_depth_to_color/image_raw",
+                    "/camera_top/aligned_depth_to_color/image_raw",
+                    "/camera_front/aligned_depth_to_color/image_raw"]'/>
+
+    <arg name="camera_color_topics"
+         default='[
+                    "camera_attached/color/image_raw",
+                    "camera_top/color/image_raw",
+                    "camera_front/color/image_raw"]' />
+
+    <node
+            pkg="object_finder"
+            type="hsv_cubes_finder.py"
+            name="object_detection"
+            output="screen">
+
+        <param name="camera_color_topics"
+               value="$(arg camera_color_topics)"/>
+
+        <param name="camera_depth_topics"
+               value="$(arg camera_depth_topics)"/>
+
+    </node>
+
+</launch>
