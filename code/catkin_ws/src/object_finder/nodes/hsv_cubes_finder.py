@@ -124,7 +124,13 @@ class ObjectFinder:
         self.hovered_y = y
         if event == cv2.EVENT_LBUTTONDOWN:
             print("click!")
-            self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
+            self.cof.set_image_coordinate_color(
+                image=self.current_image,
+                x=x,
+                y=y,
+                scale=self.scale,
+                roi_size=self.roi_size
+            )
             self.update_trackbars()
 
     def camera_depth_aligned_callback(self, aligned_depth):

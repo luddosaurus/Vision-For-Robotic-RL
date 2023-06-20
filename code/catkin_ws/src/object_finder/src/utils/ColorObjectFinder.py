@@ -182,7 +182,7 @@ class ColorObjectFinder:
     def get_state(self):
         return self.saved_states[self.current_state_index]
 
-    def set_image_coordinate_color(self, image, x, y, scale, roi_size):
+    def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
         x = int(x / scale)
         y = int(y / scale)
         print(image.shape)

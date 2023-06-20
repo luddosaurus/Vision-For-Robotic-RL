@@ -25,65 +25,76 @@ class ObjectFinder:
 
     def __init__(
             self,
-            camera_color_topics,
-            camera_depth_topics=None,
-            intrinsic_matrix=None
+            pose_estimation,
+            camera_topics,
+            camera_matrices=None
     ):
-        self.pose_estimate = camera_depth_topics is not None
-        self.intrinsic_matrix = intrinsic_matrix
+        self.camera_topics = camera_topics
+        self.intrinsic_matrices = dict()
+        for camera_topic, matrix in camera_topics, camera_matrices:
+            self.intrinsic_matrices[camera_topic] = matrix
+
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
 
         # UI
         self.window = 'ColorDetection'
         self.gui_created = False
-        self.current_image = None
+        self.current_images = {}
+
+        # todo have everything in camera topics?
+        for camera in camera_topics:
+            self.current_images[camera] = None
+
+        # Combined Image
+        self.current_combined_image = None  # All images attached together
+        self.mouse_hover_x = None
+        self.mouse_hover_y = None
+        self.scale = 0.5
+        self.roi_size = 9
 
         # Camera COLOR Topics
-        self.camera_subscribers = {}
-        for camera_topic in camera_color_topics:
-            self.camera_subscribers[camera_topic] = rospy.Subscriber(
-                name=camera_topic,
+        # todo pray that all topics are on the same format
+        self.camera_color_subscribers = {}
+        for camera_topic in camera_topics:
+            callback = self.color_callback(camera_topic)
+            self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
+                name=f'{camera_topic}/color/image_raw',
                 data_class=Image,
-                callback=self.camera_color_callback
+                callback=callback
             )
 
         # Camera DEPTH Topics
-        self.camera_subscribers = {}
-        for camera_topic in camera_depth_topics:
-            self.aligned_depth_subscriber = rospy.Subscriber(
-                name=camera_topic,
-                data_class=Image,
-                callback=self.camera_depth_callback)
+        if pose_estimation:
+            self.camera_depth_subscribers = {}
+            for camera_topic in camera_topics:
+                callback = self.depth_callback(camera_topic)
+                self.camera_depth_subscribers[camera_topic] = rospy.Subscriber(
+                    name=f'{camera_topic}/aligned_depth_to_color/image_raw',
+                    data_class=Image,
+                    callback=callback
+                )
 
         # Find Position
-        # todo separate this into list
-        # Image pixel (x, y) depth (z)
         self.segment_coordinates = {}
-        self.segment_center_x = None
-        self.segment_center_y = None
-        self.segment_center_z = None
-
-        self.mouse_hover_x = None
-        self.mouse_hover_y = None
-
-        self.position = None
-
-        self.scale = 0.5
-        self.roi_size = 9
+        for topic in camera_topics:
+            self.segment_coordinates[topic]["segment_center_x"] = None  # Pixel
+            self.segment_coordinates[topic]["segment_center_y"] = None  # Pixel
+            self.segment_coordinates[topic]["segment_center_z"] = None  # Depth
+            self.segment_coordinates[topic]["position"] = None
 
         # Move Arm
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
-        # self.center_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self.center_broadcaster = tf2_ros.TransformBroadcaster()
         self.action_client = actionlib.SimpleActionClient('/pick_and_place', MoveArmAction)
         self.action_client.wait_for_server()
 
+    # ----------------------------------------- UI
+
     def create_layout(self):
         start_state = self.cof.get_state()
         cv2.namedWindow(self.window)
-        # cv2.setWindowProperty(self.window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         cv2.createTrackbar("Hue", self.window,
                            start_state[self.cof.HUE], self.cof.HUE_MAX,
@@ -132,130 +143,166 @@ class ObjectFinder:
         self.mouse_hover_x = x
         self.mouse_hover_y = y
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.cof.set_image_coordinate_color(self.current_image, x, y, self.scale, self.roi_size)
+            self.cof.set_image_coordinate_color(
+                image=self.current_combined_image,
+                x=x, y=y,
+                roi_size=self.roi_size)
+
             self.update_trackbars()
 
-    def camera_depth_callback(self, aligned_depth):
-        # print(aligned_depth)
-        aligned_input_depth = None
-        try:
-            aligned_input_depth = self.cv_bridge.imgmsg_to_cv2(
-                aligned_depth, desired_encoding="passthrough")
+    # ----------------------------------------- Image Processing
 
-        except CvBridgeError as e:
-            print(e)
+    def depth_callback(self, topic_name):
+        def camera_depth_callback(aligned_depth):
+            aligned_input_depth = None
+            try:
+                aligned_input_depth = self.cv_bridge.imgmsg_to_cv2(
+                    aligned_depth, desired_encoding="passthrough")
 
-        # print(aligned_input_depth[a])
-        # Find 3D point
-        # cv2.imshow('test', aligned_input_depth)
-        if self.segment_center_x is not None and aligned_input_depth is not None:
-            depth_array = np.array(aligned_input_depth, dtype=np.float32)
-            # print(depth_array.shape)
-            if self.segment_center_x <= depth_array.shape[1] and self.segment_center_y <= depth_array.shape[0]:
-                # print(self.center_x, depth_array.shape[1])
-                depth = depth_array[self.segment_center_y][self.segment_center_x] / 1000
+            except CvBridgeError as e:
+                print(e)
 
-                position = self.cof.pixel_to_3d_coordinate((self.segment_center_x, self.segment_center_y), depth, self.intrinsic_matrix)
-                # print(position)
-                pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
+            # Find 3D point
+            segment_center_x = self.segment_coordinates[topic_name]['segment_center_x']
+            segment_center_y = self.segment_coordinates[topic_name]['segment_center_y']
 
-                self.segment_center_z = position[2]
-                self.position = position
+            if segment_center_x is not None and aligned_input_depth is not None:
+                depth_array = np.array(aligned_input_depth, dtype=np.float32)
 
-                self.broadcast_point()
+                if segment_center_x <= depth_array.shape[1] and segment_center_y <= depth_array.shape[0]:
 
-    def broadcast_point(self):
-        TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='eye_in_hand',
-                                           child_name=f'cube',
-                                           rotation=[0., 0., 0., 1.],
-                                           translation=self.position)
+                    depth = depth_array[segment_center_y][segment_center_x] / 1000
 
-    def camera_color_callback(self, input_image):
-        try:
-            self.current_image = self.cv_bridge.imgmsg_to_cv2(input_image, desired_encoding="bgr8")
+                    position = self.cof.pixel_to_3d_coordinate(
+                        pixel_coord=(segment_center_x, segment_center_y),
+                        depth_value=depth,
+                        camera_matrix=self.intrinsic_matrices[topic_name]
+                    )
 
-        except CvBridgeError as e:
-            print(e)
+                    self.segment_coordinates[topic_name]['segment_center_z'] = position[2]
+                    self.segment_coordinates[topic_name]['position'] = position
 
-        if not self.gui_created:
-            self.create_layout()
-            self.gui_created = True
-        # image = self.current_image
+                    self.broadcast_point(
+                        point=position,
+                        parent_name=topic_name
+                    )
 
-        # Mask
-        mask_image = self.cof.get_hsv_mask(image=self.current_image)
-        res = cv2.bitwise_and(self.current_image, self.current_image, mask=mask_image)
-        mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
+        return camera_depth_callback
 
-        # Find center
-        self.segment_center_x, self.segment_center_y = self.cof.find_mask_center(mask_image)
-        pose_info = ""
-        if self.segment_center_x is not None:
-            self.cof.draw_dot(res, self.segment_center_x, self.segment_center_y)
+    def color_callback(self, topic_name):
+        def camera_color_callback(color_image):
+            current_image = None
+            try:
+                current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
 
-        if self.mouse_hover_x is not None:
-            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
-                                                            x=int(self.mouse_hover_x / self.scale),
-                                                            y=int(self.mouse_hover_y / self.scale),
-                                                            roi=self.roi_size)
+            except CvBridgeError as e:
+                print(e)
 
-        # Show Image
-        stacked = np.hstack((self.current_image, res))
+            if not self.gui_created:
+                self.create_layout()
+                self.gui_created = True
+            # image = self.current_image
 
-        info = "[0-9] states, [m]ove to, [q]uit"
-        DaVinci.draw_text_box(
-            image=stacked,
-            text=info
-        )
-
-        slot_info = f"Color State [{self.cof.current_state_index}]"
-        DaVinci.draw_text_box(
-            image=stacked,
-            text=slot_info,
-            position="top_left"
-        )
-
-        if self.pose_estimate and pose_info != "":
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=pose_info,
-                position="top_right"
+            # Mask
+            mask_image = self.cof.get_hsv_mask(image=current_image)
+            segmented_image = cv2.bitwise_and(
+                src1=self.current_images[topic_name],
+                src2=self.current_images[topic_name],
+                mask=mask_image
             )
 
-        cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
-        # cv2.imshow(self.window, stacked)
+            # Find center
+            segment_center_x, segment_center_y = self.cof.find_mask_center(mask_image)
+            self.segment_coordinates[topic_name]['segment_center_x'] = segment_center_x
+            self.segment_coordinates[topic_name]['segment_center_y'] = segment_center_y
 
-        # Input
-        key = cv2.waitKey(1) & 0xFF
-        key_str = chr(key)
+            # Show Image
+            if segment_center_x is not None:
+                self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
 
-        if key_str.isdigit() and 0 <= int(key_str) <= 9:
-            key_number = int(key_str)
-            self.cof.current_state_index = key_number
-            self.update_trackbars()
-            print(f"Switching to state {key_number}")
+            image_segmentation_combo = np.vstack((current_image, segmented_image))
+            self.current_images[topic_name] = image_segmentation_combo
 
-        elif key == ord('m'):
-            world_to_cube = None
-            while world_to_cube is None:
-                try:
-                    world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    print(f"No transform found between 'world' and 'cube'.")
-            self.call_move_arm(world_to_cube)
+            images = list(self.current_images.values())
+            stacked = np.hstack(images)
+            self.current_combined_image = stacked
 
-        elif key == ord('q'):
-            rospy.signal_shutdown('Bye :)')
-        elif key == ord('o'):
-            self.scale -= 0.05
-        elif key == ord('p'):
-            self.scale += 0.05
-        elif key == ord('k'):
-            if self.roi_size > 1:
-                self.roi_size -= 2
-        elif key == ord('l'):
-            self.roi_size += 2
+            info = "[0-9] states, [m]ove to, [q]uit"
+            DaVinci.draw_text_box(
+                image=stacked,
+                text=info
+            )
+
+            slot_info = f"Color State [{self.cof.current_state_index}]"
+            DaVinci.draw_text_box(
+                image=stacked,
+                text=slot_info,
+                position="top_left"
+            )
+
+            if self.segment_coordinates[topic_name]['position']:
+                position = self.segment_coordinates[topic_name]['position']*100
+                pose_info = f"x{int(position[0])} : y{int(position[1])}, z{int(position[2])}"
+                DaVinci.draw_text_box(
+                    image=stacked,
+                    text=pose_info,
+                    position="top_right"
+                )
+
+            if self.mouse_hover_x is not None:
+                self.current_combined_image = DaVinci.draw_roi_rectangle(
+                    image=stacked,
+                    x=int(self.mouse_hover_x / self.scale),
+                    y=int(self.mouse_hover_y / self.scale),
+                    roi=self.roi_size
+                )
+
+            cv2.imshow(
+                self.window,
+                cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
+            )
+
+            # Input
+            key = cv2.waitKey(1) & 0xFF
+            key_str = chr(key)
+
+            if key_str.isdigit() and 0 <= int(key_str) <= 9:
+                key_number = int(key_str)
+                self.cof.current_state_index = key_number
+                self.update_trackbars()
+                print(f"Switching to state {key_number}")
+
+            elif key == ord('m'):
+                world_to_cube = None
+                while world_to_cube is None:
+                    try:
+                        world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                        print(f"No transform found between 'world' and 'cube'.")
+                self.call_move_arm(world_to_cube)
+
+            elif key == ord('q'):
+                rospy.signal_shutdown('Bye :)')
+            elif key == ord('o'):
+                self.scale -= 0.05
+            elif key == ord('p'):
+                self.scale += 0.05
+            elif key == ord('k'):
+                if self.roi_size > 1:
+                    self.roi_size -= 2
+            elif key == ord('l'):
+                self.roi_size += 2
+
+        return camera_color_callback
+
+    # ----------------------------------------- Move Arm
+    def broadcast_point(self, point, parent_name):
+        # todo could child have multiple parents?
+        TFPublish.publish_static_transform(publisher=self.center_broadcaster,
+                                           parent_name=parent_name,
+                                           child_name=f'cube',
+                                           rotation=[0., 0., 0., 1.],
+                                           translation=point)
 
     def call_move_arm(self, pick_pose):
         pick_pose_translation = pick_pose.transform.translation
@@ -273,38 +320,42 @@ class ObjectFinder:
         move_arm_goal.place_pose.position.y = random_y
         move_arm_goal.place_pose.position.z = pick_translation[2]
 
-        self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
-        # status = self.action_client.get_state()
-        # self.action_client.wait_for_result()
-        # print(self.action_client.get_state())
+        self.action_client.send_goal(move_arm_goal, feedback_cb=self.arm_feedback)
 
-    def feedback_callback(self, m):
-        print(m)
+    @staticmethod
+    def arm_feedback(m):
+        print(f'Arm Feedback : {m}')
 
 
 def load_intrinsics(eye_in_hand):
+    camera_matrices = []
     camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_480p_testing')
     camera_matrix = np.array(camera_intrinsics['camera_matrix'])
     distortion = np.array(camera_intrinsics['distortion'])
 
+    camera_matrices.append(camera_matrix)
+    # todo add all the other intrinsics
+
     print("ArUcoFinder launched with internal parameters:")
     print(camera_matrix, distortion)
-    return camera_matrix
+    return camera_matrices
 
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
 
-    c_topics = rospy.get_param(param_name='object_detection/camera_color_topics')
-    d_topics = rospy.get_param(param_name='object_detection/camera_depth_topics')
+    find_pose = rospy.get_param(param_name='object_detection/find_pose')
+    topics = rospy.get_param(param_name='object_detection/camera_topics')
 
-    intrinsic_camera = None
-    if d_topics is not None:
-        intrinsic_camera = load_intrinsics(eye_in_hand=True)
+    intrinsics = None
+    if find_pose:
+        intrinsics = load_intrinsics(eye_in_hand=True)
+
+    # todo make sure topics ans intrinsics are aligned
     object_finder = ObjectFinder(
-        intrinsic_matrix=intrinsic_camera,
-        camera_color_topics=c_topics,
-        camera_depth_topics=d_topics
+        camera_matrices=intrinsics,
+        camera_topics=topics,
+        pose_estimation=find_pose
     )
 
     try:
