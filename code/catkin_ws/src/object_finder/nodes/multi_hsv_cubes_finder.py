@@ -1,5 +1,7 @@
 #! /usr/bin/env python3.8
+import os
 
+import rospkg
 import rospy
 import cv2
 import numpy as np
@@ -31,9 +33,7 @@ class ObjectFinder:
             camera_matrices=None
     ):
         self.camera_topics = camera_topics
-        self.intrinsic_matrices = dict()
-        for camera_topic, matrix in camera_topics, camera_matrices:
-            self.intrinsic_matrices[camera_topic] = matrix
+        self.intrinsic_matrices = camera_matrices
 
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
@@ -44,8 +44,10 @@ class ObjectFinder:
 
         self.current_images = {}
         # todo have everything in camera topics?
+        self.display_width = 640
+        self.display_height = 480
         for camera_topic in camera_topics:
-            self.current_images[camera_topic] = None
+            self.current_images[camera_topic] = np.zeros((self.display_height * 2, self.display_width, 3))
 
         # Combined Image
         self.current_combined_image = None  # All images attached together
@@ -54,8 +56,9 @@ class ObjectFinder:
         self.scale = 0.5
         self.roi_size = 9
 
+        self.current_image_dict = {'camera': np.zeros((480, 640, 3)), 'cam_front': np.zeros((480, 640, 3)),
+                                   'cam_top': np.zeros((480, 640, 3))}
         # Camera COLOR Topics
-        # todo pray that all topics are on the same format
         self.camera_color_subscribers = {}
         for camera_topic in camera_topics:
             callback = self.color_callback(camera_topic)
@@ -77,7 +80,7 @@ class ObjectFinder:
                 )
 
         # Find Position
-        self.segment_coordinates = {}
+        self.segment_coordinates = {topic: dict() for topic in camera_topics}
         for topic in camera_topics:
             self.segment_coordinates[topic]["segment_center_x"] = None  # Pixel
             self.segment_coordinates[topic]["segment_center_y"] = None  # Pixel
@@ -171,7 +174,6 @@ class ObjectFinder:
                 depth_array = np.array(aligned_input_depth, dtype=np.float32)
 
                 if segment_center_x <= depth_array.shape[1] and segment_center_y <= depth_array.shape[0]:
-
                     depth = depth_array[segment_center_y][segment_center_x] / 1000
 
                     position = self.cof.pixel_to_3d_coordinate(
@@ -189,104 +191,128 @@ class ObjectFinder:
 
         return camera_depth_callback
 
+    # def camera_color_callback(self, color_image):
+    #     current_image = np.zeros((480, 640, 3))
+    #     try:
+    #         current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
+    #         current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+    #                                                    height=self.display_height)
+    #         self.current_image_dict['camera'] = current_image
+    #     except CvBridgeError as e:
+    #         print(e)
+    #     #
+    #     # if not self.gui_created:
+    #     #     self.create_layout()
+    #     #     self.gui_created = True
+    #     print(self.current_image_dict['camera'][:1, :1, :1])
+    #     cv2.imshow('camera', self.current_image_dict['camera'])
+    #     cv2.waitKey(1)
+
     def color_callback(self, topic_name):
         def camera_color_callback(color_image):
             current_image = None
             try:
                 current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
-                current_image = self.resize_and_crop(current_image, (720, 480))
-
+                current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+                                                           height=self.display_height)
+                self.current_image_dict[topic_name] = current_image
             except CvBridgeError as e:
                 print(e)
-
+            if topic_name == 'cam_front':
+                print(current_image)
             if not self.gui_created:
                 self.create_layout()
                 self.gui_created = True
-            # image = self.current_image
 
-            # Mask
-            mask_image = self.cof.get_hsv_mask(image=current_image)
-            segmented_image = cv2.bitwise_and(
-                src1=self.current_images[topic_name],
-                src2=self.current_images[topic_name],
-                mask=mask_image
-            )
-
-            # Find center
-            segment_center_x, segment_center_y = self.cof.find_mask_center(mask_image)
-            self.segment_coordinates[topic_name]['segment_center_x'] = segment_center_x
-            self.segment_coordinates[topic_name]['segment_center_y'] = segment_center_y
-
-            # Show Image
-            if segment_center_x is not None:
-                self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
-
-            image_segmentation_combo = np.vstack((current_image, segmented_image))
-            self.current_images[topic_name] = image_segmentation_combo
-
-            images = list(self.current_images.values())
-            stacked = np.hstack(images)
-            self.current_combined_image = stacked
-
-            info = "[0-9] states, [m]ove to, [q]uit"
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=info
-            )
-
-            slot_info = f"Color State [{self.cof.current_state_index}]"
-            DaVinci.draw_text_box(
-                image=stacked,
-                text=slot_info,
-                position="top_left"
-            )
-
-            if self.segment_coordinates[topic_name]['position']:
-                position = self.segment_coordinates[topic_name]['position']*100
-                pose_info = f"x{int(position[0])} : y{int(position[1])}, z{int(position[2])}"
-                DaVinci.draw_text_box(
-                    image=stacked,
-                    text=pose_info,
-                    position="top_right"
-                )
-
-            if self.mouse_hover_x is not None:
-                self.current_combined_image = DaVinci.draw_roi_rectangle(
-                    image=stacked,
-                    x=int(self.mouse_hover_x / self.scale),
-                    y=int(self.mouse_hover_y / self.scale),
-                    roi=self.roi_size
-                )
-
-            cv2.imshow(
-                self.window,
-                cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
-            )
-
-            # Input
-            key = cv2.waitKey(1) & 0xFF
-            key_str = chr(key)
-
-            if key_str.isdigit() and 0 <= int(key_str) <= 9:
-                key_number = int(key_str)
-                self.cof.current_state_index = key_number
-                self.update_trackbars()
-                print(f"Switching to state {key_number}")
-
-            elif key == ord('m'):
-                self.move_arm()
-
-            elif key == ord('q'):
-                rospy.signal_shutdown('Bye :)')
-            elif key == ord('o'):
-                self.scale -= 0.05
-            elif key == ord('p'):
-                self.scale += 0.05
-            elif key == ord('k'):
-                if self.roi_size > 1:
-                    self.roi_size -= 2
-            elif key == ord('l'):
-                self.roi_size += 2
+            cv2.imshow(self.window, self.current_image_dict['camera'])
+            cv2.waitKey(1)
+            # # image = self.current_image
+            #
+            # # Mask
+            # mask_image = self.cof.get_hsv_mask(image=current_image)
+            #
+            # segmented_image = cv2.bitwise_and(
+            #     src1=current_image,
+            #     src2=current_image,
+            #     mask=mask_image
+            # )
+            # # print(f'mask_image: {current_image.shape}\n')
+            # # Find center
+            # segment_center_x, segment_center_y = self.cof.find_mask_center(mask_image)
+            # self.segment_coordinates[topic_name]['segment_center_x'] = segment_center_x
+            # self.segment_coordinates[topic_name]['segment_center_y'] = segment_center_y
+            #
+            # # Show Image
+            # if segment_center_x is not None:
+            #     self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
+            #
+            # image_segmentation_combo = np.vstack((current_image, segmented_image))
+            # self.current_images[topic_name] = image_segmentation_combo
+            # # for image in self.current_images.values():
+            # #     print(image.shape)
+            # images = tuple(self.current_images.values())
+            # stacked = np.hstack(images)
+            # self.current_combined_image = stacked
+            #
+            # info = "[0-9] states, [m]ove to, [q]uit"
+            # DaVinci.draw_text_box(
+            #     image=stacked,
+            #     text=info
+            # )
+            #
+            # slot_info = f"Color State [{self.cof.current_state_index}]"
+            # DaVinci.draw_text_box(
+            #     image=stacked,
+            #     text=slot_info,
+            #     position="top_left"
+            # )
+            #
+            # if self.segment_coordinates[topic_name]['position']:
+            #     position = self.segment_coordinates[topic_name]['position'] * 100
+            #     pose_info = f"x{int(position[0])} : y{int(position[1])}, z{int(position[2])}"
+            #     DaVinci.draw_text_box(
+            #         image=stacked,
+            #         text=pose_info,
+            #         position="top_right"
+            #     )
+            #
+            # if self.mouse_hover_x is not None:
+            #     self.current_combined_image = DaVinci.draw_roi_rectangle(
+            #         image=stacked,
+            #         x=int(self.mouse_hover_x / self.scale),
+            #         y=int(self.mouse_hover_y / self.scale),
+            #         roi=self.roi_size
+            #     )
+            #
+            # cv2.imshow(
+            #     self.window,
+            #     cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
+            # )
+            #
+            # # Input
+            # key = cv2.waitKey(1) & 0xFF
+            # key_str = chr(key)
+            #
+            # if key_str.isdigit() and 0 <= int(key_str) <= 9:
+            #     key_number = int(key_str)
+            #     self.cof.current_state_index = key_number
+            #     self.update_trackbars()
+            #     print(f"Switching to state {key_number}")
+            #
+            # elif key == ord('m'):
+            #     self.move_arm()
+            #
+            # elif key == ord('q'):
+            #     rospy.signal_shutdown('Bye :)')
+            # elif key == ord('o'):
+            #     self.scale -= 0.05
+            # elif key == ord('p'):
+            #     self.scale += 0.05
+            # elif key == ord('k'):
+            #     if self.roi_size > 1:
+            #         self.roi_size -= 2
+            # elif key == ord('l'):
+            #     self.roi_size += 2
 
         return camera_color_callback
 
@@ -361,57 +387,74 @@ class ObjectFinder:
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.arm_feedback)
 
-
     @staticmethod
     def arm_feedback(m):
         print(f'Arm Feedback : {m}')
 
     @staticmethod
-    def resize_and_crop(image, target_size):
-        # Resize the image while maintaining aspect ratio
-        height, width = image.shape[:2]
-        aspect_ratio = width / height
-        target_width, target_height = target_size
+    def resize_and_crop_image(image, width, height):
+        # Get the current size of the image
+        current_height, current_width = image.shape[:2]
+        if current_width == width and current_height == height:
+            return image
 
-        if aspect_ratio > 1:
-            new_width = target_width
-            new_height = int(target_width / aspect_ratio)
+        return image[:height, :width, :]
+
+        # Calculate the aspect ratio of the image
+        aspect_ratio = current_width / current_height
+
+        # Calculate the target aspect ratio
+        target_aspect_ratio = width / height
+
+        if aspect_ratio > target_aspect_ratio:
+            # Resize the image based on width
+            new_width = int(height * aspect_ratio)
+            resized_image = cv2.resize(image, (new_width, height))
+            # Calculate the crop region
+            start = new_width - width
+
+            cropped_image = resized_image[:, :-start]
         else:
-            new_height = target_height
-            new_width = int(target_height * aspect_ratio)
+            # Resize the image based on height
+            new_height = int(width / aspect_ratio)
+            resized_image = cv2.resize(image, (width, new_height))
+            # Calculate the crop region
+            start = new_height - height
 
-        resized_image = cv2.resize(image, (new_width, new_height))
-
-        # Crop the resized image to the target size
-        start_x = (new_width - target_width) // 2
-        start_y = (new_height - target_height) // 2
-        cropped_image = resized_image[start_y:start_y + target_height, start_x:start_x + target_width]
+            cropped_image = resized_image[:-start, :]
 
         return cropped_image
 
-def load_intrinsics(eye_in_hand):
-    camera_matrices = []
-    camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_480p_testing')
-    camera_matrix = np.array(camera_intrinsics['camera_matrix'])
-    distortion = np.array(camera_intrinsics['distortion'])
 
-    camera_matrices.append(camera_matrix)
-    # todo add all the other intrinsics
-
+def load_intrinsics(topics, intrinsic_names):
     print("ArUcoFinder launched with internal parameters:")
-    print(camera_matrix, distortion)
+    camera_matrices = dict()
+    for camera, topic in zip(intrinsic_names, topics):
+        camera_intrinsics = JSONHelper.get_camera_intrinsics(camera)
+        camera_matrix = np.array(camera_intrinsics['camera_matrix'])
+        distortion = np.array(camera_intrinsics['distortion'])
+
+        camera_matrices[topic] = camera_matrix
+        print(camera_matrix, distortion)
     return camera_matrices
 
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
 
-    find_pose = rospy.get_param(param_name='object_detection/find_pose')
-    topics = rospy.get_param(param_name='object_detection/camera_topics')
+    path = os.path.join(rospkg.RosPack().get_path('object_finder'), 'config/')
+    config_file_name = rospy.get_param(param_name='object_detection/config')
+
+    config_file_path = path + config_file_name
+
+    parameters = JSONHelper.read_json(config_file_path)
+    find_pose = parameters['find_pose']
+    topics = parameters['camera_topics']
+    intrinsic_names = parameters['camera_intrinsics']
 
     intrinsics = None
     if find_pose:
-        intrinsics = load_intrinsics(eye_in_hand=True)
+        intrinsics = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
 
     # todo make sure topics ans intrinsics are aligned
     object_finder = ObjectFinder(

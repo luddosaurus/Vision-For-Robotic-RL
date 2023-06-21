@@ -1,11 +1,14 @@
 <launch>
-
-    <arg name="find_pose" default="true"/>
-    <arg name="camera_topics"
-         default='[
-                    "camera",
-                    "camera_top",
-                    "camera_front"]' />
+        <arg name="config" default="default_config"/>
+<!--    <arg name="find_pose" default="true"/>-->
+<!--    <arg name="camera_topics"-->
+<!--         default='["camera",-->
+<!--                    "cam_top",-->
+<!--                    "cam_front"]' />-->
+<!--    <arg name="camera_intrinsics"-->
+<!--     default='["d435_default_480p",-->
+<!--                "cam_top_default",-->
+<!--                "cam_front_default"]' />-->
 
     <node
             pkg="object_finder"
@@ -13,10 +16,12 @@
             name="object_detection"
             output="screen">
 
-
-        <param name="find_pose" value="$(arg find_pose)"/>
-        <param name="camera_topics"
-                       value="$(arg camera_topics)"/>
+            <param name="config" value="$(arg config)"/>
+<!--        <param name="find_pose" value="$(arg find_pose)"/>-->
+<!--        <param name="camera_topics"-->
+<!--                       value="$(arg camera_topics)"/>-->
+<!--        <param name="camera_intrinsics"-->
+<!--               value="$(arg camera_intrinsics)"/>-->
 
     </node>
 
