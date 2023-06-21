@@ -19,6 +19,7 @@ from sensor_msgs.msg import Image
 import tf2_ros
 import actionlib
 from my_robot_msgs.msg import MoveArmAction, MoveArmGoal, MoveArmResult, MoveArmFeedback
+import geometry_msgs.msg as gm
 
 
 class ObjectFinder:
@@ -40,11 +41,11 @@ class ObjectFinder:
         # UI
         self.window = 'ColorDetection'
         self.gui_created = False
-        self.current_images = {}
 
+        self.current_images = {}
         # todo have everything in camera topics?
-        for camera in camera_topics:
-            self.current_images[camera] = None
+        for camera_topic in camera_topics:
+            self.current_images[camera_topic] = None
 
         # Combined Image
         self.current_combined_image = None  # All images attached together
@@ -181,7 +182,6 @@ class ObjectFinder:
 
                     self.segment_coordinates[topic_name]['segment_center_z'] = position[2]
                     self.segment_coordinates[topic_name]['position'] = position
-
                     self.broadcast_point(
                         point=position,
                         parent_name=topic_name
@@ -273,14 +273,7 @@ class ObjectFinder:
                 print(f"Switching to state {key_number}")
 
             elif key == ord('m'):
-                world_to_cube = None
-                # todo change to take an average of all?
-                while world_to_cube is None:
-                    try:
-                        world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
-                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                        print(f"No transform found between 'world' and 'cube'.")
-                self.call_move_arm(world_to_cube)
+                self.move_arm()
 
             elif key == ord('q'):
                 rospy.signal_shutdown('Bye :)')
@@ -296,14 +289,58 @@ class ObjectFinder:
 
         return camera_color_callback
 
-    # ----------------------------------------- Move Arm
     def broadcast_point(self, point, parent_name):
         # todo could child have multiple parents?
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
                                            parent_name=parent_name,
-                                           child_name=f'cube',
+                                           child_name=f'cube_from_{parent_name}',
                                            rotation=[0., 0., 0., 1.],
                                            translation=point)
+
+    def move_arm(self):
+        world_to_cube = None
+        transforms = []
+
+        while world_to_cube is None:
+            try:
+                for camera_topic in self.camera_topics:
+                    world_to_cube = self.tf_buffer.lookup_transform(
+                        'world',
+                        f'cube_from_{camera_topic}',
+                        rospy.Time()
+                    )
+                    transforms.append(world_to_cube)
+
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                print(f"No transform found between 'world' and 'cube'.")
+
+        average_pose = self.compute_average_transform(transforms)
+        self.call_move_arm(average_pose)
+
+    @staticmethod
+    def compute_average_transform(stamped_transforms):
+        translation_sum = np.zeros(3)
+        rotation_sum = np.zeros(4)
+
+        for stamped_transform in stamped_transforms:
+            transform = stamped_transform.transform
+            translation_sum += np.array([transform.translation.x,
+                                         transform.translation.y,
+                                         transform.translation.z])
+
+            rotation_sum += np.array([transform.rotation.x,
+                                      transform.rotation.y,
+                                      transform.rotation.z,
+                                      transform.rotation.w])
+
+        translation_avg = translation_sum / len(stamped_transforms)
+        rotation_avg = rotation_sum / len(stamped_transforms)
+
+        avg_transform = gm.TransformStamped()
+        avg_transform.transform.translation = gm.Vector3(*translation_avg)
+        avg_transform.transform.rotation = gm.Quaternion(*rotation_avg)
+
+        return avg_transform
 
     def call_move_arm(self, pick_pose):
         pick_pose_translation = pick_pose.transform.translation

@@ -3,7 +3,7 @@
     <arg name="find_pose" default="true"/>
     <arg name="camera_topics"
          default='[
-                    "camera_attached",
+                    "camera",
                     "camera_top",
                     "camera_front"]' />
 
