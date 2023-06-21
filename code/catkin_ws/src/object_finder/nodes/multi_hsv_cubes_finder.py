@@ -361,6 +361,7 @@ class ObjectFinder:
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.arm_feedback)
 
+
     @staticmethod
     def arm_feedback(m):
         print(f'Arm Feedback : {m}')

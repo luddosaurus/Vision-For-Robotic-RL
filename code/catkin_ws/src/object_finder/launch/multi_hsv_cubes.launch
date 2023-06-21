@@ -9,7 +9,7 @@
 
     <node
             pkg="object_finder"
-            type="hsv_cubes_finder.py"
+            type="multi_hsv_cubes_finder.py"
             name="object_detection"
             output="screen">
 
