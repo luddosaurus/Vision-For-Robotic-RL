@@ -194,6 +194,7 @@ class ObjectFinder:
             current_image = None
             try:
                 current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
+                current_image = self.resize_and_crop(current_image, (720, 480))
 
             except CvBridgeError as e:
                 print(e)
@@ -220,8 +221,6 @@ class ObjectFinder:
             if segment_center_x is not None:
                 self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
 
-            # todo find size of smallest image and resize
-            #  resize_and_crop(image, target_size):
             image_segmentation_combo = np.vstack((current_image, segmented_image))
             self.current_images[topic_name] = image_segmentation_combo
 
