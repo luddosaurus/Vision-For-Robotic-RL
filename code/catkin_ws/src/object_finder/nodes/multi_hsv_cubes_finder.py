@@ -220,6 +220,8 @@ class ObjectFinder:
             if segment_center_x is not None:
                 self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
 
+            # todo find size of smallest image and resize
+            #  resize_and_crop(image, target_size):
             image_segmentation_combo = np.vstack((current_image, segmented_image))
             self.current_images[topic_name] = image_segmentation_combo
 
@@ -364,6 +366,28 @@ class ObjectFinder:
     def arm_feedback(m):
         print(f'Arm Feedback : {m}')
 
+    @staticmethod
+    def resize_and_crop(image, target_size):
+        # Resize the image while maintaining aspect ratio
+        height, width = image.shape[:2]
+        aspect_ratio = width / height
+        target_width, target_height = target_size
+
+        if aspect_ratio > 1:
+            new_width = target_width
+            new_height = int(target_width / aspect_ratio)
+        else:
+            new_height = target_height
+            new_width = int(target_height * aspect_ratio)
+
+        resized_image = cv2.resize(image, (new_width, new_height))
+
+        # Crop the resized image to the target size
+        start_x = (new_width - target_width) // 2
+        start_y = (new_height - target_height) // 2
+        cropped_image = resized_image[start_y:start_y + target_height, start_x:start_x + target_width]
+
+        return cropped_image
 
 def load_intrinsics(eye_in_hand):
     camera_matrices = []
