@@ -274,6 +274,7 @@ class ObjectFinder:
 
             elif key == ord('m'):
                 world_to_cube = None
+                # todo change to take an average of all?
                 while world_to_cube is None:
                     try:
                         world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
