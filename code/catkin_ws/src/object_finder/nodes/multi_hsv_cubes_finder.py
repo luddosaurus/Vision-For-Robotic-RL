@@ -22,6 +22,7 @@ import tf2_ros
 import actionlib
 from my_robot_msgs.msg import MoveArmAction, MoveArmGoal, MoveArmResult, MoveArmFeedback
 import geometry_msgs.msg as gm
+import message_filters
 
 
 class ObjectFinder:
@@ -61,11 +62,24 @@ class ObjectFinder:
         # Camera COLOR Topics
         self.camera_color_subscribers = {}
         for camera_topic in camera_topics:
-            self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
+            # Todo try this
+            self.camera_color_subscribers[camera_topic] = message_filters.Subscriber(
                 name=f'{camera_topic}/color/image_raw',
                 data_class=Image,
-                callback=self.camera_color_callback(camera_topic)
+                callback_args=camera_topic
             )
+            # self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
+            #     name=f'{camera_topic}/color/image_raw',
+            #     data_class=Image,
+            #     callback_args=camera_topic
+            #     callback=self.camera_color_callback(camera_topic)
+            # )
+
+        # Todo potential solution https://stackoverflow.com/questions/71729615/how-to-subscribe-to-two-image-topics-in-ros-using-python
+        ts = message_filters.ApproximateTimeSynchronizer(
+            self.camera_color_subscribers.values(), queue_size=10, slop=0.5)
+
+        ts.registerCallback(self.camera_color_callback)
 
         # Camera DEPTH Topics
         if pose_estimation:
