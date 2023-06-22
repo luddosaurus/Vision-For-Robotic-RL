@@ -458,8 +458,14 @@ if __name__ == '__main__':
         pose_estimation=find_pose
     )
 
+    # Update Freq
+    rate = rospy.Rate(10)
+
     try:
         rospy.spin()
+        rate.sleep()
+
     except KeyboardInterrupt:
         print('Shutting down.')
+
     cv2.destroyAllWindows()
