@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import DaVinci
+import math
 
 
 class ColorObjectDetector:
@@ -73,6 +74,22 @@ class ColorObjectDetector:
 
         return filled_mask
 
+    def find_box_orientation(self, mask):
+        # # Find contours in the mask
+        # contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # # Filter out small contours
+        # min_contour_area = 100
+        # contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
+
+        # # Fit rotated rectangles to the contours
+        # orientations = []
+        # for contour in contours:
+        #     rect = cv2.minAreaRect(contour)
+        #     angle = rect[2]
+        #     orientations.append(angle)
+
+        return "hej"
 
     def get_hsv_mask(self, image):
         current_state = self.get_state()
@@ -226,6 +243,70 @@ def draw_text_box(
 
         return image
 
+def find_contour_center(contour):
+    # Calculate the moments of the contour
+    M = cv2.moments(contour)
+
+    # Calculate the center of mass
+    center_x = int(M["m10"] / M["m00"])
+    center_y = int(M["m01"] / M["m00"])
+
+    return center_x, center_y
+
+def draw_pose_vectors(image, rotation_matrix, tvec, camera_matrix, dist_coeffs):
+    # Define the 3D object points in the local coordinate system
+    object_points = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+
+    # Project the 3D object points onto the image plane
+    image_points, _ = cv2.projectPoints(object_points, rotation_matrix, tvec, camera_matrix, dist_coeffs)
+
+    # Draw the 3D pose on the image
+    origin = tuple(image_points[0].ravel().astype(int))
+    x_axis = tuple(image_points[1].ravel().astype(int))
+    y_axis = tuple(image_points[2].ravel().astype(int))
+    z_axis = tuple(image_points[3].ravel().astype(int))
+
+    # Draw the coordinate axes
+    cv2.line(image, tuple(map(int, origin)), tuple(map(int, x_axis)), (0, 0, 255), 2)  # Red for X-axis
+    cv2.line(image, tuple(map(int, origin)), tuple(map(int, y_axis)), (0, 255, 0), 2)  # Green for Y-axis
+    cv2.line(image, tuple(map(int, origin)), tuple(map(int, z_axis)), (255, 0, 0), 2)  # Blue for Z-axis
+
+    return image
+
+def draw_rotated_boxes(image, mask):
+    # Find contours of the segments in the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw rotated bounding boxes around the segments
+    for contour in contours:
+
+        # Find the minimum area rectangle enclosing the contour
+        rect = cv2.minAreaRect(contour)
+
+        box = np.intp(cv2.boxPoints(rect))
+
+        rmat, tvec = estimate_3d_pose(box, camera_matrix, distortion_coefficients, None)
+
+        draw_pose_vectors(image, rmat, tvec, camera_matrix, distortion_coefficients)
+        cv2.drawContours(image, [box], 0, (0, 255, 0), 2)
+
+    return image
+
+
+def estimate_3d_pose(box, camera_matrix, dist_coeffs, depth_image):
+    # Define the 2D image points of the box
+    image_points = np.array(box, dtype=np.float32)
+
+    object_points = np.array([cd.pixel_to_3d_coordinate((x,y), 0.53, camera_matrix) for x, y in box])
+    print(object_points)
+    
+    # Estimate the rotation and translation vectors
+    _, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, dist_coeffs)
+    rotation_matrix, _ = cv2.Rodrigues(rvec)
+
+    print(tvec)
+    return rotation_matrix, tvec
+
 
 def update_trackbars():
     current_state = cd.get_state()
@@ -254,19 +335,19 @@ cap = cv2.VideoCapture(0)
 cd = ColorObjectDetector()
 
 start_state = cd.get_state()
-cv2.createTrackbar("Hue", window, start_state[cd.HUE], cd.HUE_MAX, lambda value: cd.update_value(value, cd.HUE))
-cv2.createTrackbar("Saturation", window, start_state[cd.SATURATION], cd.SAT_MAX, lambda value: cd.update_value(value, cd.SATURATION))
-cv2.createTrackbar("Value", window, start_state[cd.VALUE], cd.VAL_MAX, lambda value: cd.update_value(value, cd.VALUE))
-
-cv2.createTrackbar("Hue Margin", window, start_state[cd.HUE_MARGIN], cd.HUE_MAX, lambda value: cd.update_value(value, cd.HUE_MARGIN))
-cv2.createTrackbar("Sat Margin", window, start_state[cd.SATURATION_MARGIN], cd.SAT_MAX, lambda value: cd.update_value(value, cd.SATURATION_MARGIN))
-cv2.createTrackbar("Val Margin", window, start_state[cd.VALUE_MARGIN], cd.VAL_MAX, lambda value: cd.update_value(value, cd.VALUE_MARGIN))
-
-cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda value: cd.update_value(value, cd.NOISE))
-cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
+# cv2.createTrackbar("Hue", window, start_state[cd.HUE], cd.HUE_MAX, lambda value: cd.update_value(value, cd.HUE))
+# cv2.createTrackbar("Saturation", window, start_state[cd.SATURATION], cd.SAT_MAX, lambda value: cd.update_value(value, cd.SATURATION))
+# cv2.createTrackbar("Value", window, start_state[cd.VALUE], cd.VAL_MAX, lambda value: cd.update_value(value, cd.VALUE))
+#
+# cv2.createTrackbar("Hue Margin", window, start_state[cd.HUE_MARGIN], cd.HUE_MAX, lambda value: cd.update_value(value, cd.HUE_MARGIN))
+# cv2.createTrackbar("Sat Margin", window, start_state[cd.SATURATION_MARGIN], cd.SAT_MAX, lambda value: cd.update_value(value, cd.SATURATION_MARGIN))
+# cv2.createTrackbar("Val Margin", window, start_state[cd.VALUE_MARGIN], cd.VAL_MAX, lambda value: cd.update_value(value, cd.VALUE_MARGIN))
+#
+# cv2.createTrackbar("Noise", window, start_state[cd.NOISE], cd.NOISE_MAX, lambda value: cd.update_value(value, cd.NOISE))
+# cv2.createTrackbar("Fill", window, start_state[cd.FILL], cd.FILL_MAX, lambda value: cd.update_value(value, cd.FILL))
 
 image = None
-cv2.setMouseCallback(window, click)
+# cv2.setMouseCallback(window, click)
 
 pose_esitmate = False
 if pose_esitmate:
@@ -285,6 +366,8 @@ while True:
     res = cv2.bitwise_and(image, image, mask=mask_image)
     mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
+    box_image = draw_rotated_boxes(image, mask_image)
+
     # Find center
     x, y = cd.find_mask_center(mask_image)
     pose_info = ""
@@ -298,7 +381,7 @@ while True:
             pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
 
     # Show Image
-    stacked = np.hstack((image, res))
+    stacked = np.hstack((image, res, box_image))
 
     info = "[0-9] states, [m]ove to, [q]uit"
     draw_text_box(
