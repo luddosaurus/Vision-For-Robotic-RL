@@ -1,6 +1,6 @@
 <launch>
     <arg name="find_pose" default="true"/>
-    <arg name="camera_topic" default="/cam_top/color/image_raw"/>
+    <arg name="camera_topic" default="/camera/color/image_raw"/>
     <node
             pkg="object_finder"
             type="hsv_cubes_finder.py"
