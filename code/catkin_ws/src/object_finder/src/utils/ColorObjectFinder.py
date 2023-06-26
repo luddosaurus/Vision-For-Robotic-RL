@@ -159,6 +159,18 @@ class ColorObjectFinder:
             return None, None
 
     @staticmethod
+    def find_segment_coordinates(mask):
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        segment_coordinates = []
+
+        for contour in contours:
+            coordinates = contour[:, 0, :]  # Extract the x, y coordinates of the contour
+            segment_coordinates.append(coordinates)
+
+        return segment_coordinates
+
+    @staticmethod
     def draw_dot(image, x, y, color=(255, 0, 255), radius=20, thickness=3):
         cv2.circle(image, (x, y), radius, color, thickness)
 
