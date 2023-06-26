@@ -72,6 +72,14 @@ class ObjectFinder:
         self.action_client = actionlib.SimpleActionClient('/pick_and_place', MoveArmAction)
         self.action_client.wait_for_server()
 
+        self.world_to_cube_pickup = None
+        self.world_to_cube_place = None
+
+        self.cube_poses = {1: None, 2: None, 3: None, 4: None}
+        self.total_height = 0
+
+        self.depth_image = None
+
     def create_layout(self):
         cv2.namedWindow(self.window)
         # cv2.setWindowProperty(self.window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -142,6 +150,7 @@ class ObjectFinder:
 
         except CvBridgeError as e:
             print(e)
+        self.depth_image = cv2.cvtColor(aligned_input_depth, cv2.COLOR_GRAY2BGR)
 
         # print(aligned_input_depth[a])
         # Find 3D point
@@ -165,6 +174,13 @@ class ObjectFinder:
 
                 # todo convert to world frame
                 # todo publish
+
+    def colorize_depth_image(self):
+        # Normalize the depth values to a range suitable for color mapping
+        normalized_depth = cv2.normalize(self.depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        # Apply a color map to the normalized depth image
+        self.depth_image = cv2.applyColorMap(normalized_depth, cv2.COLORMAP_JET)
 
     def broadcast_point(self):
         # transform = TypeConverter.vectors_to_stamped_transform(translation=[self.x, self.y, self.z],
@@ -199,9 +215,11 @@ class ObjectFinder:
 
         # Find center
         self.center_x, self.center_y = self.cof.find_mask_center(mask_image)
+        self.colorize_depth_image()
         pose_info = ""
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
+            self.cof.draw_dot(self.depth_image, self.center_x, self.center_y)
 
         if self.hovered_x is not None:
             self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
@@ -234,27 +252,59 @@ class ObjectFinder:
 
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
-
+        cv2.imshow('test', self.depth_image)
         # Input
         key = cv2.waitKey(1) & 0xFF
         key_str = chr(key)
 
         if key_str.isdigit() and 0 <= int(key_str) <= 9:
             key_number = int(key_str)
-            self.cof.current_state_index = key_number
-            self.update_trackbars()
-            print(f"Switching to state {key_number}")
+            # self.cof.current_state_index = key_number
+            # self.update_trackbars()
+            # print(f"Switching to state {key_number}")
+
+            self.get_world_cube_transform(key_number)
+
+        # elif key == ord('m'):
+        #     world_to_cube = None
+        #     while world_to_cube is None:
+        #         try:
+        #             world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+        #         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        #             print(f"No transform found between 'world' and 'cube'.")
+        #     self.call_move_arm(world_to_cube)
+
+        elif key == ord('u'):  # Pick up pose
+            self.world_to_cube_pickup = None
+            print('Waiting for transform world to cube...')
+            while self.world_to_cube_pickup is None:
+                try:
+                    self.world_to_cube_pickup = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
+            print(self.world_to_cube_pickup)
+
+        elif key == ord('d'):  # Place pose
+            self.world_to_cube_place = None
+            print('Waiting for transform world to cube...')
+            while self.world_to_cube_place is None:
+                try:
+                    self.world_to_cube_place = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
+            print(self.world_to_cube_place)
 
         elif key == ord('m'):
-            world_to_cube = None
-            while world_to_cube is None:
-                try:
-                    world_to_cube = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    print(f"No transform found between 'world' and 'cube'.")
-            self.call_move_arm(world_to_cube)
+            if self.world_to_cube_pickup is not None:
+                self.call_move_arm(self.world_to_cube_pickup, self.world_to_cube_place)
 
-
+        elif key == ord('s'):
+            print(self.cube_poses)
+            for key in self.cube_poses.keys():
+                if key == 1:
+                    continue
+                self.call_move_arm(self.cube_poses[key], self.cube_poses[1])
+                self.cube_poses[1].transform.translation.z += self.cube_poses[key].transform.translation.z
 
         elif key == ord('q'):
             rospy.signal_shutdown('Bye :)')
@@ -268,21 +318,29 @@ class ObjectFinder:
         elif key == ord('l'):
             self.roi_size += 2
 
-    def call_move_arm(self, pick_pose):
+    def call_move_arm(self, pick_pose, place_pose):
         pick_pose_translation = pick_pose.transform.translation
         pick_translation = [pick_pose_translation.x, pick_pose_translation.y, pick_pose_translation.z]
         random_y = np.random.uniform(-0.3, 0.4)
-        random_x = np.random.uniform(0.2, 0.45)
+        random_x = np.random.uniform(0.3, 0.45)
         place_translation = pick_translation[:1] + [random_y] + pick_translation[2:]
 
         move_arm_goal = MoveArmGoal()
         move_arm_goal.pickup_pose.position.x = pick_translation[0]
         move_arm_goal.pickup_pose.position.y = pick_translation[1]
         move_arm_goal.pickup_pose.position.z = pick_translation[2]
+        if place_pose is None:
+            move_arm_goal.place_pose.position.x = random_x
+            move_arm_goal.place_pose.position.y = random_y
+            move_arm_goal.place_pose.position.z = pick_translation[2]
+        else:
+            place_pose_translation = place_pose.transform.translation
+            place_translation = [place_pose_translation.x, place_pose_translation.y, place_pose_translation.z]
 
-        move_arm_goal.place_pose.position.x = random_x
-        move_arm_goal.place_pose.position.y = random_y
-        move_arm_goal.place_pose.position.z = pick_translation[2]
+            move_arm_goal.place_pose.position.x = place_translation[0]
+            move_arm_goal.place_pose.position.y = place_translation[1]
+            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
+
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
         # status = self.action_client.get_state()
@@ -291,6 +349,18 @@ class ObjectFinder:
 
     def feedback_callback(self, m):
         print(m)
+
+    def get_world_cube_transform(self, key):
+        current_cube_transform = None
+        print('Waiting for transform world to cube...')
+        while current_cube_transform is None:
+            try:
+                current_cube_transform = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                pass
+        print(current_cube_transform)
+        print(key)
+        self.cube_poses[key] = current_cube_transform
 
 
 def load_intrinsics(eye_in_hand):

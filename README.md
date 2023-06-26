@@ -4,7 +4,7 @@
 - Robot arm (Franka Emika Panda)
 - Camera (Realsense d435)
 - ROS Noetic
-- OpenCv v4.6?
+- [OpenCv v4.6](https://docs.opencv.org/4.6.0/)
 - Python v3.something
 - ArUco / ChArUco
 
