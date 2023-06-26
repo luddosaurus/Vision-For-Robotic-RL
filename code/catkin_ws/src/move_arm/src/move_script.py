@@ -45,11 +45,12 @@ class MoveArmActionServer(object):
         #
         # # Move the arm to the specified XYZ coordinates
         #
-        self.grip(self.pickup_point_translation, rotation, joint_state_close)
+        self.grip(self.pickup_point_translation, rotation, joint_state_close, open_before_move=True)
         # rospy.Rate(1).sleep()
         # move_arm_to_coordinate(translation_ready, rotation)
         # rospy.Rate(1).sleep()
         self.grip(self.place_point_translation, rotation, joint_state_open)
+        print('past place')
         # move_arm_to_coordinate(translation_ready, rotation)
 
         self.result.result = True
@@ -72,7 +73,20 @@ class MoveArmActionServer(object):
 
         return pose
 
-    def grip(self, translation, rotation, joint_state):
+    def grip(self, translation, rotation, joint_state, open_before_move=False):
+        if open_before_move:
+            client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
+
+            client.wait_for_server()
+
+            goal = GripperCommandGoal()
+            goal.command.position = 0.03
+            goal.command.max_effort = 10
+
+            client.send_goal(goal, done_cb=self.mini_goal_callback)
+
+            rospy.Rate(1).sleep()
+
         translation_elevated_z = translation[:2] + ([translation[2] + 0.1])
         target_pose = self.create_pose(translation_elevated_z, rotation)
         target_pose_grip = self.create_pose(translation, rotation)
@@ -92,11 +106,11 @@ class MoveArmActionServer(object):
         group = moveit_commander.MoveGroupCommander(group_name)
         ready_state = group.get_current_joint_values()
         # Plan and execute the arm movement to the target pose
-        group.set_pose_target(target_pose)
+        group.set_pose_target(target_pose) # approach pose
         group.go(wait=True)
         group.clear_pose_targets()
 
-        group.set_pose_target(target_pose_grip)
+        group.set_pose_target(target_pose_grip) # grasp pose
         group.go(wait=True)
         group.clear_pose_targets()
 
@@ -120,7 +134,8 @@ class MoveArmActionServer(object):
         group.clear_pose_targets()
         group.stop()
 
-        #
+
+        # DONT USE THIS
         # # Instantiate a GripperCommander object for the gripper
         # gripper = moveit_commander.MoveGroupCommander("panda_hand")
         # gripper.clear_pose_targets()
