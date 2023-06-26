@@ -43,12 +43,12 @@ class ObjectFinder:
         self.window = 'ColorDetection'
         self.gui_created = False
 
-        self.current_images = {}
+        self.display_images = {}
         # todo have everything in camera topics?
         self.display_width = 640
         self.display_height = 480
-        for camera_topic in camera_topics:
-            self.current_images[camera_topic] = np.zeros((self.display_height * 2, self.display_width, 3))
+        # for camera_topic in camera_topics:
+        #     self.current_images[camera_topic] = np.zeros((self.display_height * 2, self.display_width, 3))
 
         # Combined Image
         self.current_combined_image = None  # All images attached together
@@ -57,35 +57,48 @@ class ObjectFinder:
         self.scale = 0.5
         self.roi_size = 9
 
-        self.current_image_dict = {'camera': np.zeros((480, 640, 3)), 'cam_front': np.zeros((480, 640, 3)),
-                                   'cam_top': np.zeros((480, 640, 3))}
+        self.current_image_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
+        self.current_segment_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
+
         # Camera COLOR Topics
-        self.camera_color_subscribers = {}
-        for camera_topic in camera_topics:
-            # Todo try this
-            self.camera_color_subscribers[camera_topic] = message_filters.Subscriber(
-                name=f'{camera_topic}/color/image_raw',
-                data_class=Image,
-                callback_args=camera_topic
-            )
-            # self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
-            #     name=f'{camera_topic}/color/image_raw',
-            #     data_class=Image,
-            #     callback_args=camera_topic
-            #     callback=self.camera_color_callback(camera_topic)
-            # )
+
+        self.hand_subscriber = rospy.Subscriber('camera/color/image_raw', Image, callback=self.callback_hand)
+        self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw', Image, callback=self.callback_front)
+        self.top_subscriber = rospy.Subscriber('cam_top/color/image_raw', Image, callback=self.callback_top)
+
+        # self.camera_color_subscribers = {}
+
+        # for camera_topic in camera_topics:
+        #   Todo try this
+        # callback = self.color_callback(camera_topic)
+        # self.camera_color_subscribers[camera_topic] = message_filters.Subscriber(
+        #     f'{camera_topic}/color/image_raw',
+        #     Image
+        # )
+
+        # self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
+        #    name=f'{camera_topic}/color/image_raw',
+        #    data_class=Image,
+        #   callback=self.camera_color_callback,
+        #    callback_args=camera_topic
+        # )
+        # self.camera_color_subscribers[camera_topic] = rospy.Subscriber(
+        #     name=f'{camera_topic}/color/image_raw',
+        #     data_class=Image,
+        #     callback_args=camera_topic
+        #     callback=self.camera_color_callback(camera_topic)
+        # )
 
         # Todo potential solution https://stackoverflow.com/questions/71729615/how-to-subscribe-to-two-image-topics-in-ros-using-python
-        ts = message_filters.ApproximateTimeSynchronizer(
-            self.camera_color_subscribers.values(), queue_size=10, slop=0.5)
-
-        ts.registerCallback(self.camera_color_callback)
+        # ts = message_filters.ApproximateTimeSynchronizer(
+        #      self.camera_color_subscribers.values(), queue_size=10, slop=0.5)
+        #
+        # ts.registerCallback(self.image_callback)
 
         # Camera DEPTH Topics
         if pose_estimation:
             self.camera_depth_subscribers = {}
             for camera_topic in camera_topics:
-
                 self.camera_depth_subscribers[camera_topic] = rospy.Subscriber(
                     name=f'{camera_topic}/aligned_depth_to_color/image_raw',
                     data_class=Image,
@@ -220,7 +233,163 @@ class ObjectFinder:
     #     cv2.imshow('camera', self.current_image_dict['camera'])
     #     cv2.waitKey(1)
 
-    def camera_color_callback(self, color_image, topic_name):
+    def callback_top(self, image):
+        topic_name = 'cam_top'
+        try:
+
+            current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+                                                       height=self.display_height)
+            self.current_image_dict[topic_name] = current_image
+            self.segment(topic_name=topic_name, current_image=current_image)
+
+        except CvBridgeError as e:
+            print(e)
+
+    def callback_front(self, image):
+        topic_name = 'cam_front'
+        try:
+
+            current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+                                                       height=self.display_height)
+            self.current_image_dict[topic_name] = current_image
+            self.segment(topic_name=topic_name, current_image=current_image)
+
+        except CvBridgeError as e:
+            print(e)
+
+    def segment(self, topic_name, current_image):
+        # Mask
+        mask_image = self.cof.get_hsv_mask(image=current_image)
+
+        segmented_image = cv2.bitwise_and(
+            src1=current_image,
+            src2=current_image,
+            mask=mask_image
+        )
+        # Find center
+        segment_center_x, segment_center_y = self.cof.find_mask_center(mask_image)
+        self.segment_coordinates[topic_name]['segment_center_x'] = segment_center_x
+        self.segment_coordinates[topic_name]['segment_center_y'] = segment_center_y
+
+        # Show Image
+        if segment_center_x is not None:
+            self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
+
+        # Save segment image
+        self.current_segment_dict[topic_name] = segmented_image
+
+    def callback_hand(self, image):
+        topic_name = 'camera'
+        try:
+            current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+                                                       height=self.display_height)
+            self.current_image_dict[topic_name] = current_image
+            self.segment(topic_name=topic_name, current_image=current_image)
+
+        except CvBridgeError as e:
+            print(e)
+
+        if not self.gui_created:
+            self.create_layout()
+            self.gui_created = True
+        display_images = list()
+        for image, segment in zip(self.current_image_dict.values(), self.current_segment_dict.values()):
+            image_segmentation_combo = np.vstack((image, segment))
+            display_images.append(image_segmentation_combo)
+        # for image in self.current_images.values():
+        #     print(image.shape)
+        images = tuple(display_images)
+        stacked = np.hstack(images)
+        self.current_combined_image = stacked
+
+        info = "[0-9] states, [m]ove to, [q]uit"
+        DaVinci.draw_text_box(
+            image=stacked,
+            text=info
+        )
+
+        slot_info = f"Color State [{self.cof.current_state_index}]"
+        DaVinci.draw_text_box(
+            image=stacked,
+            text=slot_info,
+            position="top_left"
+        )
+
+        if self.segment_coordinates[topic_name]['position']:
+            position = self.segment_coordinates[topic_name]['position'] * 100
+            pose_info = f"x{int(position[0])} : y{int(position[1])}, z{int(position[2])}"
+            DaVinci.draw_text_box(
+                image=stacked,
+                text=pose_info,
+                position="top_right"
+            )
+
+        if self.mouse_hover_x is not None:
+            self.current_combined_image = DaVinci.draw_roi_rectangle(
+                image=stacked,
+                x=int(self.mouse_hover_x / self.scale),
+                y=int(self.mouse_hover_y / self.scale),
+                roi=self.roi_size
+            )
+
+        cv2.imshow(
+            self.window,
+            cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
+        )
+
+        # Input
+        key = cv2.waitKey(1) & 0xFF
+        key_str = chr(key)
+
+        if key_str.isdigit() and 0 <= int(key_str) <= 9:
+            key_number = int(key_str)
+            self.cof.current_state_index = key_number
+            self.update_trackbars()
+            print(f"Switching to state {key_number}")
+
+        elif key == ord('m'):
+            self.move_arm()
+
+        elif key == ord('q'):
+            rospy.signal_shutdown('Bye :)')
+        elif key == ord('o'):
+            self.scale -= 0.05
+        elif key == ord('p'):
+            self.scale += 0.05
+        elif key == ord('k'):
+            if self.roi_size > 1:
+                self.roi_size -= 2
+        elif key == ord('l'):
+            self.roi_size += 2
+        # cv2.imshow(self.window, self.current_image_dict['cam_top'])
+        # cv2.waitKey(1)
+
+    # def image_callback(self, *images):
+    #     current_image = None
+    #
+    #     try:
+    #         for i, image in enumerate(images):
+    #             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
+    #             current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+    #                                                        height=self.display_height)
+    #
+    #     except CvBridgeError as e:
+    #         print(e)
+    #
+    #     if not self.gui_created:
+    #         self.create_layout()
+    #         self.gui_created = True
+    #     # self.current_image_dict[topic_name]
+    #     cv2.imshow(self.window, current_image)
+    #     cv2.waitKey(1)
+
+    def camera_color_callback(self, color_image, args):
+
+        topic_name = args
+
         current_image = None
         try:
             current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
@@ -230,12 +399,12 @@ class ObjectFinder:
         except CvBridgeError as e:
             print(e)
         if topic_name == 'cam_front':
-            print(current_image)
+            print('front')
         if not self.gui_created:
             self.create_layout()
             self.gui_created = True
 
-        cv2.imshow(self.window, self.current_image_dict['camera'])
+        cv2.imshow(self.window, self.current_image_dict[topic_name])
         cv2.waitKey(1)
         # # image = self.current_image
         #
@@ -324,6 +493,114 @@ class ObjectFinder:
         #         self.roi_size -= 2
         # elif key == ord('l'):
         #     self.roi_size += 2
+
+    def color_callback(self, topic_name):
+        def camera_color_callback(color_image):
+            current_image = None
+            try:
+                current_image = self.cv_bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
+                current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+                                                           height=self.display_height)
+                self.current_image_dict[topic_name] = current_image
+            except CvBridgeError as e:
+                print(e)
+            if topic_name == 'cam_front':
+                print(current_image)
+            if not self.gui_created:
+                self.create_layout()
+                self.gui_created = True
+
+            cv2.imshow(self.window, self.current_image_dict['camera'])
+            cv2.waitKey(1)
+            # # image = self.current_image
+            #
+            # # Mask
+            # mask_image = self.cof.get_hsv_mask(image=current_image)
+            #
+            # segmented_image = cv2.bitwise_and(
+            #     src1=current_image,
+            #     src2=current_image,
+            #     mask=mask_image
+            # )
+            # # print(f'mask_image: {current_image.shape}\n')
+            # # Find center
+            # segment_center_x, segment_center_y = self.cof.find_mask_center(mask_image)
+            # self.segment_coordinates[topic_name]['segment_center_x'] = segment_center_x
+            # self.segment_coordinates[topic_name]['segment_center_y'] = segment_center_y
+            #
+            # # Show Image
+            # if segment_center_x is not None:
+            #     self.cof.draw_dot(segmented_image, segment_center_x, segment_center_y)
+            #
+            # image_segmentation_combo = np.vstack((current_image, segmented_image))
+            # self.current_images[topic_name] = image_segmentation_combo
+            # # for image in self.current_images.values():
+            # #     print(image.shape)
+            # images = tuple(self.current_images.values())
+            # stacked = np.hstack(images)
+            # self.current_combined_image = stacked
+            #
+            # info = "[0-9] states, [m]ove to, [q]uit"
+            # DaVinci.draw_text_box(
+            #     image=stacked,
+            #     text=info
+            # )
+            #
+            # slot_info = f"Color State [{self.cof.current_state_index}]"
+            # DaVinci.draw_text_box(
+            #     image=stacked,
+            #     text=slot_info,
+            #     position="top_left"
+            # )
+            #
+            # if self.segment_coordinates[topic_name]['position']:
+            #     position = self.segment_coordinates[topic_name]['position'] * 100
+            #     pose_info = f"x{int(position[0])} : y{int(position[1])}, z{int(position[2])}"
+            #     DaVinci.draw_text_box(
+            #         image=stacked,
+            #         text=pose_info,
+            #         position="top_right"
+            #     )
+            #
+            # if self.mouse_hover_x is not None:
+            #     self.current_combined_image = DaVinci.draw_roi_rectangle(
+            #         image=stacked,
+            #         x=int(self.mouse_hover_x / self.scale),
+            #         y=int(self.mouse_hover_y / self.scale),
+            #         roi=self.roi_size
+            #     )
+            #
+            # cv2.imshow(
+            #     self.window,
+            #     cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
+            # )
+            #
+            # # Input
+            # key = cv2.waitKey(1) & 0xFF
+            # key_str = chr(key)
+            #
+            # if key_str.isdigit() and 0 <= int(key_str) <= 9:
+            #     key_number = int(key_str)
+            #     self.cof.current_state_index = key_number
+            #     self.update_trackbars()
+            #     print(f"Switching to state {key_number}")
+            #
+            # elif key == ord('m'):
+            #     self.move_arm()
+            #
+            # elif key == ord('q'):
+            #     rospy.signal_shutdown('Bye :)')
+            # elif key == ord('o'):
+            #     self.scale -= 0.05
+            # elif key == ord('p'):
+            #     self.scale += 0.05
+            # elif key == ord('k'):
+            #     if self.roi_size > 1:
+            #         self.roi_size -= 2
+            # elif key == ord('l'):
+            #     self.roi_size += 2
+
+        return camera_color_callback
 
     def broadcast_point(self, point, parent_name):
         # todo could child have multiple parents?
