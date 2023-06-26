@@ -178,7 +178,9 @@ class ObjectFinder:
             self.cof.set_image_coordinate_color(
                 image=self.current_combined_image,
                 x=x, y=y,
-                roi_size=self.roi_size)
+                roi_size=self.roi_size,
+                scale=self.scale
+            )
 
             self.update_trackbars()
 
