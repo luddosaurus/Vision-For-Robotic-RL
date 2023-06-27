@@ -38,7 +38,7 @@ class MoveArmActionServer(object):
         # translation_goal = [0.3, 0.2, 0.005]
         # # joint_state_close = [0.01, 0.01]
         # # joint_state_open = [0.03, 0.03]
-        joint_state_close = 0.01
+        joint_state_close = 0.005
         joint_state_open = 0.03
         #
         # # - Translation: [0.268, 0.252, 0.247]
@@ -120,7 +120,7 @@ class MoveArmActionServer(object):
 
         goal = GripperCommandGoal()
         goal.command.position = joint_state
-        goal.command.max_effort = 10
+        goal.command.max_effort = 50
 
         client.send_goal(goal, done_cb=self.mini_goal_callback)
 
