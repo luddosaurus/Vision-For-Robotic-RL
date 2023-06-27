@@ -235,6 +235,7 @@ class ObjectFinder:
 
         # Draw Centers
         for coordinate in segment_coordinates:
+
             x, y = coordinate
             self.segment_coordinates[topic_name]['segment_centers_x'].append(x)
             self.segment_coordinates[topic_name]['segment_centers_y'].append(y)

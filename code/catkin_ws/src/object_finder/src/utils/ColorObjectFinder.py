@@ -160,13 +160,13 @@ class ColorObjectFinder:
 
     @staticmethod
     def find_segment_coordinates(mask):
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        components, outputs, stats, centroids = cv2.connectedComponentsWithStats(mask)
 
         segment_coordinates = []
-
-        for contour in contours:
-            coordinates = contour[:, 0, :]  # Extract the x, y coordinates of the contour
-            segment_coordinates.append(coordinates)
+        centroids = centroids[1:] # remove
+        for center in centroids:
+            # coordinates = center[:, 0, :]  # Extract the x, y coordinates of the contour
+            segment_coordinates.append([int(center_val) for center_val in center])
 
         return segment_coordinates
 
