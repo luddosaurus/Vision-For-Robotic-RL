@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from scipy import stats
 
 class ColorObjectFinder:
     # HSV = Hue, Saturation, Value
@@ -82,7 +82,7 @@ class ColorObjectFinder:
 
         else:
             current_states = color_list
-            print(current_states)
+
 
         final_mask = np.zeros((image.shape[0], image.shape[1]), dtype='uint8')
 
@@ -253,13 +253,43 @@ class ColorObjectFinder:
         x_upper = min(image.shape[1], x + roi_size)
         roi = image[y_lower: y_upper, x_lower: x_upper]
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        hsv_lower = np.min(hsv_roi, axis=(0, 1))
-        hsv_upper = np.max(hsv_roi, axis=(0, 1))
+        hsv_clean = ColorObjectFinder.remove_outliers(hsv_roi)
+        # hsv_lower = np.min(hsv_roi, axis=(0, 1))
+        # hsv_upper = np.max(hsv_roi, axis=(0, 1))
+        #
+        # hue_diff = (hsv_upper[0] - hsv_lower[0]) / 2
+        # sat_diff = (hsv_upper[1] - hsv_lower[1]) / 2
+        # val_diff = (hsv_upper[2] - hsv_lower[2]) / 2
+        return hsv_clean
 
-        hue_diff = (hsv_upper[0] - hsv_lower[0]) / 2
-        sat_diff = (hsv_upper[1] - hsv_lower[1]) / 2
-        val_diff = (hsv_upper[2] - hsv_lower[2]) / 2
-        return hue, saturation, value, int(hue_diff), int(sat_diff), int(val_diff)
+    @staticmethod
+    def remove_outliers(image):
+        # Convert image to HSV color space
+        # hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+        # Split image into separate channels
+        hue, saturation, value = cv2.split(image)
+
+        # Remove outliers using z-score
+        z_scores = stats.zscore(hue.flatten())
+        hue = hue.flatten()[np.abs(z_scores) < 1]
+
+        z_scores = stats.zscore(saturation.flatten())
+        saturation = saturation.flatten()[np.abs(z_scores) < 1]
+        print(z_scores)
+        z_scores = stats.zscore(value.flatten())
+        value = value.flatten()[np.abs(z_scores) < 1]
+        # print(hue, saturation, value)
+        diff_hue = max(hue) - min(hue)
+        diff_saturation = max(saturation) - min(saturation)
+        diff_value = max(value) - min(value)
+
+        # Calculate average hue, saturation, and value
+        avg_hue = int(np.mean(hue))
+        avg_saturation = int(np.mean(saturation))
+        avg_value = int(np.mean(value))
+
+        return avg_hue, avg_saturation, avg_value, diff_hue, diff_saturation, diff_value
 
     def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
 
