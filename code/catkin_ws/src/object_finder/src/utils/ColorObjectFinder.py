@@ -24,7 +24,7 @@ class ColorObjectFinder:
     NOISE = 6
     FILL = 7
 
-    # hue, sat, val , margin, noise, fill
+    # hue, sat, val , margin x 3, noise, fill
     saved_states = [
         [103, 224, 229, 40, 40, 40, 5, 10],
         [4, 165, 203, 13, 35, 54, 5, 4],  # orange
@@ -58,93 +58,105 @@ class ColorObjectFinder:
             self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = sat
             self.saved_states[self.current_state_index][self.VALUE_MARGIN] = val
 
-    def remove_noise(self, mask):
+    def remove_noise(self, mask, kernel_size):
         iterations = 3
-        kernel_size = self.saved_states[self.current_state_index][self.NOISE]
+        # kernel_size = self.saved_states[self.current_state_index][self.NOISE]
 
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
         cleaned_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
 
         return cleaned_mask
 
-    def fill_holes(self, mask):
+    def fill_holes(self, mask, kernel_size):
         iterations = 3
-        kernel_size = self.saved_states[self.current_state_index][self.FILL]
+        # kernel_size = self.saved_states[self.current_state_index][self.FILL]
 
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
         filled_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
 
         return filled_mask
 
-    def get_hsv_mask(self, image):
-        current_state = self.get_state()
-        hue_range_l1 = current_state[self.HUE] - current_state[self.HUE_MARGIN]
+    def get_hsv_mask(self, image, color_list=None):
+        if color_list is None or len(color_list) == 0:
+            current_states = [self.get_state()]
 
-        sat_range_l1 = current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN]
+        else:
+            current_states = color_list
+            print(current_states)
 
-        val_range_l1 = current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
+        final_mask = np.zeros((image.shape[0], image.shape[1]), dtype='uint8')
 
-        lower_range_1 = np.array((
-            hue_range_l1,
-            sat_range_l1,
-            val_range_l1
-        ))
+        for current_state in current_states:
+            # print(current_state)
+            hue_range_l1 = current_state[self.HUE] - current_state[self.HUE_MARGIN]
 
-        hue_range_u1 = current_state[self.HUE] + current_state[self.HUE_MARGIN]
+            sat_range_l1 = current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN]
 
-        sat_range_u1 = current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN]
+            val_range_l1 = current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
 
-        val_range_u1 = current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
+            lower_range_1 = np.array((
+                hue_range_l1,
+                sat_range_l1,
+                val_range_l1
+            ))
 
-        upper_range_1 = np.array((
-            hue_range_u1,
-            sat_range_u1,
-            val_range_u1
-        ))
+            hue_range_u1 = current_state[self.HUE] + current_state[self.HUE_MARGIN]
 
-        lower_range_2 = lower_range_1.copy()
-        lower_range_2_compare = upper_range_1.copy()
+            sat_range_u1 = current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN]
 
-        if hue_range_l1 < 0:
-            lower_range_2[0] = self.HUE_MAX + hue_range_l1
-            lower_range_2_compare[0] = self.HUE_MAX
-        # if sat_range_l1 < 0:
-        #     lower_range_2[1] = self.SAT_MAX + sat_range_l1
-        #     lower_range_2_compare[1] = self.SAT_MAX
-        # if val_range_l1 < 0:
-        #     lower_range_2[2] = self.VAL_MAX + val_range_l1
-        #     lower_range_2_compare[2] = self.VAL_MAX
+            val_range_u1 = current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
 
-        upper_range_2 = upper_range_1.copy()
-        upper_range_2_compare = lower_range_1.copy()
+            upper_range_1 = np.array((
+                hue_range_u1,
+                sat_range_u1,
+                val_range_u1
+            ))
 
-        if hue_range_u1 > self.HUE_MAX:
-            upper_range_2[0] = hue_range_u1 - self.HUE_MAX
-            upper_range_2_compare[0] = 0
-        # if sat_range_u1 > self.SAT_MAX:
-        #     upper_range_2[1] = sat_range_u1 - self.SAT_MAX
-        #     upper_range_2_compare[1] = 0
-        # if val_range_u1 > self.VAL_MAX:
-        #     upper_range_2[2] = val_range_u1 - self.VAL_MAX
-        #     upper_range_2_compare[2] = 0
+            lower_range_2 = lower_range_1.copy()
+            lower_range_2_compare = upper_range_1.copy()
 
-        # Convert the image to HSV color space
-        hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            if hue_range_l1 < 0:
+                lower_range_2[0] = self.HUE_MAX + hue_range_l1
+                lower_range_2_compare[0] = self.HUE_MAX
+            # if sat_range_l1 < 0:
+            #     lower_range_2[1] = self.SAT_MAX + sat_range_l1
+            #     lower_range_2_compare[1] = self.SAT_MAX
+            # if val_range_l1 < 0:
+            #     lower_range_2[2] = self.VAL_MAX + val_range_l1
+            #     lower_range_2_compare[2] = self.VAL_MAX
 
-        mask = cv2.inRange(hsv_image, lower_range_1, upper_range_1)
-        lower_wrap_mask = cv2.inRange(hsv_image, lower_range_2, lower_range_2_compare)
-        upper_wrap_mask = cv2.inRange(hsv_image, upper_range_2_compare, upper_range_2)
+            upper_range_2 = upper_range_1.copy()
+            upper_range_2_compare = lower_range_1.copy()
 
-        mask = cv2.bitwise_or(mask, lower_wrap_mask)
-        mask = cv2.bitwise_or(mask, upper_wrap_mask)
+            if hue_range_u1 > self.HUE_MAX:
+                upper_range_2[0] = hue_range_u1 - self.HUE_MAX
+                upper_range_2_compare[0] = 0
+            # if sat_range_u1 > self.SAT_MAX:
+            #     upper_range_2[1] = sat_range_u1 - self.SAT_MAX
+            #     upper_range_2_compare[1] = 0
+            # if val_range_u1 > self.VAL_MAX:
+            #     upper_range_2[2] = val_range_u1 - self.VAL_MAX
+            #     upper_range_2_compare[2] = 0
 
-        if current_state[self.FILL] != 0:
-            mask = self.fill_holes(mask)
+            # Convert the image to HSV color space
+            hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        if current_state[self.NOISE] != 0:
-            mask = self.remove_noise(mask)
+            mask = cv2.inRange(hsv_image, lower_range_1, upper_range_1)
+            lower_wrap_mask = cv2.inRange(hsv_image, lower_range_2, lower_range_2_compare)
+            upper_wrap_mask = cv2.inRange(hsv_image, upper_range_2_compare, upper_range_2)
 
-        return mask
+            mask = cv2.bitwise_or(mask, lower_wrap_mask)
+            mask = cv2.bitwise_or(mask, upper_wrap_mask)
+
+            if current_state[self.FILL] > 0:
+                mask = self.fill_holes(mask, current_state[self.FILL])
+
+            if current_state[self.NOISE] > 0:
+                mask = self.remove_noise(mask, current_state[self.NOISE])
+
+            final_mask = cv2.bitwise_or(mask, final_mask)
+
+        return final_mask
 
     @staticmethod
     def find_mask_center(mask):
@@ -163,7 +175,7 @@ class ColorObjectFinder:
         components, outputs, stats, centroids = cv2.connectedComponentsWithStats(mask)
 
         segment_coordinates = []
-        centroids = centroids[1:] # remove
+        centroids = centroids[1:]  # remove
         for center in centroids:
             # coordinates = center[:, 0, :]  # Extract the x, y coordinates of the contour
             segment_coordinates.append([int(center_val) for center_val in center])
@@ -195,35 +207,71 @@ class ColorObjectFinder:
     def get_state(self):
         return self.saved_states[self.current_state_index]
 
-    def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
+    # def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
+    #     x = int(x / scale)
+    #     y = int(y / scale)
+    #     print(image.shape)
+    #     b, g, r = image[y, x]
+    #     print(b, g, r)
+    #     hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
+    #     h, s, v = hsv[0][0]
+    #     y_lower = max(y - roi_size, 0)
+    #     y_upper = min(image.shape[0], y + roi_size)
+    #     x_lower = max(x - roi_size, 0)
+    #     x_upper = min(image.shape[1], x + roi_size)
+    #     roi = image[y_lower: y_upper, x_lower: x_upper]
+    #     # mean_color = np.mean(roi, axis=0)
+    #     # print(mean_color)
+    #     hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    #     hsv_lower = np.min(hsv_roi, axis=(0, 1))
+    #     hsv_upper = np.max(hsv_roi, axis=(0, 1))
+    #     hue_diff_factor = 1
+    #     sat_diff_factor = 1
+    #     val_diff_factor = 1
+    #     hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
+    #     sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
+    #     val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor
+    #
+    #     self.update_value(h, self.HUE)
+    #     self.update_value(s, self.SATURATION)
+    #     self.update_value(v, self.VALUE)
+    #     self.update_value(min(hue_diff, self.HUE_MARGIN_MAX_CLICK), self.HUE_MARGIN)
+    #     self.update_value(min(sat_diff, self.SAT_MARGIN_MAX_CLICK), self.SATURATION_MARGIN)
+    #     self.update_value(min(val_diff, self.VAL_MARGIN_MAX_CLICK), self.VALUE_MARGIN)
+    #     print(f"h{h}, s{s}, v{v}")
+
+    @staticmethod
+    def get_image_coordinate_color(image, x, y, roi_size, scale=1):
         x = int(x / scale)
         y = int(y / scale)
-        print(image.shape)
         b, g, r = image[y, x]
-        print(b, g, r)
         hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
-        h, s, v = hsv[0][0]
+        hue, saturation, value = hsv[0][0]
         y_lower = max(y - roi_size, 0)
         y_upper = min(image.shape[0], y + roi_size)
         x_lower = max(x - roi_size, 0)
         x_upper = min(image.shape[1], x + roi_size)
         roi = image[y_lower: y_upper, x_lower: x_upper]
-        # mean_color = np.mean(roi, axis=0)
-        # print(mean_color)
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         hsv_lower = np.min(hsv_roi, axis=(0, 1))
         hsv_upper = np.max(hsv_roi, axis=(0, 1))
-        hue_diff_factor = 1
-        sat_diff_factor = 1
-        val_diff_factor = 1
-        hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
-        sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
-        val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor
 
-        self.update_value(h, self.HUE)
-        self.update_value(s, self.SATURATION)
-        self.update_value(v, self.VALUE)
+        hue_diff = (hsv_upper[0] - hsv_lower[0]) / 2
+        sat_diff = (hsv_upper[1] - hsv_lower[1]) / 2
+        val_diff = (hsv_upper[2] - hsv_lower[2]) / 2
+        return hue, saturation, value, int(hue_diff), int(sat_diff), int(val_diff)
+
+    def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
+
+        hue, saturation, value, hue_diff, sat_diff, val_diff = self.get_image_coordinate_color(
+            image, x, y, roi_size, scale)
+
+        self.update_value(hue, self.HUE)
+        self.update_value(saturation, self.SATURATION)
+        self.update_value(value, self.VALUE)
         self.update_value(min(hue_diff, self.HUE_MARGIN_MAX_CLICK), self.HUE_MARGIN)
         self.update_value(min(sat_diff, self.SAT_MARGIN_MAX_CLICK), self.SATURATION_MARGIN)
         self.update_value(min(val_diff, self.VAL_MARGIN_MAX_CLICK), self.VALUE_MARGIN)
-        print(f"h{h}, s{s}, v{v}")
+
+    def get_current_state(self):
+        return self.saved_states[self.current_state_index]

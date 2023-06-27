@@ -33,6 +33,7 @@ class ObjectFinder:
             camera_topics,
             camera_matrices=None
     ):
+
         self.camera_topics = camera_topics
         self.intrinsic_matrices = camera_matrices
 
@@ -58,6 +59,8 @@ class ObjectFinder:
         self.current_image_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
         self.current_segment_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
 
+        self.background_colors = []
+        self.saved_block_colors = []
         # Camera COLOR Topics
 
         self.hand_subscriber = rospy.Subscriber('camera/color/image_raw', Image, callback=self.callback_hand)
@@ -217,13 +220,28 @@ class ObjectFinder:
             print(e)
 
     def segment(self, topic_name, current_image):
+        # Remove
         # Mask
-        mask_image = self.cof.get_hsv_mask(image=current_image)
+        inv_mask = None
+        if len(self.background_colors) != 0:
+            background_mask_image = self.cof.get_hsv_mask(image=current_image, color_list=self.background_colors)
+            inv_mask = cv2.bitwise_not(background_mask_image)
+        # image_without_bg = cv2.bitwise_and(
+        #     src1=current_image,
+        #     src2=current_image,
+        #     mask=inv_mask
+        # )
 
+        current_color_mask_image = self.cof.get_hsv_mask(
+            image=current_image,
+            color_list=self.saved_block_colors + [self.cof.get_current_state()])
+
+        if inv_mask is not None:
+            current_color_mask_image = cv2.bitwise_and(inv_mask, current_color_mask_image)
         segmented_image = cv2.bitwise_and(
             src1=current_image,
             src2=current_image,
-            mask=mask_image
+            mask=current_color_mask_image
         )
 
         # Find center
@@ -231,11 +249,10 @@ class ObjectFinder:
         self.segment_coordinates[topic_name]['segment_centers_x'] = list()
         self.segment_coordinates[topic_name]['segment_centers_y'] = list()
 
-        segment_coordinates = self.cof.find_segment_coordinates(mask_image)
+        segment_coordinates = self.cof.find_segment_coordinates(current_color_mask_image)
 
         # Draw Centers
         for coordinate in segment_coordinates:
-
             x, y = coordinate
             self.segment_coordinates[topic_name]['segment_centers_x'].append(x)
             self.segment_coordinates[topic_name]['segment_centers_y'].append(y)
@@ -321,6 +338,16 @@ class ObjectFinder:
                 self.roi_size -= 2
         elif key == ord('l'):
             self.roi_size += 2
+        elif key == ord('r'):
+            state = self.cof.get_current_state().copy()
+            state[-2:] = [0, 0]  # set fill and noise to 0
+            self.background_colors.append(state)
+        elif key == ord('c'):
+            self.background_colors = []
+            self.saved_block_colors = []
+        elif key == ord('a'):
+            state = self.cof.get_current_state().copy()
+            self.saved_block_colors.append(state)
 
     def broadcast_point(self, point, parent_name):
         # todo could child have multiple parents?
