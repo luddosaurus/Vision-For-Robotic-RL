@@ -11,7 +11,7 @@ class DaVinci:
         y1 = y - int(roi_minus_one / 2)
         x2 = x + int(roi_minus_one / 2)
         y2 = y + int(roi_minus_one / 2)
-        color = (0, 255, 255)
+        color = (0, 255, 0)
 
         cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=1)
         # cv2.circle(image, (x, y), 20, color, thickness=3)
