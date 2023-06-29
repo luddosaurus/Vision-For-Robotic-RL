@@ -54,7 +54,7 @@ class TFPublish:
         transform_stamped_msg.transform.rotation.w = rotation[3]
 
         tfm = tf2_msgs.msg.TFMessage([transform_stamped_msg])
-        print(tfm)
+
         publisher.sendTransform(transform_stamped_msg)
 
     @staticmethod

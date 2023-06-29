@@ -49,7 +49,7 @@ class ObjectFinder:
             Image, self.camera_color_callback)
         if self.pose_estimate:
             print('estimating pose')
-            self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
+            self.aligned_depth_subscriber = rospy.Subscriber('/cam_top/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -191,7 +191,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='eye_in_hand',
+                                           parent_name='cam_top',
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)
@@ -364,7 +364,7 @@ class ObjectFinder:
 
 
 def load_intrinsics(eye_in_hand):
-    camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_480p_testing')
+    camera_intrinsics = JSONHelper.get_camera_intrinsics('cam_top_default')
     camera_matrix = np.array(camera_intrinsics['camera_matrix'])
     distortion = np.array(camera_intrinsics['distortion'])
 

@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
+import pandas as pd
 from scipy import stats
+
 
 class ColorObjectFinder:
     # HSV = Hue, Saturation, Value
@@ -82,7 +84,6 @@ class ColorObjectFinder:
 
         else:
             current_states = color_list
-
 
         final_mask = np.zeros((image.shape[0], image.shape[1]), dtype='uint8')
 
@@ -269,27 +270,82 @@ class ColorObjectFinder:
 
         # Split image into separate channels
         hue, saturation, value = cv2.split(image)
+        data = {'hue': hue.flatten(), 'saturation': saturation.flatten(), 'value': value.flatten()}
+        df = pd.DataFrame(data)
+        q1 = df.quantile(0.25)
+        q3 = df.quantile(0.75)
+        iqr = q3 - q1
 
-        # Remove outliers using z-score
-        z_scores = stats.zscore(hue.flatten())
-        hue = hue.flatten()[np.abs(z_scores) < 1]
-
-        z_scores = stats.zscore(saturation.flatten())
-        saturation = saturation.flatten()[np.abs(z_scores) < 1]
-        print(z_scores)
-        z_scores = stats.zscore(value.flatten())
-        value = value.flatten()[np.abs(z_scores) < 1]
+        # Do twice! Right shift lower values once
+        # remove pixels with outliers
+        true_list = ~((df < (q1 - 1.5 * iqr)) | (df > (q3 + 1.5 * iqr)))
+        subset = df[true_list]
+        subset = subset.dropna()
+        means = subset.mean()
+        max_values = subset.max()
+        min_values = subset.min()
+        medians = subset.median()
+        print(f'mean values:\n{means}\nmax values:\n{max_values}\nmin values:\n{min_values}\nmedian:\n{medians}')
+        # # Remove outliers using z-score
+        # z_scores = stats.zscore(hue.flatten())
+        # hue = hue.flatten()[np.abs(z_scores) < 1]
+        #
+        # z_scores = stats.zscore(saturation.flatten())
+        # saturation = saturation.flatten()[np.abs(z_scores) < 1]
+        # # print(z_scores)
+        # z_scores = stats.zscore(value.flatten())
+        # value = value.flatten()[np.abs(z_scores) < 1]
         # print(hue, saturation, value)
-        diff_hue = max(hue) - min(hue)
-        diff_saturation = max(saturation) - min(saturation)
-        diff_value = max(value) - min(value)
+        diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
+        diff_saturation = ColorObjectFinder.calculate_distance(min_values['saturation'], max_values['saturation'])
+        diff_value = max_values['value'] - min_values['value']
+
+        # if max['hue'] - min['hue'] > abs(min['hue'] - (179 - max['hue'])):
+        #     total_sum = 0
+        #     count = 0
+        #     for hue_value in subset['hue']:
+        #         if (179 - hue_value) < hue_value:
+        #
+        #             total_sum += 0 - (179 - hue_value)
+        #         else:
+        #
+        #             total_sum += hue_value
+        #         count += 1
+        #     print('total_sum: ', total_sum/count)
+
+        mean_hue = ColorObjectFinder.average(subset['hue'])
+        print(mean_hue)
 
         # Calculate average hue, saturation, and value
-        avg_hue = int(np.mean(hue))
-        avg_saturation = int(np.mean(saturation))
-        avg_value = int(np.mean(value))
+        # avg_hue = int(np.mean(hue))
+        # avg_saturation = int(np.mean(saturation))
+        # avg_value = int(np.mean(value))
 
-        return avg_hue, avg_saturation, avg_value, diff_hue, diff_saturation, diff_value
+        return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
+            diff_saturation), int(diff_value)
+
+
+    @staticmethod
+    def calculate_distance(value1, value2):
+        span = 179
+        distance = abs(value2 - value1)
+
+        if distance > span / 2:
+            distance = span - distance
+
+        return distance
+
+    @staticmethod
+    def average(values):
+        mi = min(values)
+        ma = max(values)
+        span = 179
+        if ma - mi > span / 2:
+            print('here')
+            return (((mi + span) + ma) / 2.) % span
+        else:
+            print(mi, ma)
+            return (mi + ma) / 2.
 
     def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
 

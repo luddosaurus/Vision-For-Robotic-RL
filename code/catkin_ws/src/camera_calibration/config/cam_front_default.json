@@ -1,0 +1,9 @@
+{
+  "board_name": "small",
+  "camera_name": "cam_front_default",
+  "mode": "eye_to_hand",
+  "camera_topic": "/cam_front/color/image_raw",
+  "memory_size": 50,
+  "load_data_directory": null,
+  "save_data_directory": "cam_front"
+}
