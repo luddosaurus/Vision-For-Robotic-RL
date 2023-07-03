@@ -172,7 +172,10 @@ class ObjectFinder:
         self.segment_coordinates[topic_name]['segment_centers_z'].clear()
         self.segment_coordinates[topic_name]['positions'].clear()
 
-        for segment_center_x, segment_center_y in zip(segment_centers_x, segment_centers_y):
+        # for segment_center_x, segment_center_y in zip(segment_centers_x, segment_centers_y):
+        for idx, (segment_center_x, segment_center_y) in enumerate(
+                zip(segment_centers_x, segment_centers_y)):
+
             if segment_center_x is not None and aligned_input_depth is not None:
                 depth_array = np.array(aligned_input_depth, dtype=np.float32)
 
@@ -189,6 +192,7 @@ class ObjectFinder:
                     self.segment_coordinates[topic_name]['positions'].append(position)
                     self.broadcast_point(
                         point=position,
+                        child_name=f'cube[{idx}]_from_{topic_name}',
                         parent_name=topic_name
                     )
 
@@ -346,11 +350,10 @@ class ObjectFinder:
             state = self.cof.get_current_state().copy()
             self.saved_block_colors.append(state)
 
-    def broadcast_point(self, point, parent_name):
-        # todo could child have multiple parents?
+    def broadcast_point(self, point, child_name, parent_name):
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
                                            parent_name=parent_name,
-                                           child_name=f'cube_from_{parent_name}',
+                                           child_name=child_name,
                                            rotation=[0., 0., 0., 1.],
                                            translation=point)
 
