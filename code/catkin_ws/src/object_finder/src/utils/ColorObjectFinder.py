@@ -4,28 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
 
+from Const import Const
+
 
 class ColorObjectFinder:
-    # HSV = Hue, Saturation, Value
-    HUE_MAX = 179
-    SAT_MAX = 255
-    VAL_MAX = 255
-    NOISE_MAX = 15
-    FILL_MAX = 15
-
-    HUE = 0
-    SATURATION = 1
-    VALUE = 2
-    HUE_MARGIN = 3
-    SATURATION_MARGIN = 4
-    VALUE_MARGIN = 5
-
-    HUE_MARGIN_MAX_CLICK = 40
-    SAT_MARGIN_MAX_CLICK = 40
-    VAL_MARGIN_MAX_CLICK = 40
-
-    NOISE = 6
-    FILL = 7
 
     # hue, sat, val , margin x 3, noise, fill
     saved_states = [
@@ -47,19 +29,19 @@ class ColorObjectFinder:
 
     # Hue (degrees), Sat (percentage), Val (percentage)
     def set_color(self, hue, sat, val):
-        self.saved_states[self.current_state_index][self.HUE] = self.HUE_MAX * (hue / 360)
-        self.saved_states[self.current_state_index][self.SATURATION] = self.SAT_MAX * sat
-        self.saved_states[self.current_state_index][self.VALUE] = self.VAL_MAX * val
+        self.saved_states[self.current_state_index][Const.HUE] = Const.HUE_MAX * (hue / 360)
+        self.saved_states[self.current_state_index][Const.SATURATION] = Const.SAT_MAX * sat
+        self.saved_states[self.current_state_index][Const.VALUE] = Const.VAL_MAX * val
 
     def set_margin(self, hue=0, sat=0, val=0, all_sliders=0):
         if all_sliders != 0:
-            self.saved_states[self.current_state_index][self.HUE_MARGIN] = all_sliders
-            self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = all_sliders
-            self.saved_states[self.current_state_index][self.VALUE_MARGIN] = all_sliders
+            self.saved_states[self.current_state_index][Const.HUE_MARGIN] = all_sliders
+            self.saved_states[self.current_state_index][Const.SATURATION_MARGIN] = all_sliders
+            self.saved_states[self.current_state_index][Const.VALUE_MARGIN] = all_sliders
         else:
-            self.saved_states[self.current_state_index][self.HUE_MARGIN] = hue
-            self.saved_states[self.current_state_index][self.SATURATION_MARGIN] = sat
-            self.saved_states[self.current_state_index][self.VALUE_MARGIN] = val
+            self.saved_states[self.current_state_index][Const.HUE_MARGIN] = hue
+            self.saved_states[self.current_state_index][Const.SATURATION_MARGIN] = sat
+            self.saved_states[self.current_state_index][Const.VALUE_MARGIN] = val
 
     def remove_noise(self, mask, kernel_size):
         iterations = 3
@@ -90,11 +72,11 @@ class ColorObjectFinder:
 
         for current_state in current_states:
             # print(current_state)
-            hue_range_l1 = current_state[self.HUE] - current_state[self.HUE_MARGIN]
+            hue_range_l1 = current_state[Const.HUE] - current_state[Const.HUE_MARGIN]
 
-            sat_range_l1 = current_state[self.SATURATION] - current_state[self.SATURATION_MARGIN]
+            sat_range_l1 = current_state[Const.SATURATION] - current_state[Const.SATURATION_MARGIN]
 
-            val_range_l1 = current_state[self.VALUE] - current_state[self.VALUE_MARGIN]
+            val_range_l1 = current_state[Const.VALUE] - current_state[Const.VALUE_MARGIN]
 
             lower_range_1 = np.array((
                 hue_range_l1,
@@ -102,11 +84,11 @@ class ColorObjectFinder:
                 val_range_l1
             ))
 
-            hue_range_u1 = current_state[self.HUE] + current_state[self.HUE_MARGIN]
+            hue_range_u1 = current_state[Const.HUE] + current_state[Const.HUE_MARGIN]
 
-            sat_range_u1 = current_state[self.SATURATION] + current_state[self.SATURATION_MARGIN]
+            sat_range_u1 = current_state[Const.SATURATION] + current_state[Const.SATURATION_MARGIN]
 
-            val_range_u1 = current_state[self.VALUE] + current_state[self.VALUE_MARGIN]
+            val_range_u1 = current_state[Const.VALUE] + current_state[Const.VALUE_MARGIN]
 
             upper_range_1 = np.array((
                 hue_range_u1,
@@ -118,26 +100,26 @@ class ColorObjectFinder:
             lower_range_2_compare = upper_range_1.copy()
 
             if hue_range_l1 < 0:
-                lower_range_2[0] = self.HUE_MAX + hue_range_l1
-                lower_range_2_compare[0] = self.HUE_MAX
+                lower_range_2[0] = Const.HUE_MAX + hue_range_l1
+                lower_range_2_compare[0] = Const.HUE_MAX
             # if sat_range_l1 < 0:
-            #     lower_range_2[1] = self.SAT_MAX + sat_range_l1
-            #     lower_range_2_compare[1] = self.SAT_MAX
+            #     lower_range_2[1] = Const.SAT_MAX + sat_range_l1
+            #     lower_range_2_compare[1] = Const.SAT_MAX
             # if val_range_l1 < 0:
-            #     lower_range_2[2] = self.VAL_MAX + val_range_l1
-            #     lower_range_2_compare[2] = self.VAL_MAX
+            #     lower_range_2[2] = Const.VAL_MAX + val_range_l1
+            #     lower_range_2_compare[2] = Const.VAL_MAX
 
             upper_range_2 = upper_range_1.copy()
             upper_range_2_compare = lower_range_1.copy()
 
-            if hue_range_u1 > self.HUE_MAX:
-                upper_range_2[0] = hue_range_u1 - self.HUE_MAX
+            if hue_range_u1 > Const.HUE_MAX:
+                upper_range_2[0] = hue_range_u1 - Const.HUE_MAX
                 upper_range_2_compare[0] = 0
-            # if sat_range_u1 > self.SAT_MAX:
-            #     upper_range_2[1] = sat_range_u1 - self.SAT_MAX
+            # if sat_range_u1 > Const.SAT_MAX:
+            #     upper_range_2[1] = sat_range_u1 - Const.SAT_MAX
             #     upper_range_2_compare[1] = 0
-            # if val_range_u1 > self.VAL_MAX:
-            #     upper_range_2[2] = val_range_u1 - self.VAL_MAX
+            # if val_range_u1 > Const.VAL_MAX:
+            #     upper_range_2[2] = val_range_u1 - Const.VAL_MAX
             #     upper_range_2_compare[2] = 0
 
             # Convert the image to HSV color space
@@ -350,12 +332,12 @@ class ColorObjectFinder:
         hue, saturation, value, hue_diff, sat_diff, val_diff = self.get_image_coordinate_color(
             image, x, y, roi_size, scale)
 
-        self.update_value(hue, self.HUE)
-        self.update_value(saturation, self.SATURATION)
-        self.update_value(value, self.VALUE)
-        self.update_value(min(hue_diff, self.HUE_MARGIN_MAX_CLICK), self.HUE_MARGIN)
-        self.update_value(min(sat_diff, self.SAT_MARGIN_MAX_CLICK), self.SATURATION_MARGIN)
-        self.update_value(min(val_diff, self.VAL_MARGIN_MAX_CLICK), self.VALUE_MARGIN)
+        self.update_value(hue, Const.HUE)
+        self.update_value(saturation, Const.SATURATION)
+        self.update_value(value, Const.VALUE)
+        self.update_value(min(hue_diff, Const.HUE_MARGIN_MAX_CLICK), Const.HUE_MARGIN)
+        self.update_value(min(sat_diff, Const.SAT_MARGIN_MAX_CLICK), Const.SATURATION_MARGIN)
+        self.update_value(min(val_diff, Const.VAL_MARGIN_MAX_CLICK), Const.VALUE_MARGIN)
 
     def get_current_state(self):
         return self.saved_states[self.current_state_index]
