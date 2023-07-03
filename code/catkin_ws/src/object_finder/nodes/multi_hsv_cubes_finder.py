@@ -201,7 +201,7 @@ class ObjectFinder:
         try:
 
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+            current_image = DaVinci.resize_and_crop_image(current_image, width=self.display_width,
                                                        height=self.display_height)
             self.current_image_dict[topic_name] = current_image
             self.segment(topic_name=topic_name, current_image=current_image)
@@ -214,7 +214,7 @@ class ObjectFinder:
         try:
 
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
+            current_image = DaVinci.resize_and_crop_image(current_image, width=self.display_width,
                                                        height=self.display_height)
             self.current_image_dict[topic_name] = current_image
             self.segment(topic_name=topic_name, current_image=current_image)
@@ -268,8 +268,11 @@ class ObjectFinder:
         topic_name = 'camera'
         try:
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
-            current_image = self.resize_and_crop_image(current_image, width=self.display_width,
-                                                       height=self.display_height)
+            current_image = DaVinci.resize_and_crop_image(
+                current_image,
+                width=self.display_width,
+                height=self.display_height
+            )
             self.current_image_dict[topic_name] = current_image
             self.segment(topic_name=topic_name, current_image=current_image)
 
@@ -279,12 +282,12 @@ class ObjectFinder:
         if not self.gui_created:
             self.create_layout()
             self.gui_created = True
+
         display_images = list()
         for image, segment in zip(self.current_image_dict.values(), self.current_segment_dict.values()):
             image_segmentation_combo = np.vstack((image, segment))
             display_images.append(image_segmentation_combo)
-        # for image in self.current_images.values():
-        #     print(image.shape)
+
         images = tuple(display_images)
         stacked = np.hstack(images)
         self.current_combined_image = stacked
@@ -431,40 +434,6 @@ class ObjectFinder:
     @staticmethod
     def arm_feedback(m):
         print(f'Arm Feedback : {m}')
-
-    @staticmethod
-    def resize_and_crop_image(image, width, height):
-        # Get the current size of the image
-        current_height, current_width = image.shape[:2]
-        if current_width == width and current_height == height:
-            return image
-
-        return image[:height, :width, :]
-
-        # Calculate the aspect ratio of the image
-        aspect_ratio = current_width / current_height
-
-        # Calculate the target aspect ratio
-        target_aspect_ratio = width / height
-
-        if aspect_ratio > target_aspect_ratio:
-            # Resize the image based on width
-            new_width = int(height * aspect_ratio)
-            resized_image = cv2.resize(image, (new_width, height))
-            # Calculate the crop region
-            start = new_width - width
-
-            cropped_image = resized_image[:, :-start]
-        else:
-            # Resize the image based on height
-            new_height = int(width / aspect_ratio)
-            resized_image = cv2.resize(image, (width, new_height))
-            # Calculate the crop region
-            start = new_height - height
-
-            cropped_image = resized_image[:-start, :]
-
-        return cropped_image
 
 
 def load_intrinsics(topics, intrinsic_names):
