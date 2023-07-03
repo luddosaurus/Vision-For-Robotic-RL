@@ -333,6 +333,28 @@ class ColorObjectFinder:
         return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
             diff_saturation), int(diff_value)
 
+    @staticmethod
+    def wrapped_hsv(image):
+
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(image)
+
+        hist, bins = np.histogram(h.flatten(), bins=180, range=[0, 180])
+
+        hue_values = list(hist)
+
+        hue_values_mirror = [-val for val in hue_values]
+
+        merged_hue_values = hue_values + hue_values_mirror
+
+        merged_hue_values = [val for val in merged_hue_values if
+                             np.percentile(merged_hue_values, 25) <= val <= np.percentile(merged_hue_values, 75)]
+
+        average_value = np.mean(merged_hue_values)
+        max_value = np.max(merged_hue_values)
+        min_value = np.abs(np.min(merged_hue_values))
+
+        return average_value, min_value, max_value
 
     @staticmethod
     def calculate_distance(value1, value2):
