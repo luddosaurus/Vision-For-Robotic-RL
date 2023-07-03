@@ -45,7 +45,6 @@ class ObjectFinder:
         self.gui_created = False
 
         self.display_images = {}
-        # todo have everything in camera topics?
         self.display_width = 640
         self.display_height = 480
 
@@ -220,36 +219,34 @@ class ObjectFinder:
             print(e)
 
     def segment(self, topic_name, current_image):
-        # Remove
-        # Mask
+        # Remove background colors
         inv_mask = None
         if len(self.background_colors) != 0:
-            background_mask_image = self.cof.get_hsv_mask(image=current_image, color_list=self.background_colors)
+            background_mask_image = self.cof.get_hsv_mask(
+                image=current_image,
+                color_list=self.background_colors
+            )
             inv_mask = cv2.bitwise_not(background_mask_image)
-        # image_without_bg = cv2.bitwise_and(
-        #     src1=current_image,
-        #     src2=current_image,
-        #     mask=inv_mask
-        # )
 
+        # Add selected colors
         current_color_mask_image = self.cof.get_hsv_mask(
             image=current_image,
             color_list=self.saved_block_colors + [self.cof.get_current_state()])
 
         if inv_mask is not None:
             current_color_mask_image = cv2.bitwise_and(inv_mask, current_color_mask_image)
+
+        # Segment image
         segmented_image = cv2.bitwise_and(
             src1=current_image,
             src2=current_image,
             mask=current_color_mask_image
         )
 
-        # Find center
-        # todo NEW finds center of each segment, how to save these?
+        # Update center coordinates
         self.segment_coordinates[topic_name]['segment_centers_x'] = list()
         self.segment_coordinates[topic_name]['segment_centers_y'] = list()
-
-        segment_coordinates = self.cof.find_segment_coordinates(current_color_mask_image)
+        segment_coordinates = self.cof.find_sorted_segment_coordinates(current_color_mask_image)
 
         # Draw Centers
         for coordinate in segment_coordinates:

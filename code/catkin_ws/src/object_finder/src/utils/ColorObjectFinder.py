@@ -173,13 +173,29 @@ class ColorObjectFinder:
             return None, None
 
     @staticmethod
+    def find_sorted_segment_coordinates(mask):
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
+
+        areas = stats[:, cv2.CC_STAT_AREA]
+        sorted_indices = np.argsort(areas)[::-1]
+
+        center_coordinates = []
+        for idx in sorted_indices:
+            center_x, center_y = centroids[idx]
+            center_coordinates.append((int(center_x), int(center_y)))
+
+        if len(center_coordinates) >= 7:
+            return center_coordinates[:7]
+
+        return center_coordinates
+
+    @staticmethod
     def find_segment_coordinates(mask):
-        components, outputs, stats, centroids = cv2.connectedComponentsWithStats(mask)
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
 
         segment_coordinates = []
-        centroids = centroids[1:]  # remove
+        centroids = centroids[1:]  # remove first one that is the whole image
         for center in centroids:
-            # coordinates = center[:, 0, :]  # Extract the x, y coordinates of the contour
             segment_coordinates.append([int(center_val) for center_val in center])
 
         return segment_coordinates
@@ -208,39 +224,6 @@ class ColorObjectFinder:
 
     def get_state(self):
         return self.saved_states[self.current_state_index]
-
-    # def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
-    #     x = int(x / scale)
-    #     y = int(y / scale)
-    #     print(image.shape)
-    #     b, g, r = image[y, x]
-    #     print(b, g, r)
-    #     hsv = cv2.cvtColor(np.uint8([[(b, g, r)]]), cv2.COLOR_BGR2HSV)
-    #     h, s, v = hsv[0][0]
-    #     y_lower = max(y - roi_size, 0)
-    #     y_upper = min(image.shape[0], y + roi_size)
-    #     x_lower = max(x - roi_size, 0)
-    #     x_upper = min(image.shape[1], x + roi_size)
-    #     roi = image[y_lower: y_upper, x_lower: x_upper]
-    #     # mean_color = np.mean(roi, axis=0)
-    #     # print(mean_color)
-    #     hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-    #     hsv_lower = np.min(hsv_roi, axis=(0, 1))
-    #     hsv_upper = np.max(hsv_roi, axis=(0, 1))
-    #     hue_diff_factor = 1
-    #     sat_diff_factor = 1
-    #     val_diff_factor = 1
-    #     hue_diff = (hsv_upper[0] - hsv_lower[0]) * hue_diff_factor
-    #     sat_diff = (hsv_upper[1] - hsv_lower[1]) * sat_diff_factor
-    #     val_diff = (hsv_upper[2] - hsv_lower[2]) * val_diff_factor
-    #
-    #     self.update_value(h, self.HUE)
-    #     self.update_value(s, self.SATURATION)
-    #     self.update_value(v, self.VALUE)
-    #     self.update_value(min(hue_diff, self.HUE_MARGIN_MAX_CLICK), self.HUE_MARGIN)
-    #     self.update_value(min(sat_diff, self.SAT_MARGIN_MAX_CLICK), self.SATURATION_MARGIN)
-    #     self.update_value(min(val_diff, self.VAL_MARGIN_MAX_CLICK), self.VALUE_MARGIN)
-    #     print(f"h{h}, s{s}, v{v}")
 
     @staticmethod
     def get_image_coordinate_color(image, x, y, roi_size, scale=1):
@@ -294,7 +277,11 @@ class ColorObjectFinder:
         max_values = subset.max()
         min_values = subset.min()
         medians = subset.median()
-        print(f'mean values:\n{means}\nmax values:\n{max_values}\nmin values:\n{min_values}\nmedian:\n{medians}')
+        print(f'mean values:\n{means}'
+              f'\nmax values:\n{max_values}'
+              f'\nmin values:\n{min_values}'
+              f'\nmedian:\n{medians}'
+        )
         # # Remove outliers using z-score
         # z_scores = stats.zscore(hue.flatten())
         # hue = hue.flatten()[np.abs(z_scores) < 1]
@@ -306,7 +293,10 @@ class ColorObjectFinder:
         # value = value.flatten()[np.abs(z_scores) < 1]
         # print(hue, saturation, value)
         diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
-        diff_saturation = ColorObjectFinder.calculate_distance(min_values['saturation'], max_values['saturation'])
+        diff_saturation = ColorObjectFinder.calculate_distance(
+            min_values['saturation'],
+            max_values['saturation']
+        )
         diff_value = max_values['value'] - min_values['value']
 
         # if max['hue'] - min['hue'] > abs(min['hue'] - (179 - max['hue'])):
@@ -332,7 +322,6 @@ class ColorObjectFinder:
 
         return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
             diff_saturation), int(diff_value)
-
 
     @staticmethod
     def calculate_distance(value1, value2):
