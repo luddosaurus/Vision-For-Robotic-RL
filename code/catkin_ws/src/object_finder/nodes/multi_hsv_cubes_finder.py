@@ -12,6 +12,7 @@ from camera_calibration.utils.TFPublish import TFPublish
 from camera_calibration.utils.JSONHelper import JSONHelper
 
 from utils.DaVinci import DaVinci
+from utils.UI import UI
 from utils.ColorObjectFinder import ColorObjectFinder
 
 from cv_bridge import CvBridge, CvBridgeError
@@ -25,7 +26,7 @@ import geometry_msgs.msg as gm
 import message_filters
 
 
-class ObjectFinder:
+class ObjectFinderController:
 
     def __init__(
             self,
@@ -38,11 +39,8 @@ class ObjectFinder:
         self.intrinsic_matrices = camera_matrices
 
         self.cof = ColorObjectFinder()
+        self.ui = UI()
         self.cv_bridge = CvBridge()
-
-        # UI
-        self.window = 'ColorDetection'
-        self.gui_created = False
 
         self.display_images = {}
         self.display_width = 640
@@ -50,21 +48,23 @@ class ObjectFinder:
 
         # Combined Image
         self.current_combined_image = None  # All images attached together
-        self.mouse_hover_x = None
-        self.mouse_hover_y = None
-        self.scale = 0.5
+
         self.roi_size = 9
+        self.scale = 0.5
 
         self.current_image_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
-        self.current_segment_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
+        self.current_segmented_image_dict = {topic: np.zeros((480, 640, 3)) for topic in camera_topics}
 
-        self.background_colors = []
-        self.saved_block_colors = []
+        self.selected_background_colors = []
+        self.selected_block_colors = []
+
         # Camera COLOR Topics
-
-        self.hand_subscriber = rospy.Subscriber('camera/color/image_raw', Image, callback=self.callback_hand)
-        self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw', Image, callback=self.callback_front)
-        self.top_subscriber = rospy.Subscriber('cam_top/color/image_raw', Image, callback=self.callback_top)
+        self.hand_subscriber = rospy.Subscriber('camera/color/image_raw',
+                                                Image, callback=self.callback_hand)
+        self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw',
+                                                 Image, callback=self.callback_front)
+        self.top_subscriber = rospy.Subscriber('cam_top/color/image_raw',
+                                               Image, callback=self.callback_top)
 
         # Camera DEPTH Topics
         if pose_estimation:
@@ -93,58 +93,8 @@ class ObjectFinder:
         self.action_client = actionlib.SimpleActionClient('/pick_and_place', MoveArmAction)
         self.action_client.wait_for_server()
 
-    # ----------------------------------------- UI
-
-    def create_layout(self):
-        start_state = self.cof.get_state()
-        cv2.namedWindow(self.window)
-
-        cv2.createTrackbar("Hue", self.window,
-                           start_state[self.cof.HUE], self.cof.HUE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.HUE))
-        cv2.createTrackbar("Saturation", self.window,
-                           start_state[self.cof.SATURATION], self.cof.SAT_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.SATURATION))
-        cv2.createTrackbar("Value", self.window,
-                           start_state[self.cof.VALUE], self.cof.VAL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.VALUE))
-
-        cv2.createTrackbar("Hue Margin", self.window,
-                           start_state[self.cof.HUE_MARGIN], self.cof.HUE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.HUE_MARGIN))
-        cv2.createTrackbar("Sat Margin", self.window,
-                           start_state[self.cof.SATURATION_MARGIN], self.cof.SAT_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.SATURATION_MARGIN))
-        cv2.createTrackbar("Val Margin", self.window,
-                           start_state[self.cof.VALUE_MARGIN], self.cof.VAL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.VALUE_MARGIN))
-
-        cv2.createTrackbar("Noise", self.window,
-                           start_state[self.cof.NOISE], self.cof.NOISE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.NOISE))
-        cv2.createTrackbar("Fill", self.window,
-                           start_state[self.cof.FILL], self.cof.FILL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.FILL))
-
-        cv2.setMouseCallback(self.window, self.click)
-
-    def update_scale(self, value):
-        self.scale = value / 100
-
-    def update_trackbars(self):
-        current_state = self.cof.get_state()
-        cv2.setTrackbarPos("Hue", self.window, current_state[self.cof.HUE])
-        cv2.setTrackbarPos("Saturation", self.window, current_state[self.cof.SATURATION])
-        cv2.setTrackbarPos("Value", self.window, current_state[self.cof.VALUE])
-        cv2.setTrackbarPos("Hue Margin", self.window, current_state[self.cof.HUE_MARGIN])
-        cv2.setTrackbarPos("Sat Margin", self.window, current_state[self.cof.SATURATION_MARGIN])
-        cv2.setTrackbarPos("Val Margin", self.window, current_state[self.cof.VALUE_MARGIN])
-        cv2.setTrackbarPos("Noise", self.window, current_state[self.cof.NOISE])
-        cv2.setTrackbarPos("Fill", self.window, current_state[self.cof.FILL])
-
-    def click(self, event, x, y, flags, param):
-        self.mouse_hover_x = x
-        self.mouse_hover_y = y
+    def mouse_callback(self, event, x, y, flags, param):
+        self.ui.update_mouse_hover(x, y)
         if event == cv2.EVENT_LBUTTONDOWN:
             self.cof.set_image_coordinate_color(
                 image=self.current_combined_image,
@@ -152,8 +102,7 @@ class ObjectFinder:
                 roi_size=self.roi_size,
                 scale=self.scale
             )
-
-            self.update_trackbars()
+            self.ui.update_trackbars(self.cof.get_state())
 
     # ----------------------------------------- Image Processing
 
@@ -202,7 +151,7 @@ class ObjectFinder:
 
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
             current_image = DaVinci.resize_and_crop_image(current_image, width=self.display_width,
-                                                       height=self.display_height)
+                                                          height=self.display_height)
             self.current_image_dict[topic_name] = current_image
             self.segment(topic_name=topic_name, current_image=current_image)
 
@@ -215,7 +164,7 @@ class ObjectFinder:
 
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
             current_image = DaVinci.resize_and_crop_image(current_image, width=self.display_width,
-                                                       height=self.display_height)
+                                                          height=self.display_height)
             self.current_image_dict[topic_name] = current_image
             self.segment(topic_name=topic_name, current_image=current_image)
 
@@ -225,17 +174,17 @@ class ObjectFinder:
     def segment(self, topic_name, current_image):
         # Remove background colors
         inv_mask = None
-        if len(self.background_colors) != 0:
+        if len(self.selected_background_colors) != 0:
             background_mask_image = self.cof.get_hsv_mask(
                 image=current_image,
-                color_list=self.background_colors
+                color_list=self.selected_background_colors
             )
             inv_mask = cv2.bitwise_not(background_mask_image)
 
         # Add selected colors
         current_color_mask_image = self.cof.get_hsv_mask(
             image=current_image,
-            color_list=self.saved_block_colors + [self.cof.get_current_state()])
+            color_list=self.selected_block_colors + [self.cof.get_current_state()])
 
         if inv_mask is not None:
             current_color_mask_image = cv2.bitwise_and(inv_mask, current_color_mask_image)
@@ -262,7 +211,7 @@ class ObjectFinder:
         # ---------------------------------
 
         # Save segment image
-        self.current_segment_dict[topic_name] = segmented_image
+        self.current_segmented_image_dict[topic_name] = segmented_image
 
     def callback_hand(self, image):
         topic_name = 'camera'
@@ -279,53 +228,42 @@ class ObjectFinder:
         except CvBridgeError as e:
             print(e)
 
-        if not self.gui_created:
-            self.create_layout()
-            self.gui_created = True
+        self.update_callback()
 
+    def combine_images(self):
+        # stack segmentation with camera horizontally
         display_images = list()
-        for image, segment in zip(self.current_image_dict.values(), self.current_segment_dict.values()):
+        for image, segment in zip(self.current_image_dict.values(), self.current_segmented_image_dict.values()):
             image_segmentation_combo = np.vstack((image, segment))
             display_images.append(image_segmentation_combo)
 
+        # stack all the cameras horizontally
         images = tuple(display_images)
         stacked = np.hstack(images)
+
         self.current_combined_image = stacked
+        self.ui.display_image = cv2.copy(stacked)
 
-        info = "[0-9] states, [m]ove to, [q]uit"
-        DaVinci.draw_text_box(
-            image=stacked,
-            text=info
-        )
-
-        slot_info = f"Color State [{self.cof.current_state_index}]"
-        DaVinci.draw_text_box(
-            image=stacked,
-            text=slot_info,
-            position="top_left"
-        )
-
-        if self.mouse_hover_x is not None:
-            self.current_combined_image = DaVinci.draw_roi_rectangle(
-                image=stacked,
-                x=int(self.mouse_hover_x / self.scale),
-                y=int(self.mouse_hover_y / self.scale),
-                roi=self.roi_size
+    def update_callback(self):
+        if not self.ui.gui_created:
+            self.ui.create_layout(
+                start_state=self.cof.get_state(),
+                update_value=self.cof.update_color_value,
+                on_click=self.mouse_callback
             )
 
-        cv2.imshow(
-            self.window,
-            cv2.resize(stacked, None, fx=self.scale, fy=self.scale)
-        )
+        self.combine_images()
+        self.ui.update_ui(self.cof.current_state_index, self.scale, self.roi_size)
+        self.read_input()
 
-        # Input
+    def read_input(self):
         key = cv2.waitKey(1) & 0xFF
         key_str = chr(key)
 
         if key_str.isdigit() and 0 <= int(key_str) <= 9:
             key_number = int(key_str)
             self.cof.current_state_index = key_number
-            self.update_trackbars()
+            self.ui.update_trackbars(self.cof.get_current_state())
             print(f"Switching to state {key_number}")
 
         elif key == ord('m'):
@@ -345,13 +283,13 @@ class ObjectFinder:
         elif key == ord('r'):
             state = self.cof.get_current_state().copy()
             state[-2:] = [0, 0]  # set fill and noise to 0
-            self.background_colors.append(state)
+            self.selected_background_colors.append(state)
         elif key == ord('c'):
-            self.background_colors = []
-            self.saved_block_colors = []
+            self.selected_background_colors = []
+            self.selected_block_colors = []
         elif key == ord('a'):
             state = self.cof.get_current_state().copy()
-            self.saved_block_colors.append(state)
+            self.selected_block_colors.append(state)
 
     def broadcast_point(self, point, child_name, parent_name):
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
@@ -466,8 +404,7 @@ if __name__ == '__main__':
     if find_pose:
         intrinsics = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
 
-    # todo make sure topics ans intrinsics are aligned
-    object_finder = ObjectFinder(
+    object_finder = ObjectFinderController(
         camera_matrices=intrinsics,
         camera_topics=topics,
         pose_estimation=find_pose
