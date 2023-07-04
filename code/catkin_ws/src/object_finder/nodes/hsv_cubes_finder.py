@@ -3,6 +3,7 @@
 import rospy
 import cv2
 import numpy as np
+from PIL import Image as pilimgage
 
 from camera_calibration.params.calibration import calibration_path_d455, calibration_path_d435
 from camera_calibration.utils.TypeConverter import TypeConverter
@@ -19,6 +20,10 @@ from sensor_msgs.msg import Image
 import tf2_ros
 import actionlib
 from my_robot_msgs.msg import MoveArmAction, MoveArmGoal, MoveArmResult, MoveArmFeedback
+
+import matplotlib.pyplot as plt
+import matplotlib.colors as col
+import pandas as pd
 
 
 # todo
@@ -208,8 +213,19 @@ class ObjectFinder:
             self.gui_created = True
         # image = self.current_image
 
+        hsv_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2HSV)
+
+        hues = hsv_image[:, :, :1]
+
+        saturations = hsv_image[:, :, 1:2]
+        values = hsv_image[:, :, 2:]
+
         # Mask
         mask_image = self.cof.get_hsv_mask(image=self.current_image)
+        output = cv2.connectedComponentsWithStats(mask_image)
+        print('--------------------new-------------------')
+        for i in output:
+            print(i)
         res = cv2.bitwise_and(self.current_image, self.current_image, mask=mask_image)
         mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
@@ -228,6 +244,14 @@ class ObjectFinder:
                                                             roi=self.roi_size)
 
         # Show Image
+        mask_ = pilimgage.fromarray(mask_image)
+
+        bbox = mask_.getbbox()
+
+        if bbox is not None:
+            x1, y1, x2, y2 = bbox
+
+            self.current_image = cv2.rectangle(self.current_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
         stacked = np.hstack((self.current_image, res))
 
         info = "[0-9] states, [m]ove to, [q]uit"
@@ -317,6 +341,43 @@ class ObjectFinder:
                 self.roi_size -= 2
         elif key == ord('l'):
             self.roi_size += 2
+        elif key == ord('t'):
+            # shape: (y, x, z)
+
+            x_list = []
+            y_list = []
+
+            for x in range(hues.shape[0]):
+                for y in range(hues.shape[1]):
+                    x_list.append(x)
+                    y_list.append(y)
+            df_hue = pd.DataFrame(
+                {'y': y_list, 'x': x_list, 'hue': hues.flatten()})
+            # self.plot_3d(df_hue)
+            df_h = pd.DataFrame({'hues': hues.flatten()})
+            df_s = pd.DataFrame({'sat': saturations.flatten()})
+            df_v = pd.DataFrame({'val': values.flatten()})
+
+            fig, axes = plt.subplots(1, 3)
+            df_h.hist('hues', ax=axes[0], bins=179)
+            df_s.hist('sat', ax=axes[1], bins=255)
+            df_v.hist('val', ax=axes[2], bins=255)
+            plt.show()
+
+    def plot_3d(self, dataframe):
+        import matplotlib.cm as cm
+        fig = plt.figure()
+        axis = fig.add_subplot(1, 1, 1, projection="3d")
+        x = dataframe['x']
+        y = dataframe['y']
+        z = dataframe['hue']
+        # values for color
+        c = [int(zv / 0.4) for zv in z]
+        # discrete colormap with 3 colors
+        cmap = col.ListedColormap(cm.tab10.colors[:len(np.unique(c))])
+        axis.scatter(x, y, z, c=c, cmap=cmap)
+
+        plt.show()
 
     def call_move_arm(self, pick_pose, place_pose):
         pick_pose_translation = pick_pose.transform.translation
