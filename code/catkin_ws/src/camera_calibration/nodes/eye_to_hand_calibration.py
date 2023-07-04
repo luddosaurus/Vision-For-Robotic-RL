@@ -103,12 +103,12 @@ class ExtrinsicEstimator(object):
                                                        transform_stamped=self.transform_memory[-1])
 
         # ---------------------- GUI
-        info = "[q]uit " \
-               "[s]ave " \
-               "[u]ndo " \
-               "[r]un " \
-               "[p]lot " \
-               "[c]ollect"
+        info = "| [q]uit " \
+               "| [s]ave " \
+               "| [u]ndo " \
+               "| [r]un solver " \
+               "| [e]xtensive run " \
+               "| [c]ollect|"
         DaVinci.draw_text_box_in_corner(
             image=self.current_image,
             text=info,
@@ -138,25 +138,27 @@ class ExtrinsicEstimator(object):
                 self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
                 self.solve_all_methods()
 
-
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
             self.transforms_hand2world = self.transforms_hand2world[:-1]
 
-        elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Run
+        elif key == ord('e') and len(self.transforms_camera2charuco) >= 3:  # Run
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
                                                  transforms_camera2charuco=self.transforms_camera2charuco,
                                                  number_of_transforms=len(self.transforms_camera2charuco))
             self.run_solvers()
 
-        elif key == ord('p') and len(self.transforms_camera2charuco) >= 3:  # Plot
+        elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Plot
             self.solve_all_methods()
+
             self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms)
-            self.pretty_print_transforms(self.pose_estimations_all_algorithms)
+
             frame_methods = TypeConverter.convert_to_dataframe(self.pose_estimations_all_algorithms)
             self.calculate_mean_estimate()
+            self.pretty_print_transforms(self.pose_estimations_all_algorithms)
             HarryPlotter.plot_poses(frame_methods)
             self.cameras_published = True
+
 
         elif key == ord('s'):  # Save
             JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
@@ -171,7 +173,6 @@ class ExtrinsicEstimator(object):
         if len(self.transforms_camera2charuco) >= 3:
             self.pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms)
-            self.pretty_print_transforms(self.pose_estimations_all_algorithms)
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -287,9 +288,9 @@ class ExtrinsicEstimator(object):
         HarryPlotter.plot_poses(frame_methods)
 
         # ---------------------------- Plot 3D
-        # HarryPlotter.plot_3d_scatter(frame_samples)
-        # HarryPlotter.plot_3d_scatter(frame_methods)
-        # HarryPlotter.plot_3d_scatter(frame_method_samples)
+        HarryPlotter.plot_3d_scatter(frame_samples)
+        HarryPlotter.plot_3d_scatter(frame_methods)
+        HarryPlotter.plot_3d_scatter(frame_method_samples)
 
         # ---------------------------- Plot 2D
         true_translation = np.array(translation).flatten()
@@ -316,13 +317,13 @@ class ExtrinsicEstimator(object):
         HarryPlotter.plot_distance_density(frame_samples, rotation_columns)
 
         # # Variance
-        # frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
-        #
-        # HarryPlotter.stacked_histogram(frame_variance)
+        frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
+
+        HarryPlotter.stacked_histogram(frame_variance)
 
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
-        print(mean_translation, mean_rotation)
+        # print(mean_translation, mean_rotation)
         self.camera_estimates.append(TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                 rotation=mean_rotation,
                                                                                 parent_frame=self.Frame.world.name,
