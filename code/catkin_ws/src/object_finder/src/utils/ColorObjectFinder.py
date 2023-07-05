@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.stats import circmean, circstd, circvar
 
 
 class ColorObjectFinder:
@@ -334,27 +335,28 @@ class ColorObjectFinder:
             diff_saturation), int(diff_value)
 
     @staticmethod
-    def wrapped_hsv(image):
+    def wrapped_hue(image, roi):
+        # roi = 100
+        # image = cv2.cvtColor(image[:roi, :roi], cv2.COLOR_BGR2HSV)
+        hue, saturation, value = cv2.split(image)
+        hue_list = list(hue.flatten())
 
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(image)
+        # Remove circular outliers
+        hue_mean = circmean(hue_list, high=179, low=0)
+        hue_std = circstd(hue_list, high=179, low=0)
+        hue_var = circvar(hue_list, high=179, low=0)
+        print(hue_mean)
+        print(hue_std)
+        print(hue_var)
 
-        hist, bins = np.histogram(h.flatten(), bins=180, range=[0, 180])
+        # Remove circular outliers based on quantiles
+        q1 = np.percentile(hue_list, 25)
+        q4 = np.percentile(hue_list, 75)
+        hue_filtered = [val for val in hue_list if q1 <= val <= q4]
 
-        hue_values = list(hist)
+        hue_diff = hue_var * 179
 
-        hue_values_mirror = [-val for val in hue_values]
-
-        merged_hue_values = hue_values + hue_values_mirror
-
-        merged_hue_values = [val for val in merged_hue_values if
-                             np.percentile(merged_hue_values, 25) <= val <= np.percentile(merged_hue_values, 75)]
-
-        average_value = np.mean(merged_hue_values)
-        max_value = np.max(merged_hue_values)
-        min_value = np.abs(np.min(merged_hue_values))
-
-        return average_value, min_value, max_value
+        return hue_mean, hue_diff
 
     @staticmethod
     def calculate_distance(value1, value2):
