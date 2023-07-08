@@ -76,8 +76,8 @@ class JSONHelper(object):
         else:
             path = extrinsic_calibration_results_path + 'eye_to_hand/' + load_data_directory
 
-        camera2target_data = JSONHelper.read_json(path + 'camera2target')
-        hand2world_data = JSONHelper.read_json(path + 'hand2world')
+        camera2target_data = JSONHelper.read_json(path + '/camera2target')
+        hand2world_data = JSONHelper.read_json(path + '/hand2world')
         return JSONHelper.load_transform_list(camera2target_data), JSONHelper.load_transform_list(hand2world_data)
 
     @staticmethod
