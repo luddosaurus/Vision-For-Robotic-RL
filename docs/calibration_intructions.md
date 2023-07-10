@@ -2,7 +2,7 @@
 Launch  : `code/catkin_ws/src/camera_calibration/launch/external.launch`
 Node  : `code/catkin_ws/src/camera_calibration/nodes/eye_to_hand_calibration.py`
 
-![[images/pose_estimation.png | 500]]
+![Camera pose estimation](images/pose_estimation.png)
 
 
 ## Settings
