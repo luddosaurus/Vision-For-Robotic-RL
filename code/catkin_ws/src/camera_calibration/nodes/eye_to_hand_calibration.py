@@ -50,7 +50,7 @@ class ExtrinsicEstimator(object):
         self.camera_subscriber = rospy.Subscriber(camera_topic, Image, self.camera_callback)
 
         self.cv_bridge = CvBridge()
-        print(board_data)
+
         self.arHelper = ARHelper(charuco_board_shape=board_data['board_shape'],
                                  charuco_marker_size=board_data['aruco_marker_size'],
                                  charuco_square_size=board_data['square_size'],
@@ -325,9 +325,10 @@ class ExtrinsicEstimator(object):
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
         # print(mean_translation, mean_rotation)
+        parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
         self.camera_estimates.append(TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                 rotation=mean_rotation,
-                                                                                parent_frame=self.Frame.world.name,
+                                                                                parent_frame=parent_frame,
                                                                                 child_frame='camera_estimate_MEAN'))
 
 

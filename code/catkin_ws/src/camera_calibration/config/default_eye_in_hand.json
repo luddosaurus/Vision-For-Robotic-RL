@@ -1,6 +1,6 @@
 {
   "board_name": "large",
-  "camera_name": "d435_480p",
+  "camera_name": "d435_default_480p",
   "mode": "eye_in_hand",
   "camera_topic": "/camera/color/image_raw",
   "memory_size" : 30,

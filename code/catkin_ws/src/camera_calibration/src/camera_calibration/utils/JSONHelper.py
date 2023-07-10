@@ -168,3 +168,12 @@ class JSONHelper(object):
     def get_camera_estimates(file):
         data = JSONHelper.read_json(file)
         return data
+
+    @staticmethod
+    def get_charuco_info(json_file):
+        json_data = JSONHelper.read_json(json_file)
+        board_name = json_data['board_name']
+        camera_name = json_data['camera_name']
+        camera_topic = json_data['camera_topic']
+
+        return board_name, camera_name, camera_topic
