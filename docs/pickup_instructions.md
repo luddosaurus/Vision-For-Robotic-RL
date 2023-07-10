@@ -2,7 +2,8 @@
 Launch file : `code/catkin_ws/src/object_finder/launch/hsv_cubes.launch`
 Script : `code/catkin_ws/src/object_finder/nodes/hsv_cubes_finder.py`
 
-![[images/cube_finding.png]]
+![Cube Finding](images/cube_finding.png)
+
 
 
 ## Settings
