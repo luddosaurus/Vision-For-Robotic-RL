@@ -341,7 +341,6 @@ class ObjectFinder:
             move_arm_goal.place_pose.position.y = place_translation[1]
             move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
 
-
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
         # status = self.action_client.get_state()
         # self.action_client.wait_for_result()

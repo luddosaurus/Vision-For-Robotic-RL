@@ -37,7 +37,7 @@ import pandas as pd
 class ObjectFinder:
 
     def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None):
-        print(pose_estimate)
+        # print(pose_estimate)
         self.pose_estimate = pose_estimate
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
@@ -54,7 +54,7 @@ class ObjectFinder:
             Image, self.camera_color_callback)
         if self.pose_estimate:
             print('estimating pose')
-            self.aligned_depth_subscriber = rospy.Subscriber('/cam_top/aligned_depth_to_color/image_raw', Image,
+            self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -196,7 +196,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='cam_top',
+                                           parent_name='eye_in_hand',
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)
@@ -223,9 +223,7 @@ class ObjectFinder:
         # Mask
         mask_image = self.cof.get_hsv_mask(image=self.current_image)
         output = cv2.connectedComponentsWithStats(mask_image)
-        print('--------------------new-------------------')
-        for i in output:
-            print(i)
+
         res = cv2.bitwise_and(self.current_image, self.current_image, mask=mask_image)
         mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
@@ -402,7 +400,6 @@ class ObjectFinder:
             move_arm_goal.place_pose.position.y = place_translation[1]
             move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
 
-
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
         # status = self.action_client.get_state()
         # self.action_client.wait_for_result()
@@ -425,7 +422,7 @@ class ObjectFinder:
 
 
 def load_intrinsics(eye_in_hand):
-    camera_intrinsics = JSONHelper.get_camera_intrinsics('cam_top_default')
+    camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_default_480p')
     camera_matrix = np.array(camera_intrinsics['camera_matrix'])
     distortion = np.array(camera_intrinsics['distortion'])
 

@@ -50,7 +50,7 @@ class MoveArmActionServer(object):
         # move_arm_to_coordinate(translation_ready, rotation)
         # rospy.Rate(1).sleep()
         self.grip(self.place_point_translation, rotation, joint_state_open)
-        print('past place')
+
         # move_arm_to_coordinate(translation_ready, rotation)
 
         self.result.result = True
