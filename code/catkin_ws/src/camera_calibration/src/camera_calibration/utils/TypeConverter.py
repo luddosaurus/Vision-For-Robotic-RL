@@ -207,7 +207,8 @@ class TypeConverter:
         return df
 
     @staticmethod
-    def estimates_to_transforms(estimates):
+    def estimates_to_transforms(estimates, parent_frame_name):
+
         methods = ['TSAI', 'PARK', 'HORAUD', 'ANDREFF', 'DANIILIDIS']
         estimate_transforms = []
         for i in range(len(estimates)):
@@ -215,7 +216,7 @@ class TypeConverter:
             rotation_matrix = entry[0][0]
             quaternions = TypeConverter.matrix_to_quaternion_vector(rotation_matrix)
             translation = entry[0][1]
-            transform = TypeConverter.vectors_to_stamped_transform(translation, quaternions, 'world',
+            transform = TypeConverter.vectors_to_stamped_transform(translation, quaternions, parent_frame_name,
                                                                    f'camera_estimate_{methods[i]}')
             estimate_transforms.append(transform)
         return estimate_transforms

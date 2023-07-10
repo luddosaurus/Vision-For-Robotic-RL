@@ -151,14 +151,11 @@ class ExtrinsicEstimator(object):
         elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Plot
             self.solve_all_methods()
 
-            self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms)
-
             frame_methods = TypeConverter.convert_to_dataframe(self.pose_estimations_all_algorithms)
             self.calculate_mean_estimate()
             self.pretty_print_transforms(self.pose_estimations_all_algorithms)
             HarryPlotter.plot_poses(frame_methods)
             self.cameras_published = True
-
 
         elif key == ord('s'):  # Save
             JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
@@ -172,7 +169,9 @@ class ExtrinsicEstimator(object):
                                              number_of_transforms=len(self.transforms_camera2charuco))
         if len(self.transforms_camera2charuco) >= 3:
             self.pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
-            self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms)
+            parent_frame_name = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+            self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms,
+                                                                          parent_frame_name)
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -260,7 +259,8 @@ class ExtrinsicEstimator(object):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
         pose_estimations_methods = self.eye_hand_solver.solve_all_algorithms()
         pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples()
-        self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods)
+        parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+        self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods, parent_frame)
         self.calculate_mean_estimate()
         for method in self.methods:
             rotation, translation = pose_estimations_methods[method][0]
@@ -271,7 +271,7 @@ class ExtrinsicEstimator(object):
 
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
             pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-            parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+
             TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name=parent_frame,
                                                child_name=f'camera_estimate{method}',
                                                rotation=rotation, translation=translation)
