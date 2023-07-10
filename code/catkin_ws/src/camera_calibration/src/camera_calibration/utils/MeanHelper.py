@@ -54,6 +54,8 @@ class MeanHelper:
 
     @staticmethod
     def riemannian_mean_rotation(quaternions):
+
+
         # Convert the quaternion vectors to Rotation objects
         rotations = Rotation.from_quat(quaternions)
 
@@ -68,8 +70,16 @@ class MeanHelper:
         return mean_quaternion.as_quat()
 
     @staticmethod
-    def remove_outliers(translational_vectors, rotational_vectors, clean_translation, clean_rotation, threshold=1.5):
+    def remove_outliers(translational_vectors_input, rotational_vectors_input, clean_translation, clean_rotation, threshold=1.5):
 
+        translational_vectors = []
+        rotational_vectors = []
+        for translation, rotation in zip(translational_vectors_input, rotational_vectors_input):
+            if not np.isnan(translation).any() and not np.isnan(rotation).any():
+                translational_vectors.append(translation)
+                rotational_vectors.append(rotation)
+
+        print(f'NEW INSTANCE------------------------------------{rotational_vectors}')
         # might be problem here
         # if translational_vectors.shape[0] == 0 or rotational_vectors.shape[0] == 0:
         #     print("so triggered :D")
@@ -88,7 +98,7 @@ class MeanHelper:
             rotational_vectors_zscores = np.abs((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
             translational_vectors_zscores = np.abs(
                 (translational_vectors - translational_vectors_mean) / translational_vectors_std)
-            print((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
+            # print((rotational_vectors - rotational_vectors_mean) / rotational_vectors_std)
 
             # print(translational_vectors_zscores)
             # print('--------------')

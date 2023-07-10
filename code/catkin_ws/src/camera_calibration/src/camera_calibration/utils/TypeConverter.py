@@ -146,7 +146,10 @@ class TypeConverter:
         stamp = rospy.Time.now()
 
         tvec = Vector3()
-        tvec.x, tvec.y, tvec.z = translation.flatten()
+        if translation is not None:
+            tvec.x, tvec.y, tvec.z = translation.flatten()
+        else:
+            tvec.x, tvec.y, tvec.z = 0, 0, 0
 
         rvec = Quaternion()
         rvec.x, rvec.y, rvec.z, rvec.w \
@@ -192,7 +195,13 @@ class TypeConverter:
         for sample_category, poses in sample_transforms.items():
             for r_vec, t_vec in poses:
                 r_vec = TypeConverter.matrix_to_quaternion_vector(r_vec)
-                t_vec = np.array(t_vec).flatten()
+                if t_vec is not None and r_vec is not None:
+                    t_vec = np.array(t_vec).flatten()
+                else:
+                    t_vec = np.zeros((1, 3)).flatten()
+                    r_vec = np.zeros((1, 4)).flatten()
+                    r_vec[3] = 1.0
+
                 data.append([
                     sample_category,
                     t_vec[0], t_vec[1], t_vec[2],

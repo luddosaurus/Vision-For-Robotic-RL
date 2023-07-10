@@ -170,6 +170,7 @@ class ExtrinsicEstimator(object):
         if len(self.transforms_camera2charuco) >= 3:
             self.pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
             parent_frame_name = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+
             self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms,
                                                                           parent_frame_name)
 
