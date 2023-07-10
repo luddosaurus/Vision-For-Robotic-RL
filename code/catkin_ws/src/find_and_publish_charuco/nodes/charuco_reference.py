@@ -57,13 +57,21 @@ class CharucoPublisher(object):
 
         self.collect_camera_target_transform()
 
-        TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-                                                   parent_name='cam_wrist',
-                                                   child_name='charuco',
-                                                   transform_stamped=self.transform_memory[-1])
+        # TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+        #                                            parent_name='cam_wrist',
+        #                                            child_name='charuco',
+        #                                            transform_stamped=self.transform_memory[-1])
 
-
-
+        cv2.imshow('image', self.current_image)
+        key = cv2.waitKey(1)
+        if key == ord('q'):  # Quit
+            print('Shutting down....')
+            rospy.signal_shutdown('We are done here')
+        elif key == ord('p') :
+            TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+                                                       parent_name='cam_wrist',
+                                                       child_name='charuco',
+                                                       transform_stamped=self.transform_memory[-1])
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -96,7 +104,7 @@ class CharucoPublisher(object):
 
 if __name__ == '__main__':
 
-    config_file = rospy.get_param(param_name='hand_eye_node/config')
+    config_file = rospy.get_param(param_name='charuco_position/config')
     path = os.path.join(rospkg.RosPack().get_path('find_and_publish_charuco'),
                         'config/', config_file)
     board_name, camera_name, camera_topic = JSONHelper.get_charuco_info(
@@ -104,7 +112,6 @@ if __name__ == '__main__':
     rospy.init_node('charuco_position')
 
     charuco_publisher = CharucoPublisher(board_name, camera_name, camera_topic)
-
 
     try:
         rospy.spin()

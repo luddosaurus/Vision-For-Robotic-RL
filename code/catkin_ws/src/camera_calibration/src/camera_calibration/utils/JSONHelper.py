@@ -52,7 +52,7 @@ class JSONHelper(object):
 
     @staticmethod
     def get_extrinsic_calibration_parameters(json_file):
-        json_data = JSONHelper.read_json(f'{config_path}/{json_file}')
+        json_data = JSONHelper.read_json(f'{config_path}{json_file}')
         board_name = json_data['board_name']
         camera_name = json_data['camera_name']
         mode = json_data['mode']
