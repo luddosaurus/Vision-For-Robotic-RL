@@ -160,7 +160,7 @@ class ObjectFinder:
         # print(aligned_input_depth[a])
         # Find 3D point
         # cv2.imshow('test', aligned_input_depth)
-        if self.center_x is not None and aligned_input_depth is not None:
+        if self.center_x is not None and aligned_input_depth is not None and self.center_y is not None:
             depth_array = np.array(aligned_input_depth, dtype=np.float32)
             # print(depth_array.shape)
             if self.center_x <= depth_array.shape[1] and self.center_y <= depth_array.shape[0]:
@@ -196,7 +196,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='eye_in_hand',
+                                           parent_name='cam_wrist',
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)
@@ -274,7 +274,7 @@ class ObjectFinder:
 
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
-        cv2.imshow('test', self.depth_image)
+        # cv2.imshow('test', self.depth_image)
         # Input
         key = cv2.waitKey(1) & 0xFF
         key_str = chr(key)
@@ -401,7 +401,7 @@ class ObjectFinder:
             move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
-        # status = self.action_client.get_state()
+        #
         # self.action_client.wait_for_result()
         # print(self.action_client.get_state())
 

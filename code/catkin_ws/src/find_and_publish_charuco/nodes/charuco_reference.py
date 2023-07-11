@@ -62,16 +62,18 @@ class CharucoPublisher(object):
         #                                            child_name='charuco',
         #                                            transform_stamped=self.transform_memory[-1])
 
+        TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+                                                   parent_name='cam_wrist',
+                                                   child_name='charuco',
+                                                   transform_stamped=self.transform_memory[-1])
+
         cv2.imshow('image', self.current_image)
         key = cv2.waitKey(1)
         if key == ord('q'):  # Quit
             print('Shutting down....')
             rospy.signal_shutdown('We are done here')
-        elif key == ord('p') :
-            TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-                                                       parent_name='cam_wrist',
-                                                       child_name='charuco',
-                                                       transform_stamped=self.transform_memory[-1])
+
+
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(

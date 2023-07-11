@@ -1,9 +1,9 @@
 {
   "board_name": "large",
   "camera_name": "d435_480p",
-  "mode": "eye_in_hand",
+  "mode": "eye_to_hand",
   "camera_topic": "/camera/color/image_raw",
   "memory_size" : 30,
-  "load_data_directory": "eye_in_hand_estimate_new",
+  "load_data_directory": "wip_calc",
   "save_data_directory": "eye_in_hand_estimate_mean"
 }

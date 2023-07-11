@@ -273,9 +273,9 @@ class ColorObjectFinder:
         hue, saturation, value = cv2.split(image)
         data = {'hue': hue.flatten(), 'saturation': saturation.flatten(), 'value': value.flatten()}
         df = pd.DataFrame(data)
-        plt.figure()
-        df['hue'].hist(bins=179)
-        plt.show()
+        # plt.figure()
+        # df['hue'].hist(bins=179)
+        # plt.show()
         q1 = df.quantile(0.25)
         q3 = df.quantile(0.75)
         iqr = q3 - q1
@@ -286,9 +286,9 @@ class ColorObjectFinder:
         subset = df[true_list]
         subset = subset.dropna()
 
-        plt.figure()
-        subset['hue'].hist(bins=179)
-        plt.show()
+        # plt.figure()
+        # subset['hue'].hist(bins=179)
+        # plt.show()
 
         means = subset.mean()
         max_values = subset.max()

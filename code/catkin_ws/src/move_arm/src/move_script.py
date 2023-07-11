@@ -1,18 +1,20 @@
 #! /usr/bin/env python3.8
 # Python 2/3 compatibility imports
 from __future__ import print_function
+
+import time
+
 from six.moves import input
 
 import sys
 import copy
 import rospy
 import moveit_commander
-from moveit_msgs.msg import MoveGroupActionGoal
+from moveit_msgs.msg import MoveGroupActionGoal, MoveGroupAction
 from geometry_msgs.msg import Pose
+from std_msgs.msg import String
 from control_msgs.msg import GripperCommandAction, GripperCommandGoal
 import actionlib
-
-
 
 from my_robot_msgs.msg import MoveArmAction, MoveArmFeedback, MoveArmResult
 
@@ -24,6 +26,9 @@ class MoveArmActionServer(object):
         self.result = MoveArmResult()
         self.action_server = actionlib.SimpleActionServer('pick_and_place', MoveArmAction, self.goal_callback, False)
         self.action_server.start()
+
+        # self.action_client = actionlib.SimpleActionClient('/move_group', MoveGroupAction)
+        # self.action_client.wait_for_server()
 
         self.pickup_point_translation = None
         self.place_point_translation = None
@@ -55,8 +60,10 @@ class MoveArmActionServer(object):
 
         # move_arm_to_coordinate(translation_ready, rotation)
 
-        self.result.result = True
+        self.result.result = String("Success")
+
         self.action_server.set_succeeded(self.result)
+
 
     def create_pose(self, translation, rotation):
         # Create a Pose object
@@ -75,18 +82,18 @@ class MoveArmActionServer(object):
 
         return pose
 
-
-
-    def move_to_pose(pose):
-        goal_msg = MoveGroupActionGoal()
-        goal_msg.goal.pose = pose
-
-        # Publish the goal message to the move_group/goal topic
-        goal_pub = rospy.Publisher('/move_group/goal', MoveGroupActionGoal, queue_size=10)
-
-        goal_pub.publish(goal_msg)
+    # def move_to_pose(self, pose):
+    #     goal_msg = MoveGroupActionGoal()
+    #     goal_msg.goal.pose = pose
+    #
+    #     # # Publish the goal message to the move_group/goal topic
+    #     # goal_pub = rospy.Publisher('/move_group/goal', MoveGroupActionGoal, queue_size=10)
+    #     #
+    #     # goal_pub.publish(goal_msg)
+    #     self.action_client.send_goal(goal_msg, feedback_cb=self.feedback_callback)
 
     def grip(self, translation, rotation, joint_state, open_before_move=False):
+
         if open_before_move:
             client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
 
@@ -106,7 +113,6 @@ class MoveArmActionServer(object):
 
         # Initialize ROS node
 
-
         # Initialize MoveIt commander
         moveit_commander.roscpp_initialize(sys.argv)
 
@@ -114,18 +120,45 @@ class MoveArmActionServer(object):
         robot = moveit_commander.RobotCommander()
         # print(robot.get_current_state())
         # # Create a MoveGroupCommander for the arm
-        group_name = "panda_manipulator"  # Specify the group name of the arm
+        group_name = "panda_arm"  # Specify the group name of the arm
         # # group_name = "panda_arm"
         group = moveit_commander.MoveGroupCommander(group_name)
         ready_state = group.get_current_joint_values()
         # Plan and execute the arm movement to the target pose
-        group.set_pose_target(target_pose) # approach pose
-        group.go(wait=True)
+
+        group.set_planner_id("RRTConnectkConfigDefault")
+        velocity_scaling_argument = 0.2
+        acceleration_scaling_argument = 0.2
+        group.set_max_velocity_scaling_factor(velocity_scaling_argument)
+        group.set_max_vacceleration_scaling_factor(acceleration_scaling_argument)
+
+        group.set_joint_value_target(ready_state)
+        plan = group.plan()
+        plan2 = group.retime_trajectory(robot.get_current_state(), plan, velocity_scaling_argument)
+
+
+
+        group.set_pose_target(target_pose)  # approach pose
+        success, plan, some_float, some_val = group.plan()
+
+        time.sleep(1)
+
+        group.execute(plan, wait=True)
+        group.stop()
+        # group.go(wait=True)
         group.clear_pose_targets()
 
-        group.set_pose_target(target_pose_grip) # grasp pose
-        group.go(wait=True)
+        time.sleep(1)
+
+        group.set_pose_target(target_pose_grip)  # grasp pose
+        success, plan, some_float, some_val = group.plan()
+
+        group.execute(plan, wait=True)
+        group.stop()
+        # group.go(wait=True)
         group.clear_pose_targets()
+
+        time.sleep(1)
 
         client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
 
@@ -137,15 +170,20 @@ class MoveArmActionServer(object):
 
         client.send_goal(goal, done_cb=self.mini_goal_callback)
 
-        rospy.Rate(1).sleep()
+        # rospy.Rate(1).sleep()
+        time.sleep(1)
 
         group.set_pose_target(target_pose)
-        group.go(wait=True)
-        group.clear_pose_targets()
+        success, plan, some_float, some_val = group.plan()
 
-        group.go(ready_state)
-        group.clear_pose_targets()
+        group.execute(plan, wait=True)
         group.stop()
+        # group.go(wait=True)
+        group.clear_pose_targets()
+        time.sleep(1)
+        group.go(ready_state, wait=True)
+        group.stop()
+        group.clear_pose_targets()
 
 
         # DONT USE THIS
