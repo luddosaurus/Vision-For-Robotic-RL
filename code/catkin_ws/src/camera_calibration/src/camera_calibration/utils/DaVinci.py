@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 
 # Draw stuffs on images
@@ -130,3 +131,16 @@ class DaVinci:
         cv2.circle(img=image, center=(int(corner[0][0]), int(corner[0][1])), radius=10, color=(255, 255, 0),
                    thickness=-1)
         return image
+
+    @staticmethod
+    def pad_image(image):
+        # height, width = image.shape[:2]
+        padded_image = np.pad(image, ((100, 100, 3), (0, 0, 0)), mode='constant')
+        return padded_image
+
+    @staticmethod
+    def pad_image_cv(image, top_pad=200, bottom_pad=200, right_pad=200, left_pad=200, color=(0, 0, 0)):
+
+        padded_image = cv2.copyMakeBorder(image, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT,
+                                          value=color)
+        return padded_image

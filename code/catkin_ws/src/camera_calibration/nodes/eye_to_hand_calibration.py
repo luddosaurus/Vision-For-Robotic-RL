@@ -85,6 +85,7 @@ class ExtrinsicEstimator(object):
         if load_data_directory is not None:
             self.load(load_data_directory)
         self.save_directory = save_data_directory
+        self.toggle_marker_calibration = False
 
     def camera_callback(self, input_image):
         try:
@@ -95,34 +96,53 @@ class ExtrinsicEstimator(object):
 
         self.collect_camera_target_transform()
 
-        if self.cameras_published:
-            # self.publish_camera_estimates()
+        # if self.cameras_published:
+        #     # self.publish_camera_estimates()
+        #     TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+        #                                                parent_name='camera_estimate0',
+        #                                                child_name='charuco',
+        #                                                transform_stamped=self.transform_memory[-1])
+
+        if self.toggle_marker_calibration:
+            mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.transform_memory)
+
+            # translation, rotation = TypeConverter.extract_translation_rotation(
+            #     self.transform_memory[-1])
             TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-                                                       parent_name='camera_estimate0',
-                                                       child_name='charuco',
-                                                       transform_stamped=self.transform_memory[-1])
+                                                       parent_name='charuco',
+                                                       child_name='camera_estimate',
+                                                       transform_stamped=TypeConverter.invert_transform_tf(
+                                                           mean_translation, mean_rotation))
+            print(self.get_transform_between('world', 'camera_estimate'))
+            # self.get_transform_between()
 
         # ---------------------- GUI
-        info = "| [q]uit " \
-               "| [s]ave " \
-               "| [u]ndo " \
-               "| [r]un solver " \
-               "| [e]xtensive run " \
-               "| [c]ollect|"
+        info = "[q]uit " \
+               "[s]ave " \
+               "[u]ndo " \
+               "[r]un_solver " \
+               "[e]xtensive_run " \
+               "[c]ollect"
+        display_image = DaVinci.pad_image_cv(self.current_image)
         DaVinci.draw_text_box_in_corner(
-            image=self.current_image,
+            image=display_image,
             text=info,
             position="bottom_left",
             thickness=1,
-            font_scale=0.8
+            font_scale=0.8,
+            background=(0, 0, 0)
         )
         DaVinci.draw_text_box_in_corner(
-            image=self.current_image,
+            image=display_image,
             text=f'Number of transforms captured: {len(self.transforms_camera2charuco)}',
-            position='top_left'
+            position='top_left',
+            background=(0, 0, 0),
+            thickness=1,
+            font_scale=0.8,
         )
         # resized_image = DaVinci.resize(self.current_image.copy())
-        cv2.imshow('External calibration display', self.current_image)
+
+        cv2.imshow('External calibration display', display_image)
 
         # ---------------------- Input
         key = cv2.waitKey(1) & 0xFF
@@ -162,6 +182,8 @@ class ExtrinsicEstimator(object):
                                            hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
                                            directory_name=self.save_directory)
             # self.save()
+        elif key == ord('t'):
+            self.toggle_marker_calibration = not self.toggle_marker_calibration
 
     def solve_all_methods(self):
         self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,

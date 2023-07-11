@@ -7,10 +7,12 @@ import sys
 import copy
 import rospy
 import moveit_commander
-import moveit_msgs.msg
+from moveit_msgs.msg import MoveGroupActionGoal
 from geometry_msgs.msg import Pose
 from control_msgs.msg import GripperCommandAction, GripperCommandGoal
 import actionlib
+
+
 
 from my_robot_msgs.msg import MoveArmAction, MoveArmFeedback, MoveArmResult
 
@@ -72,6 +74,17 @@ class MoveArmActionServer(object):
         pose.orientation.w = rotation[3]
 
         return pose
+
+
+
+    def move_to_pose(pose):
+        goal_msg = MoveGroupActionGoal()
+        goal_msg.goal.pose = pose
+
+        # Publish the goal message to the move_group/goal topic
+        goal_pub = rospy.Publisher('/move_group/goal', MoveGroupActionGoal, queue_size=10)
+
+        goal_pub.publish(goal_msg)
 
     def grip(self, translation, rotation, joint_state, open_before_move=False):
         if open_before_move:

@@ -55,6 +55,15 @@ class TypeConverter:
                                                           child_frame=stamped_transform.header.frame_id)
 
     @staticmethod
+    def invert_transform_tf(trans, rot):
+        transform = tf.transformations.concatenate_matrices(tf.transformations.translation_matrix(trans),
+                                                            tf.transformations.quaternion_matrix(rot))
+        inversed_transform = tf.transformations.inverse_matrix(transform)
+        translation = tf.transformations.translation_from_matrix(inversed_transform)
+        quaternion = tf.transformations.quaternion_from_matrix(inversed_transform)
+        return TypeConverter.vectors_to_stamped_transform(translation, quaternion, child_frame='camera_estimate', parent_frame='charuco')
+
+    @staticmethod
     def rotation_vector_to_quaternions(rotation_vector):
         # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
 
@@ -139,6 +148,25 @@ class TypeConverter:
         q = q / q_norm
 
         return q
+
+    @staticmethod
+    def extract_translation_rotation(transform):
+        # Extract the translation components
+        translation = np.array([
+            transform.transform.translation.x,
+            transform.transform.translation.y,
+            transform.transform.translation.z
+        ])
+
+        # Extract the rotation components
+        rotation = np.array([
+            transform.transform.rotation.x,
+            transform.transform.rotation.y,
+            transform.transform.rotation.z,
+            transform.transform.rotation.w
+        ])
+
+        return translation, rotation
 
     @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):
