@@ -1,5 +1,7 @@
 #! /usr/bin/env python3.8
+import os
 
+import rospkg
 import rospy
 import cv2
 import numpy as np
@@ -42,6 +44,9 @@ class ObjectFinder:
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
+        self.depth_image = None
+
+        self.camera_name = camera_topic
 
         # todo get camera pose in world frame
         self.window = 'ColorDetection'
@@ -50,11 +55,11 @@ class ObjectFinder:
         self.current_image = None
 
         self.camera_subscriber = rospy.Subscriber(
-            camera_topic,
+            camera_topic + '/color/image_raw',
             Image, self.camera_color_callback)
         if self.pose_estimate:
             print('estimating pose')
-            self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
+            self.aligned_depth_subscriber = rospy.Subscriber(camera_topic + '/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -82,8 +87,6 @@ class ObjectFinder:
 
         self.cube_poses = {1: None, 2: None, 3: None, 4: None}
         self.total_height = 0
-
-        self.depth_image = None
 
     def create_layout(self):
         cv2.namedWindow(self.window)
@@ -196,7 +199,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name='cam_wrist',
+                                           parent_name=self.camera_name,
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)
@@ -229,7 +232,8 @@ class ObjectFinder:
 
         # Find center
         self.center_x, self.center_y = self.cof.find_mask_center(mask_image)
-        self.colorize_depth_image()
+        if self.depth_image is not None:
+            self.colorize_depth_image()
         pose_info = ""
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
@@ -421,31 +425,49 @@ class ObjectFinder:
         self.cube_poses[key] = current_cube_transform
 
 
-def load_intrinsics(eye_in_hand):
-    camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_default_480p')
-    camera_matrix = np.array(camera_intrinsics['camera_matrix'])
-    distortion = np.array(camera_intrinsics['distortion'])
+def load_intrinsics(topics, intrinsic_names):
+    print("ArUcoFinder launched with internal parameters:")
+    camera_matrices = dict()
+    for camera, topic in zip(intrinsic_names, topics):
+        camera_intrinsics = JSONHelper.get_camera_intrinsics(camera)
+        camera_matrix = np.array(camera_intrinsics['camera_matrix'])
+        distortion = np.array(camera_intrinsics['distortion'])
 
-    # with np.load(calibration_path_d435 if eye_in_hand else calibration_path_d455) as X:
-    #     intrinsic, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef',
-    #                                                   'rVector', 'tVector')]
-    # print("ArUcoFinder launched with internal parameters:")
-    print(camera_matrix, distortion)
-    return camera_matrix
+        camera_matrices[topic] = camera_matrix
+        print(camera_matrix, distortion)
+    return camera_matrices
 
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
-    find_pose = rospy.get_param(param_name='object_detection/find_pose')
 
-    camera_topic = rospy.get_param(param_name='object_detection/camera_topic')
-    intrinsic_camera = None
+    path = os.path.join(rospkg.RosPack().get_path('object_finder'), 'config/')
+    config_file_name = rospy.get_param(param_name='object_detection/config')
+
+    config_file_path = path + config_file_name
+
+    parameters = JSONHelper.read_json(config_file_path)
+    find_pose = parameters['find_pose']
+    topics = parameters['camera_topic']
+    intrinsic_names = parameters['camera_intrinsics']
+
+    intrinsics = None
     if find_pose:
-        intrinsic_camera = load_intrinsics(eye_in_hand=True)
-    object_finder = ObjectFinder(pose_estimate=find_pose, camera_topic=camera_topic, intrinsic_matrix=intrinsic_camera)
+        intrinsics = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
+
+    # todo make sure topics ans intrinsics are aligned
+    object_finder = ObjectFinder(
+        pose_estimate=find_pose, camera_topic=topics[0], intrinsic_matrix=intrinsics[topics[0]]
+    )
+
+    # Update Freq
+    rate = rospy.Rate(10)
 
     try:
         rospy.spin()
+        rate.sleep()
+
     except KeyboardInterrupt:
         print('Shutting down.')
+
     cv2.destroyAllWindows()
