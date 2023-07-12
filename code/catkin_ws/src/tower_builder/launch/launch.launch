@@ -1,0 +1,14 @@
+<launch>
+    <arg name="config" default="default_values"/>
+
+    <node
+            pkg="tower_builder"
+            type="tower_builder_script.py"
+            name="tower_builder_node"
+            output="screen">
+
+        <param name="config" value="$(arg config)"/>
+
+    </node>
+
+</launch>

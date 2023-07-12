@@ -333,7 +333,6 @@ class ColorObjectFinder:
         return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
             diff_saturation), int(diff_value)
 
-
     @staticmethod
     def calculate_distance(value1, value2):
         span = 179

@@ -238,12 +238,12 @@ class ObjectFinder:
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
             self.cof.draw_dot(self.depth_image, self.center_x, self.center_y)
-
+        display_image = self.current_image.copy()
         if self.hovered_x is not None:
-            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
-                                                            x=int(self.hovered_x / self.scale),
-                                                            y=int(self.hovered_y / self.scale),
-                                                            roi=self.roi_size)
+            display_image = DaVinci.draw_roi_rectangle(image=display_image,
+                                                       x=int(self.hovered_x / self.scale),
+                                                       y=int(self.hovered_y / self.scale),
+                                                       roi=self.roi_size)
 
         # Show Image
         mask_ = pilimgage.fromarray(mask_image)
@@ -253,8 +253,8 @@ class ObjectFinder:
         if bbox is not None:
             x1, y1, x2, y2 = bbox
 
-            self.current_image = cv2.rectangle(self.current_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
-        stacked = np.hstack((self.current_image, res))
+            display_image = cv2.rectangle(display_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+        stacked = np.hstack((display_image, res))
 
         info = "[0-9] states, [m]ove to, [q]uit"
         DaVinci.draw_text_box(
