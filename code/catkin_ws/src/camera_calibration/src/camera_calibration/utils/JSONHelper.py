@@ -97,6 +97,20 @@ class JSONHelper(object):
         JSONHelper.save_estimates(estimates, path + '/estimates.json')
 
     @staticmethod
+    def save_live_estimate_result(eye_in_hand, estimates, directory_name):
+        time = str(datetime.now())
+        if eye_in_hand:
+            path = extrinsic_calibration_results_path + 'eye_in_hand/' + directory_name
+        else:
+            path = extrinsic_calibration_results_path + 'eye_to_hand/' + directory_name
+        if not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            path = path + time
+            os.mkdir(path)
+        JSONHelper.save_estimates(estimates, path + '/live_estimate.json')
+
+    @staticmethod
     def load_transform_list(data):
 
         transforms = []

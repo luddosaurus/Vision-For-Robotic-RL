@@ -93,6 +93,7 @@ class ExtrinsicEstimator(object):
         self.toggle_marker_calibration = False
         self.marker_mode_memory = []
         self.live_camera_estimate_name = 'live_camera_estimate'
+        self.live_estimate_result = None
 
     def camera_callback(self, input_image):
         try:
@@ -112,16 +113,12 @@ class ExtrinsicEstimator(object):
 
         if self.toggle_marker_calibration:
             mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.transform_memory)
-
-            # translation, rotation = TypeConverter.extract_translation_rotation(
-            #     self.transform_memory[-1])
             TFPublish.publish_static_stamped_transform(publisher=self.pub_live_estimate_position,
                                                        parent_name=self.Frame.charuco.name,
                                                        child_name=self.live_camera_estimate_name,
                                                        transform_stamped=TypeConverter.invert_transform_tf(
                                                            mean_translation, mean_rotation))
             print(self.get_transform_between(self.Frame.world.name, self.live_camera_estimate_name))
-            # self.get_transform_between()
 
         # ---------------------- GUI
         info = "[q]uit " \
@@ -172,8 +169,11 @@ class ExtrinsicEstimator(object):
                     self.solve_all_methods()
 
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
-            self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
-            self.transforms_hand2world = self.transforms_hand2world[:-1]
+            if self.toggle_marker_calibration:
+                self.marker_mode_memory = self.marker_mode_memory[:-1]
+            else:
+                self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
+                self.transforms_hand2world = self.transforms_hand2world[:-1]
 
         elif key == ord('e') and len(self.transforms_camera2charuco) >= 3:  # Run
             self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
@@ -181,21 +181,23 @@ class ExtrinsicEstimator(object):
                                                  number_of_transforms=len(self.transforms_camera2charuco))
             self.run_solvers()
 
-        elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Plot
+        elif key == ord('r') and (len(self.transforms_camera2charuco) >= 3 or len(self.marker_mode_memory) > 0):  # Plot
 
             if self.toggle_marker_calibration:
-                if len(self.marker_mode_memory) > 0:
-                    mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.marker_mode_memory)
-                    # mean_live_estimate = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
-                    #                                                                 rotation=mean_rotation,
-                    #                                                                 parent_frame=self.parent_frame_name,
-                    #                                                                 child_frame='mean_live_camera_estimate',
-                    #                                                                 )
-                    TFPublish.publish_static_transform(publisher=self.pub_mean_live_estimate_position,
-                                                       parent_name=self.parent_frame_name,
-                                                       child_name='mean_live_camera_estimate',
-                                                       translation=mean_translation,
-                                                       rotation=mean_rotation)
+                mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.marker_mode_memory)
+                mean_live_estimate = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
+                                                                                rotation=mean_rotation,
+                                                                                parent_frame=self.parent_frame_name,
+                                                                                child_frame='mean_live_camera_estimate',
+                                                                                )
+
+                self.live_estimate_result = mean_live_estimate
+
+                TFPublish.publish_static_transform(publisher=self.pub_mean_live_estimate_position,
+                                                   parent_name=self.parent_frame_name,
+                                                   child_name='mean_live_camera_estimate',
+                                                   translation=mean_translation,
+                                                   rotation=mean_rotation)
             else:
                 self.solve_all_methods()
 
@@ -206,10 +208,15 @@ class ExtrinsicEstimator(object):
                 self.cameras_published = True
 
         elif key == ord('s'):  # Save
-            JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
-                                           hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
-                                           directory_name=self.save_directory)
-            # self.save()
+            if self.toggle_marker_calibration:
+                JSONHelper.save_live_estimate_result(eye_in_hand=self.eye_in_hand, estimate=self.live_estimate_result,
+                                                     directory_name=self.save_directory)
+            else:
+                JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand,
+                                               camera2target=self.transforms_camera2charuco,
+                                               hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
+                                               directory_name=self.save_directory)
+
         elif key == ord('t'):
             self.toggle_marker_calibration = not self.toggle_marker_calibration
 
