@@ -44,7 +44,8 @@ class ExtrinsicEstimator(object):
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
-        self.pub_charuco_position = tf2_ros.StaticTransformBroadcaster()
+        self.pub_live_estimate_position = tf2_ros.StaticTransformBroadcaster()
+        self.pub_mean_live_estimate_position = tf2_ros.StaticTransformBroadcaster()
         # self.listener = tf.TransformListener()
 
         self.camera_subscriber = rospy.Subscriber(camera_topic, Image, self.camera_callback)
@@ -82,10 +83,16 @@ class ExtrinsicEstimator(object):
         self.cameras_published = False
         self.published = False
 
+        self.parent_frame_name = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+
         if load_data_directory is not None:
             self.load(load_data_directory)
         self.save_directory = save_data_directory
+
+        # live marker calibration mode
         self.toggle_marker_calibration = False
+        self.marker_mode_memory = []
+        self.live_camera_estimate_name = 'live_camera_estimate'
 
     def camera_callback(self, input_image):
         try:
@@ -108,12 +115,12 @@ class ExtrinsicEstimator(object):
 
             # translation, rotation = TypeConverter.extract_translation_rotation(
             #     self.transform_memory[-1])
-            TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-                                                       parent_name='charuco',
-                                                       child_name='camera_estimate',
+            TFPublish.publish_static_stamped_transform(publisher=self.pub_live_estimate_position,
+                                                       parent_name=self.Frame.charuco.name,
+                                                       child_name=self.live_camera_estimate_name,
                                                        transform_stamped=TypeConverter.invert_transform_tf(
                                                            mean_translation, mean_rotation))
-            print(self.get_transform_between('world', 'camera_estimate'))
+            print(self.get_transform_between(self.Frame.world.name, self.live_camera_estimate_name))
             # self.get_transform_between()
 
         # ---------------------- GUI
@@ -122,7 +129,8 @@ class ExtrinsicEstimator(object):
                "[u]ndo " \
                "[r]un_solver " \
                "[e]xtensive_run " \
-               "[c]ollect"
+               "[c]ollect " \
+               "[t]oggle_mode"
         display_image = DaVinci.pad_image_cv(self.current_image)
         DaVinci.draw_text_box_in_corner(
             image=display_image,
@@ -152,11 +160,16 @@ class ExtrinsicEstimator(object):
             rospy.signal_shutdown('We are done here')
 
         elif key == ord('c'):  # Collect
-            self.save_camera_target_transform()
-            self.collect_robot_transforms()
-            if len(self.transforms_camera2charuco) > len(self.transforms_hand2world):
-                self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
-                self.solve_all_methods()
+            if self.toggle_marker_calibration:
+                self.marker_mode_memory.append(
+                    self.get_transform_between(self.parent_frame_name, self.live_camera_estimate_name))
+
+            else:
+                self.save_camera_target_transform()
+                self.collect_robot_transforms()
+                if len(self.transforms_camera2charuco) > len(self.transforms_hand2world):
+                    self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
+                    self.solve_all_methods()
 
         elif key == ord('u') and len(self.transforms_camera2charuco) > 0:  # Undo
             self.transforms_camera2charuco = self.transforms_camera2charuco[:-1]
@@ -169,13 +182,28 @@ class ExtrinsicEstimator(object):
             self.run_solvers()
 
         elif key == ord('r') and len(self.transforms_camera2charuco) >= 3:  # Plot
-            self.solve_all_methods()
 
-            frame_methods = TypeConverter.convert_to_dataframe(self.pose_estimations_all_algorithms)
-            self.calculate_mean_estimate()
-            self.pretty_print_transforms(self.pose_estimations_all_algorithms)
-            HarryPlotter.plot_poses(frame_methods)
-            self.cameras_published = True
+            if self.toggle_marker_calibration:
+                if len(self.marker_mode_memory) > 0:
+                    mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.marker_mode_memory)
+                    # mean_live_estimate = TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
+                    #                                                                 rotation=mean_rotation,
+                    #                                                                 parent_frame=self.parent_frame_name,
+                    #                                                                 child_frame='mean_live_camera_estimate',
+                    #                                                                 )
+                    TFPublish.publish_static_transform(publisher=self.pub_mean_live_estimate_position,
+                                                       parent_name=self.parent_frame_name,
+                                                       child_name='mean_live_camera_estimate',
+                                                       translation=mean_translation,
+                                                       rotation=mean_rotation)
+            else:
+                self.solve_all_methods()
+
+                frame_methods = TypeConverter.convert_to_dataframe(self.pose_estimations_all_algorithms)
+                self.calculate_mean_estimate()
+                self.pretty_print_transforms(self.pose_estimations_all_algorithms)
+                HarryPlotter.plot_poses(frame_methods)
+                self.cameras_published = True
 
         elif key == ord('s'):  # Save
             JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand, camera2target=self.transforms_camera2charuco,
@@ -191,10 +219,9 @@ class ExtrinsicEstimator(object):
                                              number_of_transforms=len(self.transforms_camera2charuco))
         if len(self.transforms_camera2charuco) >= 3:
             self.pose_estimations_all_algorithms = self.eye_hand_solver.solve_all_algorithms()
-            parent_frame_name = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
 
             self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms,
-                                                                          parent_frame_name)
+                                                                          self.parent_frame_name)
 
     def collect_camera_target_transform(self):
         self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
@@ -256,10 +283,10 @@ class ExtrinsicEstimator(object):
         rotation, translation = self.pose_estimations_all_algorithms[0][0]
         rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
         pub_tf_static = tf2_ros.TransformBroadcaster()
-        parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+
         # pub_tf_static.sendTransform(self.camera_estimates[0])
         TFPublish.publish_static_transform(publisher=pub_tf_static,
-                                           parent_name=parent_frame,
+                                           parent_name=self.parent_frame_name,
                                            child_name=f'camera_estimate0',
                                            rotation=rotation, translation=translation)
 
@@ -270,10 +297,10 @@ class ExtrinsicEstimator(object):
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
             if not np.isnan(rotation).any() and not np.isnan(translation).any():
                 pub_tf_static = tf2_ros.StaticTransformBroadcaster()
-                parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
+
                 for i in range(100):
                     TFPublish.publish_static_transform(publisher=pub_tf_static,
-                                                       parent_name=parent_frame,
+                                                       parent_name=self.parent_frame_name,
                                                        child_name=f'camera_estimate{method}',
                                                        rotation=rotation, translation=translation)
                 self.published = True
@@ -282,8 +309,8 @@ class ExtrinsicEstimator(object):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
         pose_estimations_methods = self.eye_hand_solver.solve_all_algorithms()
         pose_estimations_method_samples = self.eye_hand_solver.solve_all_method_samples()
-        parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
-        self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods, parent_frame)
+
+        self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods, self.parent_frame_name)
         self.calculate_mean_estimate()
         for method in self.methods:
             rotation, translation = pose_estimations_methods[method][0]
@@ -295,7 +322,7 @@ class ExtrinsicEstimator(object):
             print(f'method: {method}\nrotation: {rotation}\ntranslation: {translation}')
             pub_tf_static = tf2_ros.StaticTransformBroadcaster()
 
-            TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name=parent_frame,
+            TFPublish.publish_static_transform(publisher=pub_tf_static, parent_name=self.parent_frame_name,
                                                child_name=f'camera_estimate{method}',
                                                rotation=rotation, translation=translation)
 
@@ -340,9 +367,9 @@ class ExtrinsicEstimator(object):
         HarryPlotter.plot_distance_density(frame_samples, rotation_columns)
 
         # # Variance
-        frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
-
-        HarryPlotter.stacked_histogram(frame_variance)
+        # frame_variance = ErrorEstimator.calculate_variance_by_category(frame_samples)
+        #
+        # HarryPlotter.stacked_histogram(frame_variance)
 
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
