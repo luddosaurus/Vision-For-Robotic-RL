@@ -81,6 +81,17 @@ class JSONHelper(object):
         return JSONHelper.load_transform_list(camera2target_data), JSONHelper.load_transform_list(hand2world_data)
 
     @staticmethod
+    def load_live_estimate_data(load_data_directory, eye_in_hand):
+        if eye_in_hand:
+            path = extrinsic_calibration_results_path + 'eye_in_hand/' + load_data_directory
+        else:
+            path = extrinsic_calibration_results_path + 'eye_to_hand/' + load_data_directory
+
+        live_estimate_data = JSONHelper.read_json(path + '/live_estimate_data')
+
+        return JSONHelper.load_transform_list(live_estimate_data)
+
+    @staticmethod
     def save_extrinsic_data(eye_in_hand, camera2target, hand2world, estimates, directory_name):
         time = str(datetime.now())
         if eye_in_hand:
@@ -97,7 +108,7 @@ class JSONHelper(object):
         JSONHelper.save_estimates(estimates, path + '/estimates.json')
 
     @staticmethod
-    def save_live_estimate_result(eye_in_hand, estimates, directory_name):
+    def save_live_estimate_result(eye_in_hand, estimates, data_points, directory_name):
         time = str(datetime.now())
         if eye_in_hand:
             path = extrinsic_calibration_results_path + 'eye_in_hand/' + directory_name
@@ -108,7 +119,8 @@ class JSONHelper(object):
         else:
             path = path + time
             os.mkdir(path)
-        JSONHelper.save_estimates(estimates, path + '/live_estimate.json')
+        JSONHelper.save_transform_list(data_points, path + '/live_estimate_data.json')
+        JSONHelper.save_estimates(estimates, path + '/live_estimate_result.json')
 
     @staticmethod
     def load_transform_list(data):

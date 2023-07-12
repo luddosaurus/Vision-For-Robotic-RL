@@ -69,10 +69,8 @@ class ExtrinsicEstimator(object):
         # self.tf_subscriber = rospy.Subscriber('/tf', TFMessage, self.callback)
         self.transforms_hand2world = []
         self.transforms_camera2charuco = []
-        self.camera_estimates = {}
+        self.camera_estimates = []
         self.pose_estimations_all_algorithms = None
-
-        self.start_time = time()
 
         self.memory_size = memory_size
         self.current_image = None
@@ -80,8 +78,6 @@ class ExtrinsicEstimator(object):
         self.eye_hand_solver = None
 
         self.eye_in_hand = eye_in_hand
-        self.cameras_published = False
-        self.published = False
 
         self.parent_frame_name = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
 
@@ -103,13 +99,6 @@ class ExtrinsicEstimator(object):
             print(e)
 
         self.collect_camera_target_transform()
-
-        # if self.cameras_published:
-        #     # self.publish_camera_estimates()
-        #     TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-        #                                                parent_name='camera_estimate0',
-        #                                                child_name='charuco',
-        #                                                transform_stamped=self.transform_memory[-1])
 
         if self.toggle_marker_calibration:
             mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.transform_memory)
@@ -145,7 +134,6 @@ class ExtrinsicEstimator(object):
             thickness=1,
             font_scale=0.8,
         )
-        # resized_image = DaVinci.resize(self.current_image.copy())
 
         cv2.imshow('External calibration display', display_image)
 
@@ -205,11 +193,12 @@ class ExtrinsicEstimator(object):
                 self.calculate_mean_estimate()
                 self.pretty_print_transforms(self.pose_estimations_all_algorithms)
                 HarryPlotter.plot_poses(frame_methods)
-                self.cameras_published = True
+
 
         elif key == ord('s'):  # Save
             if self.toggle_marker_calibration:
                 JSONHelper.save_live_estimate_result(eye_in_hand=self.eye_in_hand, estimate=self.live_estimate_result,
+                                                     data_points=self.marker_mode_memory,
                                                      directory_name=self.save_directory)
             else:
                 JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand,
@@ -283,8 +272,12 @@ class ExtrinsicEstimator(object):
             return None
 
     def load(self, load_data_directory):
-        self.transforms_camera2charuco, self.transforms_hand2world = JSONHelper.load_extrinsic_data(load_data_directory,
-                                                                                                    self.eye_in_hand)
+        if self.toggle_marker_calibration:
+            self.marker_mode_memory = JSONHelper.load_live_estimate_data(load_data_directory, self.eye_in_hand)
+        else:
+            self.transforms_camera2charuco, self.transforms_hand2world = JSONHelper.load_extrinsic_data(
+                load_data_directory,
+                self.eye_in_hand)
 
     def publish_camera_estimates(self):
         rotation, translation = self.pose_estimations_all_algorithms[0][0]
@@ -310,7 +303,6 @@ class ExtrinsicEstimator(object):
                                                        parent_name=self.parent_frame_name,
                                                        child_name=f'camera_estimate{method}',
                                                        rotation=rotation, translation=translation)
-                self.published = True
 
     def run_solvers(self):
         pose_estimations_samples = self.eye_hand_solver.solve_all_sample_combos(solve_method=self.methods[0])
@@ -381,10 +373,9 @@ class ExtrinsicEstimator(object):
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
         # print(mean_translation, mean_rotation)
-        parent_frame = self.Frame.panda_hand.name if self.eye_in_hand else self.Frame.world.name
         self.camera_estimates.append(TypeConverter.vectors_to_stamped_transform(translation=mean_translation,
                                                                                 rotation=mean_rotation,
-                                                                                parent_frame=parent_frame,
+                                                                                parent_frame=self.parent_frame_name,
                                                                                 child_frame='camera_estimate_MEAN'))
 
 
