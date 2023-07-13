@@ -1,8 +1,8 @@
 <launch>
-    <arg name="config" default="default_values"/>
+    <arg name="config" default="hsv_export_default"/>
 
     <node
-            pkg="tower_builder"
+            pkg="object_finder"
             type="tower_builder_script.py"
             name="tower_builder_node"
             output="screen">

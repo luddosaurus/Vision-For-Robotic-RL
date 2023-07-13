@@ -1,0 +1,46 @@
+{
+  "1": {
+    "0": {
+      "hue": 75,
+      "saturation": 204,
+      "value": 113,
+      "hue_margin": 0,
+      "saturation_margin": 8,
+      "value_margin": 3,
+      "noise": 5,
+      "fill": 10
+    },
+    "1": {
+      "hue": 102,
+      "saturation": 245,
+      "value": 123,
+      "hue_margin": 0,
+      "saturation_margin": 40,
+      "value_margin": 21,
+      "noise": 5,
+      "fill": 10
+    }
+  },
+  "2": {
+    "0": {
+      "hue": 24,
+      "saturation": 117,
+      "value": 209,
+      "hue_margin": 1,
+      "saturation_margin": 40,
+      "value_margin": 40,
+      "noise": 5,
+      "fill": 10
+    },
+    "1": {
+      "hue": 173,
+      "saturation": 155,
+      "value": 205,
+      "hue_margin": 2,
+      "saturation_margin": 28,
+      "value_margin": 40,
+      "noise": 2,
+      "fill": 5
+    }
+  }
+}
