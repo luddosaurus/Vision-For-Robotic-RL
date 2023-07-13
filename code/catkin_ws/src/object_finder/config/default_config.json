@@ -1,13 +1,14 @@
 {
   "find_pose": false,
   "camera_topics": [
-    "camera",
-    "cam_top",
-    "cam_front"
+    "cam_wrist",
+    "cam_front",
+    "cam_top"
   ],
   "camera_intrinsics": [
     "d435_default_480p",
-    "cam_top_default",
-    "cam_front_default"
+    "cam_front_default",
+    "cam_top_default"
+
   ]
 }

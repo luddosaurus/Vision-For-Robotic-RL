@@ -274,9 +274,9 @@ class ColorObjectFinder:
         hue, saturation, value = cv2.split(image)
         data = {'hue': hue.flatten(), 'saturation': saturation.flatten(), 'value': value.flatten()}
         df = pd.DataFrame(data)
-        plt.figure()
-        df['hue'].hist(bins=179)
-        plt.show()
+        # plt.figure()
+        # df['hue'].hist(bins=179)
+        # plt.show()
         q1 = df.quantile(0.25)
         q3 = df.quantile(0.75)
         iqr = q3 - q1
@@ -286,10 +286,10 @@ class ColorObjectFinder:
         true_list = ~((df < (q1 - 1.5 * iqr)) | (df > (q3 + 1.5 * iqr)))
         subset = df[true_list]
         subset = subset.dropna()
-
-        plt.figure()
-        subset['hue'].hist(bins=179)
-        plt.show()
+        #
+        # plt.figure()
+        # subset['hue'].hist(bins=179)
+        # plt.show()
 
         means = subset.mean()
         max_values = subset.max()
@@ -306,7 +306,7 @@ class ColorObjectFinder:
         # z_scores = stats.zscore(value.flatten())
         # value = value.flatten()[np.abs(z_scores) < 1]
         # print(hue, saturation, value)
-        diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
+        # diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
         diff_saturation = ColorObjectFinder.calculate_distance(min_values['saturation'], max_values['saturation'])
         diff_value = max_values['value'] - min_values['value']
 
@@ -323,8 +323,8 @@ class ColorObjectFinder:
         #         count += 1
         #     print('total_sum: ', total_sum/count)
 
-        mean_hue = ColorObjectFinder.average(subset['hue'])
-        print(mean_hue)
+        # mean_hue = ColorObjectFinder.average(subset['hue'])
+        # print(mean_hue)
 
         # Calculate average hue, saturation, and value
         # avg_hue = int(np.mean(hue))
@@ -333,8 +333,10 @@ class ColorObjectFinder:
 
         hue_avg, hue_diff = ColorObjectFinder.wrapped_hue(image)
 
-        return hue_avg, int(means['saturation']), int(means['value']), hue_diff, int(
-            diff_saturation), int(diff_value)
+        print(hue_avg, hue_diff)
+
+        return round(hue_avg), round(means['saturation']), round(means['value']), round(hue_diff), round(
+            diff_saturation), round(diff_value)
 
     @staticmethod
     def wrapped_hue(image):

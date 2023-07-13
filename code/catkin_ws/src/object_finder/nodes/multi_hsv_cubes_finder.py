@@ -63,9 +63,9 @@ class ObjectFinder:
         self.saved_block_colors = []
         # Camera COLOR Topics
 
-        self.hand_subscriber = rospy.Subscriber('camera/color/image_raw', Image, callback=self.callback_hand)
-        self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw', Image, callback=self.callback_front)
-        self.top_subscriber = rospy.Subscriber('cam_top/color/image_raw', Image, callback=self.callback_top)
+        self.hand_subscriber = rospy.Subscriber(f'{camera_topics[0]}/color/image_raw', Image, callback=self.callback_hand)
+        self.front_subscriber = rospy.Subscriber(f'{camera_topics[1]}/color/image_raw', Image, callback=self.callback_front)
+        self.top_subscriber = rospy.Subscriber(f'{camera_topics[2]}/color/image_raw', Image, callback=self.callback_top)
 
         # Camera DEPTH Topics
         if pose_estimation:
@@ -76,7 +76,6 @@ class ObjectFinder:
                     data_class=Image,
                     callback=self.camera_depth_callback,
                     callback_args=camera_topic
-
                 )
 
         # Find Position
@@ -93,6 +92,7 @@ class ObjectFinder:
         self.center_broadcaster = tf2_ros.TransformBroadcaster()
         self.action_client = actionlib.SimpleActionClient('/pick_and_place', MoveArmAction)
         self.action_client.wait_for_server()
+
 
     # ----------------------------------------- UI
 
@@ -264,7 +264,7 @@ class ObjectFinder:
         self.current_segment_dict[topic_name] = segmented_image
 
     def callback_hand(self, image):
-        topic_name = 'camera'
+        topic_name = 'cam_wrist'
         try:
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
             current_image = self.resize_and_crop_image(current_image, width=self.display_width,
