@@ -59,7 +59,7 @@ class ObjectFinderController:
         self.selected_block_colors = []
 
         # Camera COLOR Topics
-        self.hand_subscriber = rospy.Subscriber('camera/color/image_raw',
+        self.hand_subscriber = rospy.Subscriber('cam_wrist/color/image_raw',
                                                 Image, callback=self.callback_hand)
         self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw',
                                                  Image, callback=self.callback_front)
@@ -199,7 +199,7 @@ class ObjectFinderController:
         # Update center coordinates
         self.segment_coordinates[topic_name]['segment_centers_x'] = list()
         self.segment_coordinates[topic_name]['segment_centers_y'] = list()
-        segment_coordinates = self.cof.find_sorted_segment_coordinates(current_color_mask_image)
+        segment_coordinates = self.cof.find_segment_coordinates(current_color_mask_image)
 
         # Draw Centers
         for coordinate in segment_coordinates:
@@ -214,7 +214,7 @@ class ObjectFinderController:
         self.current_segmented_image_dict[topic_name] = segmented_image
 
     def callback_hand(self, image):
-        topic_name = 'camera'
+        topic_name = 'cam_wrist'
         try:
             current_image = self.cv_bridge.imgmsg_to_cv2(image, desired_encoding="bgr8")
             current_image = DaVinci.resize_and_crop_image(
@@ -242,13 +242,13 @@ class ObjectFinderController:
         stacked = np.hstack(images)
 
         self.current_combined_image = stacked
-        self.ui.display_image = cv2.copy(stacked)
+        self.ui.display_image = stacked.copy()
 
     def update_callback(self):
         if not self.ui.gui_created:
             self.ui.create_layout(
                 start_state=self.cof.get_state(),
-                update_value=self.cof.update_color_value,
+                update_value=self.cof.update_value,
                 on_click=self.mouse_callback
             )
 

@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
 
-from Const import Const
+from utils.Const import Const
 
 
 class ColorObjectFinder:
@@ -132,11 +132,11 @@ class ColorObjectFinder:
             mask = cv2.bitwise_or(mask, lower_wrap_mask)
             mask = cv2.bitwise_or(mask, upper_wrap_mask)
 
-            if current_state[self.FILL] > 0:
-                mask = self.fill_holes(mask, current_state[self.FILL])
+            if current_state[Const.FILL] > 0:
+                mask = self.fill_holes(mask, current_state[Const.FILL])
 
-            if current_state[self.NOISE] > 0:
-                mask = self.remove_noise(mask, current_state[self.NOISE])
+            if current_state[Const.NOISE] > 0:
+                mask = self.remove_noise(mask, current_state[Const.NOISE])
 
             final_mask = cv2.bitwise_or(mask, final_mask)
 
@@ -325,7 +325,6 @@ class ColorObjectFinder:
             return (((mi + span) + ma) / 2.) % span
         else:
             print(mi, ma)
-            return (mi + ma) / 2.
 
     def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
 

@@ -1,7 +1,7 @@
 import cv2
 
-from Const import Const
-from DaVinci import DaVinci
+from utils.Const import Const
+from utils.DaVinci import DaVinci
 
 
 class UI:

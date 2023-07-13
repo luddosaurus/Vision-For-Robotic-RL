@@ -1,4 +1,6 @@
 __all__ = [
     "ColorObjectFinder",
-    "DaVinci"
+    "DaVinci",
+    "Const",
+    "UI"
 ]
