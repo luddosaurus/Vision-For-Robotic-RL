@@ -331,11 +331,13 @@ class ColorObjectFinder:
         # avg_saturation = int(np.mean(saturation))
         # avg_value = int(np.mean(value))
 
-        return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
+        hue_avg, hue_diff = ColorObjectFinder.wrapped_hue(image)
+
+        return hue_avg, int(means['saturation']), int(means['value']), hue_diff, int(
             diff_saturation), int(diff_value)
 
     @staticmethod
-    def wrapped_hue(image, roi):
+    def wrapped_hue(image):
         # roi = 100
         # image = cv2.cvtColor(image[:roi, :roi], cv2.COLOR_BGR2HSV)
         hue, saturation, value = cv2.split(image)
@@ -345,15 +347,15 @@ class ColorObjectFinder:
         hue_mean = circmean(hue_list, high=179, low=0)
         hue_std = circstd(hue_list, high=179, low=0)
         hue_var = circvar(hue_list, high=179, low=0)
-        print(hue_mean)
-        print(hue_std)
-        print(hue_var)
+        # print(hue_mean)
+        # print(hue_std)
+        # print(hue_var)
 
         # Remove circular outliers based on quantiles
         q1 = np.percentile(hue_list, 25)
         q4 = np.percentile(hue_list, 75)
         hue_filtered = [val for val in hue_list if q1 <= val <= q4]
-
+        # todo try variance on hue_filtered
         hue_diff = hue_var * 179
 
         return hue_mean, hue_diff
