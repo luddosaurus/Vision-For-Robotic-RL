@@ -59,12 +59,10 @@ class ObjectFinderController:
         self.selected_block_colors = []
 
         # Camera COLOR Topics
-        self.hand_subscriber = rospy.Subscriber('cam_wrist/color/image_raw',
-                                                Image, callback=self.callback_hand)
-        self.front_subscriber = rospy.Subscriber('cam_front/color/image_raw',
-                                                 Image, callback=self.callback_front)
-        self.top_subscriber = rospy.Subscriber('cam_top/color/image_raw',
-                                               Image, callback=self.callback_top)
+
+        self.hand_subscriber = rospy.Subscriber(f'{camera_topics[0]}/color/image_raw', Image, callback=self.callback_hand)
+        self.front_subscriber = rospy.Subscriber(f'{camera_topics[1]}/color/image_raw', Image, callback=self.callback_front)
+        self.top_subscriber = rospy.Subscriber(f'{camera_topics[2]}/color/image_raw', Image, callback=self.callback_top)
 
         # Camera DEPTH Topics
         if pose_estimation:
@@ -75,7 +73,6 @@ class ObjectFinderController:
                     data_class=Image,
                     callback=self.camera_depth_callback,
                     callback_args=camera_topic
-
                 )
 
         # Find Position

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.stats import circmean, circstd, circvar
 
 from utils.Const import Const
 
@@ -155,23 +156,6 @@ class ColorObjectFinder:
             return None, None
 
     @staticmethod
-    def find_sorted_segment_coordinates(mask):
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
-
-        areas = stats[:, cv2.CC_STAT_AREA]
-        sorted_indices = np.argsort(areas)[::-1]
-
-        center_coordinates = []
-        for idx in sorted_indices:
-            center_x, center_y = centroids[idx]
-            center_coordinates.append((int(center_x), int(center_y)))
-
-        if len(center_coordinates) >= 7:
-            return center_coordinates[:7]
-
-        return center_coordinates
-
-    @staticmethod
     def find_segment_coordinates(mask):
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
 
@@ -238,9 +222,9 @@ class ColorObjectFinder:
         hue, saturation, value = cv2.split(image)
         data = {'hue': hue.flatten(), 'saturation': saturation.flatten(), 'value': value.flatten()}
         df = pd.DataFrame(data)
-        plt.figure()
-        df['hue'].hist(bins=179)
-        plt.show()
+        # plt.figure()
+        # df['hue'].hist(bins=179)
+        # plt.show()
         q1 = df.quantile(0.25)
         q3 = df.quantile(0.75)
         iqr = q3 - q1
@@ -250,10 +234,10 @@ class ColorObjectFinder:
         true_list = ~((df < (q1 - 1.5 * iqr)) | (df > (q3 + 1.5 * iqr)))
         subset = df[true_list]
         subset = subset.dropna()
-
-        plt.figure()
-        subset['hue'].hist(bins=179)
-        plt.show()
+        #
+        # plt.figure()
+        # subset['hue'].hist(bins=179)
+        # plt.show()
 
         means = subset.mean()
         max_values = subset.max()
@@ -274,11 +258,8 @@ class ColorObjectFinder:
         # z_scores = stats.zscore(value.flatten())
         # value = value.flatten()[np.abs(z_scores) < 1]
         # print(hue, saturation, value)
-        diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
-        diff_saturation = ColorObjectFinder.calculate_distance(
-            min_values['saturation'],
-            max_values['saturation']
-        )
+        # diff_hue = ColorObjectFinder.calculate_distance(min_values['hue'], max_values['hue'])
+        diff_saturation = ColorObjectFinder.calculate_distance(min_values['saturation'], max_values['saturation'])
         diff_value = max_values['value'] - min_values['value']
 
         # if max['hue'] - min['hue'] > abs(min['hue'] - (179 - max['hue'])):
@@ -294,16 +275,44 @@ class ColorObjectFinder:
         #         count += 1
         #     print('total_sum: ', total_sum/count)
 
-        mean_hue = ColorObjectFinder.average(subset['hue'])
-        print(mean_hue)
+        # mean_hue = ColorObjectFinder.average(subset['hue'])
+        # print(mean_hue)
 
         # Calculate average hue, saturation, and value
         # avg_hue = int(np.mean(hue))
         # avg_saturation = int(np.mean(saturation))
         # avg_value = int(np.mean(value))
 
-        return int(medians['hue']), int(means['saturation']), int(means['value']), int(diff_hue), int(
-            diff_saturation), int(diff_value)
+        hue_avg, hue_diff = ColorObjectFinder.wrapped_hue(image)
+
+        print(hue_avg, hue_diff)
+
+        return round(hue_avg), round(means['saturation']), round(means['value']), round(hue_diff), round(
+            diff_saturation), round(diff_value)
+
+    @staticmethod
+    def wrapped_hue(image):
+        # roi = 100
+        # image = cv2.cvtColor(image[:roi, :roi], cv2.COLOR_BGR2HSV)
+        hue, saturation, value = cv2.split(image)
+        hue_list = list(hue.flatten())
+
+        # Remove circular outliers
+        hue_mean = circmean(hue_list, high=179, low=0)
+        hue_std = circstd(hue_list, high=179, low=0)
+        hue_var = circvar(hue_list, high=179, low=0)
+        # print(hue_mean)
+        # print(hue_std)
+        # print(hue_var)
+
+        # Remove circular outliers based on quantiles
+        q1 = np.percentile(hue_list, 25)
+        q4 = np.percentile(hue_list, 75)
+        hue_filtered = [val for val in hue_list if q1 <= val <= q4]
+        # todo try variance on hue_filtered
+        hue_diff = hue_var * 179
+
+        return hue_mean, hue_diff
 
     @staticmethod
     def calculate_distance(value1, value2):
@@ -325,6 +334,7 @@ class ColorObjectFinder:
             return (((mi + span) + ma) / 2.) % span
         else:
             print(mi, ma)
+            return (mi + ma) / 2.
 
     def set_image_coordinate_color(self, image, x, y, roi_size, scale=1):
 
