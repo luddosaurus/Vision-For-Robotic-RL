@@ -1,0 +1,5 @@
+{
+  "board_name": "large",
+  "camera_name": "d435_default_480p",
+  "camera_topic": "/cam_wrist/color/image_raw"
+}

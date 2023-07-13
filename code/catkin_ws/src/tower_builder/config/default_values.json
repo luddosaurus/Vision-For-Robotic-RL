@@ -1,0 +1,70 @@
+{
+  "cameras": {
+    "cam_wrist": {
+      "0": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      },
+      "1": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      }
+    },
+    "cam_front": {
+      "0": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      },
+      "1": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      }
+    },
+    "cam_top": {
+      "0": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      },
+      "1": {
+        "hue": 0,
+        "saturation": 0,
+        "value": 0,
+        "hue_margin": 0,
+        "saturation_margin": 0,
+        "value_margin": 0,
+        "noise": 0,
+        "fill": 0
+      }
+    }
+  }
+}

@@ -19,6 +19,11 @@ class TFPublish:
         transform_stamped_msg.header.frame_id = parent_name
         transform_stamped_msg.child_frame_id = child_name
 
+        # Test this!
+        # transform_stamped_msg.header.stamp = rospy.Time.now()
+        # transform_stamped_msg.header.frame_id = transform_stamped.header.frame_id
+        # transform_stamped_msg.child_frame_id = transform_stamped.child_frame_id
+
         transform = transform_stamped.transform
         # Data
         transform_stamped_msg.transform.translation.x = transform.translation.x

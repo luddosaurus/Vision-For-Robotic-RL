@@ -1,7 +1,7 @@
 {
   "EYE_IN_HAND": {
     "frame_id": "panda_hand",
-    "child_frame_id": "eye_in_hand",
+    "child_frame_id": "cam_wrist",
     "translation": {
       "x": 0.033610434992842025,
       "y": -0.03902005597466658,

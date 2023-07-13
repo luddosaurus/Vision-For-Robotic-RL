@@ -9,7 +9,7 @@ if __name__ == '__main__':
     rospy.init_node('webcam_node')
     cap = cv2.VideoCapture(0)
 
-    image_publisher = rospy.Publisher('webcam', Image, queue_size=10)
+    image_publisher = rospy.Publisher('webcam/color/image_raw', Image, queue_size=10)
     cv_bridge = CvBridge()
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)

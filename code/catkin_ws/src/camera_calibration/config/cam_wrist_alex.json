@@ -3,7 +3,7 @@
   "camera_name": "d435_default_480p",
   "mode": "eye_in_hand",
   "camera_topic": "/camera/color/image_raw",
-  "memory_size" : 30,
-  "load_data_directory": "eye_in_hand_estimate_new",
-  "save_data_directory": "eye_in_hand_estimate_mean"
+  "memory_size" : 50,
+  "load_data_directory": null,
+  "save_data_directory": "cam_wrist_alex"
 }

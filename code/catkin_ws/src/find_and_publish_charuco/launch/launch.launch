@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config" default="test_config"/>
+    <node pkg="find_and_publish_charuco" type="charuco_reference.py" name="charuco_position" output="screen">
+
+        <param name="config" value="$(arg config)"/>
+    </node>
+</launch>

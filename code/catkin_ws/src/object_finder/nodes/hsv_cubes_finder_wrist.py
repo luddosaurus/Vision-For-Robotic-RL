@@ -1,11 +1,8 @@
 #! /usr/bin/env python3.8
-import os
 
-import rospkg
 import rospy
 import cv2
 import numpy as np
-from PIL import Image as pilimgage
 
 from camera_calibration.params.calibration import calibration_path_d455, calibration_path_d435
 from camera_calibration.utils.TypeConverter import TypeConverter
@@ -23,10 +20,6 @@ import tf2_ros
 import actionlib
 from my_robot_msgs.msg import MoveArmAction, MoveArmGoal, MoveArmResult, MoveArmFeedback
 
-import matplotlib.pyplot as plt
-import matplotlib.colors as col
-import pandas as pd
-
 
 # todo
 # add finding system
@@ -39,14 +32,11 @@ import pandas as pd
 class ObjectFinder:
 
     def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None):
-        # print(pose_estimate)
+        print(pose_estimate)
         self.pose_estimate = pose_estimate
         self.intrinsic_matrix = intrinsic_matrix
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
-        self.depth_image = None
-
-        self.camera_name = camera_topic
 
         # todo get camera pose in world frame
         self.window = 'ColorDetection'
@@ -55,11 +45,11 @@ class ObjectFinder:
         self.current_image = None
 
         self.camera_subscriber = rospy.Subscriber(
-            camera_topic + '/color/image_raw',
+            camera_topic,
             Image, self.camera_color_callback)
         if self.pose_estimate:
             print('estimating pose')
-            self.aligned_depth_subscriber = rospy.Subscriber(camera_topic + '/aligned_depth_to_color/image_raw', Image,
+            self.aligned_depth_subscriber = rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image,
                                                              self.camera_depth_aligned_callback)
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -87,6 +77,8 @@ class ObjectFinder:
 
         self.cube_poses = {1: None, 2: None, 3: None, 4: None}
         self.total_height = 0
+
+        self.depth_image = None
 
     def create_layout(self):
         cv2.namedWindow(self.window)
@@ -163,7 +155,7 @@ class ObjectFinder:
         # print(aligned_input_depth[a])
         # Find 3D point
         # cv2.imshow('test', aligned_input_depth)
-        if self.center_x is not None and aligned_input_depth is not None and self.center_y is not None:
+        if self.center_x is not None and aligned_input_depth is not None:
             depth_array = np.array(aligned_input_depth, dtype=np.float32)
             # print(depth_array.shape)
             if self.center_x <= depth_array.shape[1] and self.center_y <= depth_array.shape[0]:
@@ -199,7 +191,7 @@ class ObjectFinder:
         #                             translation=[self.center_x, self.center_y, self.center_z], parent_name='camera_estimate0',
         #                             child_name='cube')
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                           parent_name=self.camera_name,
+                                           parent_name='cam_wrist',
                                            child_name=f'cube',
                                            rotation=[0., 0., 0., 1.],
                                            translation=self.position)
@@ -216,45 +208,27 @@ class ObjectFinder:
             self.gui_created = True
         # image = self.current_image
 
-        hsv_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2HSV)
-
-        hues = hsv_image[:, :, :1]
-
-        saturations = hsv_image[:, :, 1:2]
-        values = hsv_image[:, :, 2:]
-
         # Mask
         mask_image = self.cof.get_hsv_mask(image=self.current_image)
-        output = cv2.connectedComponentsWithStats(mask_image)
-
         res = cv2.bitwise_and(self.current_image, self.current_image, mask=mask_image)
         mask = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
         # Find center
         self.center_x, self.center_y = self.cof.find_mask_center(mask_image)
-        if self.depth_image is not None:
-            self.colorize_depth_image()
+        self.colorize_depth_image()
         pose_info = ""
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
             self.cof.draw_dot(self.depth_image, self.center_x, self.center_y)
-        display_image = self.current_image.copy()
+
         if self.hovered_x is not None:
-            display_image = DaVinci.draw_roi_rectangle(image=display_image,
-                                                       x=int(self.hovered_x / self.scale),
-                                                       y=int(self.hovered_y / self.scale),
-                                                       roi=self.roi_size)
+            self.current_image = DaVinci.draw_roi_rectangle(image=self.current_image,
+                                                            x=int(self.hovered_x / self.scale),
+                                                            y=int(self.hovered_y / self.scale),
+                                                            roi=self.roi_size)
 
         # Show Image
-        mask_ = pilimgage.fromarray(mask_image)
-
-        bbox = mask_.getbbox()
-
-        if bbox is not None:
-            x1, y1, x2, y2 = bbox
-
-            display_image = cv2.rectangle(display_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
-        stacked = np.hstack((display_image, res))
+        stacked = np.hstack((self.current_image, res))
 
         info = "[0-9] states, [m]ove to, [q]uit"
         DaVinci.draw_text_box(
@@ -278,7 +252,7 @@ class ObjectFinder:
 
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
-        # cv2.imshow('test', self.depth_image)
+        cv2.imshow('test', self.depth_image)
         # Input
         key = cv2.waitKey(1) & 0xFF
         key_str = chr(key)
@@ -343,43 +317,6 @@ class ObjectFinder:
                 self.roi_size -= 2
         elif key == ord('l'):
             self.roi_size += 2
-        elif key == ord('t'):
-            # shape: (y, x, z)
-
-            x_list = []
-            y_list = []
-
-            for x in range(hues.shape[0]):
-                for y in range(hues.shape[1]):
-                    x_list.append(x)
-                    y_list.append(y)
-            df_hue = pd.DataFrame(
-                {'y': y_list, 'x': x_list, 'hue': hues.flatten()})
-            # self.plot_3d(df_hue)
-            df_h = pd.DataFrame({'hues': hues.flatten()})
-            df_s = pd.DataFrame({'sat': saturations.flatten()})
-            df_v = pd.DataFrame({'val': values.flatten()})
-
-            fig, axes = plt.subplots(1, 3)
-            df_h.hist('hues', ax=axes[0], bins=179)
-            df_s.hist('sat', ax=axes[1], bins=255)
-            df_v.hist('val', ax=axes[2], bins=255)
-            plt.show()
-
-    def plot_3d(self, dataframe):
-        import matplotlib.cm as cm
-        fig = plt.figure()
-        axis = fig.add_subplot(1, 1, 1, projection="3d")
-        x = dataframe['x']
-        y = dataframe['y']
-        z = dataframe['hue']
-        # values for color
-        c = [int(zv / 0.4) for zv in z]
-        # discrete colormap with 3 colors
-        cmap = col.ListedColormap(cm.tab10.colors[:len(np.unique(c))])
-        axis.scatter(x, y, z, c=c, cmap=cmap)
-
-        plt.show()
 
     def call_move_arm(self, pick_pose, place_pose):
         pick_pose_translation = pick_pose.transform.translation
@@ -405,7 +342,7 @@ class ObjectFinder:
             move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
-        #
+        # status = self.action_client.get_state()
         # self.action_client.wait_for_result()
         # print(self.action_client.get_state())
 
@@ -425,49 +362,35 @@ class ObjectFinder:
         self.cube_poses[key] = current_cube_transform
 
 
-def load_intrinsics(topics, intrinsic_names):
-    print("ArUcoFinder launched with internal parameters:")
-    camera_matrices = dict()
-    for camera, topic in zip(intrinsic_names, topics):
-        camera_intrinsics = JSONHelper.get_camera_intrinsics(camera)
-        camera_matrix = np.array(camera_intrinsics['camera_matrix'])
-        distortion = np.array(camera_intrinsics['distortion'])
+def load_intrinsics(eye_in_hand):
+    #camera_intrinsics = JSONHelper.get_camera_intrinsics('cam_top_default')
+    #camera_matrix = np.array(camera_intrinsics['camera_matrix'])
+    #distortion = np.array(camera_intrinsics['distortion'])
+    
+    camera_intrinsics = JSONHelper.get_camera_intrinsics('d435_default_480p')
+    camera_matrix = np.array(camera_intrinsics['camera_matrix'])
+    distortion = np.array(camera_intrinsics['distortion'])
 
-        camera_matrices[topic] = camera_matrix
-        print(camera_matrix, distortion)
-    return camera_matrices
+    # with np.load(calibration_path_d435 if eye_in_hand else calibration_path_d455) as X:
+    #     intrinsic, distortion, _, _ = [X[i] for i in ('camMatrix', 'distCoef',
+    #                                                   'rVector', 'tVector')]
+    # print("ArUcoFinder launched with internal parameters:")
+    print(camera_matrix, distortion)
+    return camera_matrix
 
 
 if __name__ == '__main__':
     rospy.init_node('object_detection')
+    find_pose = rospy.get_param(param_name='object_detection/find_pose')
 
-    path = os.path.join(rospkg.RosPack().get_path('object_finder'), 'config/')
-    config_file_name = rospy.get_param(param_name='object_detection/config')
-
-    config_file_path = path + config_file_name
-
-    parameters = JSONHelper.read_json(config_file_path)
-    find_pose = parameters['find_pose']
-    topics = parameters['camera_topic']
-    intrinsic_names = parameters['camera_intrinsics']
-
-    intrinsics = None
+    camera_topic = rospy.get_param(param_name='object_detection/camera_topic')
+    intrinsic_camera = None
     if find_pose:
-        intrinsics = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
-
-    # todo make sure topics ans intrinsics are aligned
-    object_finder = ObjectFinder(
-        pose_estimate=find_pose, camera_topic=topics[0], intrinsic_matrix=intrinsics[topics[0]]
-    )
-
-    # Update Freq
-    rate = rospy.Rate(10)
+        intrinsic_camera = load_intrinsics(eye_in_hand=True)
+    object_finder = ObjectFinder(pose_estimate=find_pose, camera_topic=camera_topic, intrinsic_matrix=intrinsic_camera)
 
     try:
         rospy.spin()
-        rate.sleep()
-
     except KeyboardInterrupt:
         print('Shutting down.')
-
     cv2.destroyAllWindows()

@@ -55,6 +55,15 @@ class TypeConverter:
                                                           child_frame=stamped_transform.header.frame_id)
 
     @staticmethod
+    def invert_transform_tf(trans, rot):
+        transform = tf.transformations.concatenate_matrices(tf.transformations.translation_matrix(trans),
+                                                            tf.transformations.quaternion_matrix(rot))
+        inversed_transform = tf.transformations.inverse_matrix(transform)
+        translation = tf.transformations.translation_from_matrix(inversed_transform)
+        quaternion = tf.transformations.quaternion_from_matrix(inversed_transform)
+        return TypeConverter.vectors_to_stamped_transform(translation, quaternion, child_frame='camera_estimate', parent_frame='charuco')
+
+    @staticmethod
     def rotation_vector_to_quaternions(rotation_vector):
         # Embed the rotation matrix in a 4x4 transformation matrix for the quaternion
 
@@ -141,12 +150,34 @@ class TypeConverter:
         return q
 
     @staticmethod
+    def extract_translation_rotation(transform):
+        # Extract the translation components
+        translation = np.array([
+            transform.transform.translation.x,
+            transform.transform.translation.y,
+            transform.transform.translation.z
+        ])
+
+        # Extract the rotation components
+        rotation = np.array([
+            transform.transform.rotation.x,
+            transform.transform.rotation.y,
+            transform.transform.rotation.z,
+            transform.transform.rotation.w
+        ])
+
+        return translation, rotation
+
+    @staticmethod
     def vectors_to_stamped_transform(translation, rotation, parent_frame, child_frame):
 
         stamp = rospy.Time.now()
 
         tvec = Vector3()
-        tvec.x, tvec.y, tvec.z = translation.flatten()
+        if translation is not None:
+            tvec.x, tvec.y, tvec.z = translation.flatten()
+        else:
+            tvec.x, tvec.y, tvec.z = 0, 0, 0
 
         rvec = Quaternion()
         rvec.x, rvec.y, rvec.z, rvec.w \
@@ -192,7 +223,13 @@ class TypeConverter:
         for sample_category, poses in sample_transforms.items():
             for r_vec, t_vec in poses:
                 r_vec = TypeConverter.matrix_to_quaternion_vector(r_vec)
-                t_vec = np.array(t_vec).flatten()
+                if t_vec is not None and r_vec is not None:
+                    t_vec = np.array(t_vec).flatten()
+                else:
+                    t_vec = np.zeros((1, 3)).flatten()
+                    r_vec = np.zeros((1, 4)).flatten()
+                    r_vec[3] = 1.0
+
                 data.append([
                     sample_category,
                     t_vec[0], t_vec[1], t_vec[2],
@@ -207,7 +244,8 @@ class TypeConverter:
         return df
 
     @staticmethod
-    def estimates_to_transforms(estimates):
+    def estimates_to_transforms(estimates, parent_frame_name):
+
         methods = ['TSAI', 'PARK', 'HORAUD', 'ANDREFF', 'DANIILIDIS']
         estimate_transforms = []
         for i in range(len(estimates)):
@@ -215,7 +253,7 @@ class TypeConverter:
             rotation_matrix = entry[0][0]
             quaternions = TypeConverter.matrix_to_quaternion_vector(rotation_matrix)
             translation = entry[0][1]
-            transform = TypeConverter.vectors_to_stamped_transform(translation, quaternions, 'world',
+            transform = TypeConverter.vectors_to_stamped_transform(translation, quaternions, parent_frame_name,
                                                                    f'camera_estimate_{methods[i]}')
             estimate_transforms.append(transform)
         return estimate_transforms
