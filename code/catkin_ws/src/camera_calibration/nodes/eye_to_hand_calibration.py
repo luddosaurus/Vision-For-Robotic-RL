@@ -107,7 +107,7 @@ class ExtrinsicEstimator(object):
                                                        child_name=self.live_camera_estimate_name,
                                                        transform_stamped=TypeConverter.invert_transform_tf(
                                                            mean_translation, mean_rotation))
-            print(self.get_transform_between(self.Frame.world.name, self.live_camera_estimate_name))
+
 
         # ---------------------- GUI
         info = "[q]uit " \
@@ -148,6 +148,7 @@ class ExtrinsicEstimator(object):
             if self.toggle_marker_calibration:
                 self.marker_mode_memory.append(
                     self.get_transform_between(self.parent_frame_name, self.live_camera_estimate_name))
+                print(f'collected value: {self.marker_mode_memory[-1]}')
 
             else:
                 self.save_camera_target_transform()
@@ -180,6 +181,7 @@ class ExtrinsicEstimator(object):
                                                                                 )
 
                 self.live_estimate_result = mean_live_estimate
+                print(self.live_estimate_result)
 
                 TFPublish.publish_static_transform(publisher=self.pub_mean_live_estimate_position,
                                                    parent_name=self.parent_frame_name,
@@ -194,9 +196,9 @@ class ExtrinsicEstimator(object):
                 self.pretty_print_transforms(self.pose_estimations_all_algorithms)
                 HarryPlotter.plot_poses(frame_methods)
 
-
         elif key == ord('s'):  # Save
             if self.toggle_marker_calibration:
+                print('saving!')
                 JSONHelper.save_live_estimate_result(eye_in_hand=self.eye_in_hand, estimate=self.live_estimate_result,
                                                      data_points=self.marker_mode_memory,
                                                      directory_name=self.save_directory)
@@ -208,6 +210,8 @@ class ExtrinsicEstimator(object):
 
         elif key == ord('t'):
             self.toggle_marker_calibration = not self.toggle_marker_calibration
+        elif key == ord('p'):
+            print(self.get_transform_between(self.Frame.world.name, self.live_camera_estimate_name))
 
     def solve_all_methods(self):
         self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
@@ -390,7 +394,7 @@ if __name__ == '__main__':
         eye_in_hand = True
     else:
         eye_in_hand = False
-    print(eye_in_hand)
+
     extrinsic_estimator = ExtrinsicEstimator(board_name=board_name, camera_name=camera_name,
                                              eye_in_hand=eye_in_hand,
                                              camera_topic=camera_topic,

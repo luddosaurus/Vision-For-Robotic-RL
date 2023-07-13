@@ -108,7 +108,7 @@ class JSONHelper(object):
         JSONHelper.save_estimates(estimates, path + '/estimates.json')
 
     @staticmethod
-    def save_live_estimate_result(eye_in_hand, estimates, data_points, directory_name):
+    def save_live_estimate_result(eye_in_hand, estimate, data_points, directory_name):
         time = str(datetime.now())
         if eye_in_hand:
             path = extrinsic_calibration_results_path + 'eye_in_hand/' + directory_name
@@ -120,7 +120,9 @@ class JSONHelper(object):
             path = path + time
             os.mkdir(path)
         JSONHelper.save_transform_list(data_points, path + '/live_estimate_data.json')
-        JSONHelper.save_estimates(estimates, path + '/live_estimate_result.json')
+        json_estimate = JSONHelper.create_json_from_estimate(estimate)
+        with open(path + '/live_estimate_result.json', 'w') as f:
+            json.dump(json_estimate, f)
 
     @staticmethod
     def load_transform_list(data):
@@ -167,26 +169,33 @@ class JSONHelper(object):
             json.dump(data, f)
 
     @staticmethod
+    def create_json_from_estimate(estimate):
+
+        estimate_json = {
+            'time': estimate.header.stamp.to_sec(),
+            'frame_id': estimate.header.frame_id,
+            'child_frame_id': estimate.child_frame_id,
+            'translation': {
+                'x': estimate.transform.translation.x,
+                'y': estimate.transform.translation.y,
+                'z': estimate.transform.translation.z
+            },
+            'rotation': {
+                'x': estimate.transform.rotation.x,
+                'y': estimate.transform.rotation.y,
+                'z': estimate.transform.rotation.z,
+                'w': estimate.transform.rotation.w
+            }
+        }
+        return estimate_json
+
+    @staticmethod
     def save_estimates(estimates, path):
         methods = ['TSAI', 'PARK', 'HORAUD', 'ANDREFF', 'DANIILIDIS', 'MEAN']
         estimates_json = {}
         for (method, entry) in zip(methods, estimates):
-            estimates_json[method] = {
-                'time': entry.header.stamp.to_sec(),
-                'frame_id': entry.header.frame_id,
-                'child_frame_id': entry.child_frame_id,
-                'translation': {
-                    'x': entry.transform.translation.x,
-                    'y': entry.transform.translation.y,
-                    'z': entry.transform.translation.z
-                },
-                'rotation': {
-                    'x': entry.transform.rotation.x,
-                    'y': entry.transform.rotation.y,
-                    'z': entry.transform.rotation.z,
-                    'w': entry.transform.rotation.w
-                }
-            }
+            estimates_json[method] = JSONHelper.create_json_from_estimate(entry)
+
         with open(path, 'w') as f:
             json.dump(estimates_json, f)
 

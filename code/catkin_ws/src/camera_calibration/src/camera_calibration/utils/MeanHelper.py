@@ -79,7 +79,7 @@ class MeanHelper:
                 translational_vectors.append(translation)
                 rotational_vectors.append(rotation)
 
-        print(f'NEW INSTANCE------------------------------------{rotational_vectors}')
+        # print(f'NEW INSTANCE------------------------------------{rotational_vectors}')
         # might be problem here
         # if translational_vectors.shape[0] == 0 or rotational_vectors.shape[0] == 0:
         #     print("so triggered :D")

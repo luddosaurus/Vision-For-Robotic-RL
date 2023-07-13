@@ -1,4 +1,4 @@
-#! usr/bin/env python3.8
+#! /usr/bin/env python3.8
 
 import os
 
@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     path = os.path.join(rospkg.RosPack().get_path('tower_builder'), 'config/')
 
-    config_file_name = rospy.get_param(param_name='tower_builder/config')
+    config_file_name = rospy.get_param(param_name='tower_builder_node/config')
 
     config_file_path = path + config_file_name
 
