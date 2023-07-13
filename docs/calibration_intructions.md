@@ -31,7 +31,7 @@ Example : `eye_in_hand`
 
 ```
 
-## Start Everything // todo add full start commands
+## Start Everything
 ---
 1. Attach ChArUco in robot hand
 2. Start Camera
@@ -39,7 +39,7 @@ Example : `eye_in_hand`
 4. Start Rviz
 5. Start Calibration
 ```
-roslaunch camera_calibration external.launch config=cam_front_default
+roslaunch camera_calibration external.launch config=cam_top_default
 ```
 
 ## Calibrate
@@ -69,6 +69,6 @@ Press `[e]` for an extensive run (more plots and all solver algorithms)
 **Save**
 Press `[s]` to save the pose estimation to :
 ```
-camera_calibration/calibration_results/eye_{to/in}_hand/{camera}/{filename}
+camera_calibration/calibration_results/eye_to_hand/cam_top/estimates.json
 ```
 

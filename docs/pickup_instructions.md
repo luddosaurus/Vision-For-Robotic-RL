@@ -1,9 +1,9 @@
 
 Launch file : `code/catkin_ws/src/object_finder/launch/hsv_cubes.launch`
+
 Script : `code/catkin_ws/src/object_finder/nodes/hsv_cubes_finder.py`
 
 ![Cube Finding](images/cube_finding.png)
-
 
 
 ## Settings
@@ -12,30 +12,30 @@ Script : `code/catkin_ws/src/object_finder/nodes/hsv_cubes_finder.py`
 ### Broadcast Camera Position
 Add camera position estimate gathered from 
 ```
-code/catkin_ws/src/camera_calibration/calibration_resuslts/eye_{to/in}_hand/{camera}/{filename}
+code/catkin_ws/src/camera_calibration/calibration_resuslts/eye_to_hand/cam_top/estimates.json
 ``` 
 to the camera position broadcaster in :
 ```
 code/catkin_ws/src/camera_estimate_broadcaster/camera_transforms/my_cameras.json
 ```
 
-Example
+Example of camera position in broadcaster
 ```json
 {  
-	"EYE_IN_HAND": {  
-		"frame_id": "panda_hand",  
-		"child_frame_id": "eye_in_hand",  
-		"translation": {  
-			"x": 0.033610434992842025,  
-			"y": -0.03902005597466658,  
-			"z": 0.07196366750071341  
-		},  
-		"rotation": {  
-			"x": 0.008611962536564623,  
-			"y": 0.0036755254521442316,  
-			"z": 0.693069539038641,  
-			"w": 0.7208099185434986  
-	}  
+	"CAM_TOP": {
+	    "frame_id": "world",
+	    "child_frame_id": "cam_top",
+	    "translation": {
+	      "x": 0.40758058215725995,
+	      "y": 0.15088598354369197,
+	      "z": 1.2137956007895734
+	    },
+	    "rotation": {
+	      "x": -0.6881759456811474,
+	      "y": 0.7252731707731805,
+	      "z": -0.012537449930996898,
+	      "w": -0.015346266376654994
+	    },
 },
 	...
 }
@@ -47,7 +47,7 @@ Example
 **Launch Config**
 Change camera stream topic
 ```xml
-<arg name="camera_topic" default="/{camera}/color/image_raw"/>
+<arg name="camera_topic" default="/cam_top/color/image_raw"/>
 ```
 
 **Things to change in the code**
@@ -56,7 +56,7 @@ line 194 in `hsv_cubes_finder.py`
 ```python
 TFPublish.publish_static_transform(
     publisher=self.center_broadcaster,  
-	parent_name='cam_top',  #camera/cam_front
+	parent_name='cam_top',
 	child_name=f'cube',  
 	rotation=[0., 0., 0., 1.],  
 	translation=self.position
