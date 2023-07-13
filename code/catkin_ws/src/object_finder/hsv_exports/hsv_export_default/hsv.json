@@ -1,0 +1,24 @@
+{
+  "1": {
+    "0": {
+      "hue": 75,
+      "saturation": 204,
+      "value": 113,
+      "hue_margin": 0,
+      "saturation_margin": 8,
+      "value_margin": 3,
+      "noise": 5,
+      "fill": 10
+    },
+    "1": {
+      "hue": 102,
+      "saturation": 245,
+      "value": 123,
+      "hue_margin": 0,
+      "saturation_margin": 40,
+      "value_margin": 21,
+      "noise": 5,
+      "fill": 10
+    }
+  }
+}

@@ -61,14 +61,14 @@ class UI:
         self.mouse_hover_x = x
         self.mouse_hover_y = y
 
-    def update_ui(self, current_state_index, scale, roi_size):
-        info = "[0-9] states, [m]ove to, [q]uit"
+    def update_ui(self, selected_camera, captured_values, scale, roi_size):
+        info = "[0-9] selected camera, [q]uit, [c]ollect color, [e]xport colors, [u]ndo, [o/p] scale, [k/l] ROI"
         DaVinci.draw_text_box(
             image=self.display_image,
             text=info
         )
 
-        slot_info = f"Color State [{current_state_index}]"
+        slot_info = f"Selected camera: [{selected_camera}], Captured values: [{captured_values}]"
         DaVinci.draw_text_box(
             image=self.display_image,
             text=slot_info,

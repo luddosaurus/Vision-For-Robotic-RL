@@ -32,9 +32,14 @@ class ObjectFinderController:
             self,
             pose_estimation,
             camera_topics,
-            camera_matrices=None
+            save_dict_name,
+            camera_matrices=None,
+
     ):
 
+        self.export_values = {i: [] for i in range(0, 10)}
+        self.selected_camera = 1
+        self.save_dict_name = save_dict_name
         self.camera_topics = camera_topics
         self.intrinsic_matrices = camera_matrices
 
@@ -60,8 +65,10 @@ class ObjectFinderController:
 
         # Camera COLOR Topics
 
-        self.hand_subscriber = rospy.Subscriber(f'{camera_topics[0]}/color/image_raw', Image, callback=self.callback_hand)
-        self.front_subscriber = rospy.Subscriber(f'{camera_topics[1]}/color/image_raw', Image, callback=self.callback_front)
+        self.hand_subscriber = rospy.Subscriber(f'{camera_topics[0]}/color/image_raw', Image,
+                                                callback=self.callback_hand)
+        self.front_subscriber = rospy.Subscriber(f'{camera_topics[1]}/color/image_raw', Image,
+                                                 callback=self.callback_front)
         self.top_subscriber = rospy.Subscriber(f'{camera_topics[2]}/color/image_raw', Image, callback=self.callback_top)
 
         # Camera DEPTH Topics
@@ -250,7 +257,9 @@ class ObjectFinderController:
             )
 
         self.combine_images()
-        self.ui.update_ui(self.cof.current_state_index, self.scale, self.roi_size)
+        self.ui.update_ui(selected_camera=self.selected_camera,
+                          captured_values=len(self.export_values[self.selected_camera]), scale=self.scale,
+                          roi_size=self.roi_size)
         self.read_input()
 
     def read_input(self):
@@ -259,12 +268,11 @@ class ObjectFinderController:
 
         if key_str.isdigit() and 0 <= int(key_str) <= 9:
             key_number = int(key_str)
-            self.cof.current_state_index = key_number
-            self.ui.update_trackbars(self.cof.get_current_state())
-            print(f"Switching to state {key_number}")
 
-        elif key == ord('m'):
-            self.move_arm()
+            self.selected_camera = key_number
+
+        # elif key == ord('m'):
+        #     self.move_arm()
 
         elif key == ord('q'):
             rospy.signal_shutdown('Bye :)')
@@ -277,16 +285,22 @@ class ObjectFinderController:
                 self.roi_size -= 2
         elif key == ord('l'):
             self.roi_size += 2
-        elif key == ord('r'):
-            state = self.cof.get_current_state().copy()
-            state[-2:] = [0, 0]  # set fill and noise to 0
-            self.selected_background_colors.append(state)
+        # elif key == ord('r'):
+        #     state = self.cof.get_current_state().copy()
+        #     state[-2:] = [0, 0]  # set fill and noise to 0
+        #     self.selected_background_colors.append(state)
         elif key == ord('c'):
-            self.selected_background_colors = []
-            self.selected_block_colors = []
-        elif key == ord('a'):
-            state = self.cof.get_current_state().copy()
-            self.selected_block_colors.append(state)
+            self.export_values[self.selected_camera].append(self.cof.get_current_state().copy())
+        # elif key == ord('a'):
+        #     state = self.cof.get_current_state().copy()
+        #     self.selected_block_colors.append(state)
+        elif key == ord('e'):
+            JSONHelper.export_hsv(self.export_values, self.save_dict_name)
+        elif key == ord('u') and self.selected_camera in self.export_values.keys():
+            if len(self.export_values[self.selected_camera]) > 0:
+                self.export_values[self.selected_camera].pop()
+        elif key == ord('s'):
+            print(self.export_values)
 
     def broadcast_point(self, point, child_name, parent_name):
         TFPublish.publish_static_transform(publisher=self.center_broadcaster,
@@ -396,6 +410,7 @@ if __name__ == '__main__':
     find_pose = parameters['find_pose']
     topics = parameters['camera_topics']
     intrinsic_names = parameters['camera_intrinsics']
+    save_dict_name = parameters['save_dict_name']
 
     intrinsics = None
     if find_pose:
@@ -404,7 +419,8 @@ if __name__ == '__main__':
     object_finder = ObjectFinderController(
         camera_matrices=intrinsics,
         camera_topics=topics,
-        pose_estimation=find_pose
+        pose_estimation=find_pose,
+        save_dict_name = save_dict_name
     )
 
     # Update Freq

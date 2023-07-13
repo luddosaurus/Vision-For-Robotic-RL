@@ -9,6 +9,6 @@
     "d435_default_480p",
     "cam_front_default",
     "cam_top_default"
-
-  ]
+  ],
+  "save_dict_name" : "hsv_export_default"
 }

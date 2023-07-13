@@ -1,4 +1,6 @@
 import json
+
+import rospkg
 from camera_calibration.params.calibration import config_path, extrinsic_calibration_results_path
 from datetime import datetime
 import os
@@ -212,3 +214,33 @@ class JSONHelper(object):
         camera_topic = json_data['camera_topic']
 
         return board_name, camera_name, camera_topic
+
+    @staticmethod
+    def export_hsv(export_dict, save_dict_name):
+        time = str(datetime.now())
+        path = os.path.join(rospkg.RosPack().get_path('object_finder'), f'hsv_exports/{save_dict_name}')
+        if not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            path = path + time
+            os.mkdir(path)
+
+        json_export = {}
+        for key, colors in export_dict.items():
+            if len(colors) == 0:
+                continue
+            camera_dict = {}
+            for i, color in enumerate(colors):
+                cube_color = {'hue': color[0],
+                              'saturation': color[1],
+                              'value': color[2],
+                              'hue_margin': color[3],
+                              'saturation_margin': color[4],
+                              'value_margin': color[5],
+                              'noise': color[6],
+                              'fill': color[7]}
+                camera_dict[i] = cube_color
+            json_export[key] = camera_dict
+
+        with open(path + '/hsv.json', 'w') as f:
+            json.dump(json_export, f)

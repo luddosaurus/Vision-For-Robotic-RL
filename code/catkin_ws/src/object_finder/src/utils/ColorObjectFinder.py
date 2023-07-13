@@ -11,42 +11,34 @@ from utils.Const import Const
 class ColorObjectFinder:
 
     # hue, sat, val , margin x 3, noise, fill
-    saved_states = [
-        [103, 224, 229, 40, 40, 40, 5, 10],
-        [4, 165, 203, 13, 35, 54, 5, 4],  # orange
-        [168, 177, 167, 26, 40, 76, 2, 3],  # red
-        [104, 152, 150, 18, 81, 82, 3, 3],  # blue
-        [25, 194, 225, 5, 89, 103, 5, 3],  # yellow
-        [60, 107, 184, 21, 50, 74, 1, 3],  # green
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-    ]
-    current_state_index = 0
+    saved_state = [103, 224, 229, 40, 40, 40, 5, 10]
+
+
+
+
 
     def __init__(self) -> None:
         pass
 
     # Hue (degrees), Sat (percentage), Val (percentage)
     def set_color(self, hue, sat, val):
-        self.saved_states[self.current_state_index][Const.HUE] = Const.HUE_MAX * (hue / 360)
-        self.saved_states[self.current_state_index][Const.SATURATION] = Const.SAT_MAX * sat
-        self.saved_states[self.current_state_index][Const.VALUE] = Const.VAL_MAX * val
+        self.saved_state[Const.HUE] = Const.HUE_MAX * (hue / 360)
+        self.saved_state[Const.SATURATION] = Const.SAT_MAX * sat
+        self.saved_state[Const.VALUE] = Const.VAL_MAX * val
 
     def set_margin(self, hue=0, sat=0, val=0, all_sliders=0):
         if all_sliders != 0:
-            self.saved_states[self.current_state_index][Const.HUE_MARGIN] = all_sliders
-            self.saved_states[self.current_state_index][Const.SATURATION_MARGIN] = all_sliders
-            self.saved_states[self.current_state_index][Const.VALUE_MARGIN] = all_sliders
+            self.saved_state[Const.HUE_MARGIN] = all_sliders
+            self.saved_state[Const.SATURATION_MARGIN] = all_sliders
+            self.saved_state[Const.VALUE_MARGIN] = all_sliders
         else:
-            self.saved_states[self.current_state_index][Const.HUE_MARGIN] = hue
-            self.saved_states[self.current_state_index][Const.SATURATION_MARGIN] = sat
-            self.saved_states[self.current_state_index][Const.VALUE_MARGIN] = val
+            self.saved_state[Const.HUE_MARGIN] = hue
+            self.saved_state[Const.SATURATION_MARGIN] = sat
+            self.saved_state[Const.VALUE_MARGIN] = val
 
     def remove_noise(self, mask, kernel_size):
         iterations = 3
-        # kernel_size = self.saved_states[self.current_state_index][self.NOISE]
+        # kernel_size = self.saved_states[self.NOISE]
 
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
         cleaned_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
@@ -55,7 +47,7 @@ class ColorObjectFinder:
 
     def fill_holes(self, mask, kernel_size):
         iterations = 3
-        # kernel_size = self.saved_states[self.current_state_index][self.FILL]
+        # kernel_size = self.saved_states[self.FILL]
 
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
         filled_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
@@ -186,10 +178,10 @@ class ColorObjectFinder:
         return x, y, z
 
     def update_value(self, value, param):
-        self.saved_states[self.current_state_index][param] = value
+        self.saved_state[param] = value
 
     def get_state(self):
-        return self.saved_states[self.current_state_index]
+        return self.saved_state
 
     @staticmethod
     def get_image_coordinate_color(image, x, y, roi_size, scale=1):
@@ -349,4 +341,4 @@ class ColorObjectFinder:
         self.update_value(min(val_diff, Const.VAL_MARGIN_MAX_CLICK), Const.VALUE_MARGIN)
 
     def get_current_state(self):
-        return self.saved_states[self.current_state_index]
+        return self.saved_state
