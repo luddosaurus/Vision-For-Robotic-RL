@@ -1,5 +1,6 @@
 <launch>
     <arg name="config" default="default_config_single_camera"/>
+       <arg name="camera_transforms" default="my_cameras"/>-->
 
     <node
             pkg="object_finder"
@@ -11,7 +12,10 @@
 
 
     </node>
-
+           <node pkg="move_arm" type="move_script.py" name="move_arm_node" output="screen"/>-->
+           <node pkg="camera_estimate_broadcaster" type="camera_estimates.py" name="camera_estimates" output="screen">-->
+               <param name="camera_transforms" value="$(arg camera_transforms)"/>-->
+           </node>-->
 </launch>
 
 

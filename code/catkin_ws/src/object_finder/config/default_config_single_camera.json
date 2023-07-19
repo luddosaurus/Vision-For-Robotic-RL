@@ -1,9 +1,9 @@
 {
   "find_pose": true,
   "camera_topic": [
-    "webcam"
+    "cam_front"
   ],
   "camera_intrinsics": [
-    "oskar_webcam"
+    "cam_front_default"
   ]
 }

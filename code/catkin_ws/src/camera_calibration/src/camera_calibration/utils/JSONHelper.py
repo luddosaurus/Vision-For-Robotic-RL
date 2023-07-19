@@ -23,7 +23,8 @@ class JSONHelper(object):
         factory_settings = json_data['factory_settings']
         board_name = json_data['board_name']
         image_topic = json_data['image_topic']
-        return camera_name, factory_settings, board_name, image_topic
+        save_directory = json_data['save_directory']
+        return camera_name, factory_settings, board_name, image_topic, save_directory
 
     @staticmethod
     def get_board_parameters(board_name):

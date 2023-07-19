@@ -41,6 +41,12 @@ class ExtrinsicEstimator(object):
 
         self.transform_memory = []
 
+        # live marker calibration mode
+        self.toggle_marker_calibration = False
+        self.marker_mode_memory = []
+        self.live_camera_estimate_name = 'live_camera_estimate'
+        self.live_estimate_result = None
+
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.pub_aruco_tf = tf2_ros.StaticTransformBroadcaster()
@@ -85,11 +91,7 @@ class ExtrinsicEstimator(object):
             self.load(load_data_directory)
         self.save_directory = save_data_directory
 
-        # live marker calibration mode
-        self.toggle_marker_calibration = False
-        self.marker_mode_memory = []
-        self.live_camera_estimate_name = 'live_camera_estimate'
-        self.live_estimate_result = None
+
 
     def camera_callback(self, input_image):
         try:

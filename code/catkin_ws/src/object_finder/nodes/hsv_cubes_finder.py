@@ -14,6 +14,7 @@ from camera_calibration.utils.JSONHelper import JSONHelper
 
 from utils.DaVinci import DaVinci
 from utils.ColorObjectFinder import ColorObjectFinder
+from utils.Const import Const
 
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -93,31 +94,31 @@ class ObjectFinder:
         # cv2.setWindowProperty(self.window, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         cv2.createTrackbar("Hue", self.window,
-                           self.start_state[self.cof.HUE], self.cof.HUE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.HUE))
+                           self.start_state[Const.HUE], Const.HUE_MAX,
+                           lambda value: self.cof.update_value(value, Const.HUE))
         cv2.createTrackbar("Saturation", self.window,
-                           self.start_state[self.cof.SATURATION], self.cof.SAT_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.SATURATION))
+                           self.start_state[Const.SATURATION], Const.SAT_MAX,
+                           lambda value: self.cof.update_value(value, Const.SATURATION))
         cv2.createTrackbar("Value", self.window,
-                           self.start_state[self.cof.VALUE], self.cof.VAL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.VALUE))
+                           self.start_state[Const.VALUE], Const.VAL_MAX,
+                           lambda value: self.cof.update_value(value, Const.VALUE))
 
         cv2.createTrackbar("Hue Margin", self.window,
-                           self.start_state[self.cof.HUE_MARGIN], self.cof.HUE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.HUE_MARGIN))
+                           self.start_state[Const.HUE_MARGIN], Const.HUE_MAX,
+                           lambda value: self.cof.update_value(value, Const.HUE_MARGIN))
         cv2.createTrackbar("Sat Margin", self.window,
-                           self.start_state[self.cof.SATURATION_MARGIN], self.cof.SAT_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.SATURATION_MARGIN))
+                           self.start_state[Const.SATURATION_MARGIN], Const.SAT_MAX,
+                           lambda value: self.cof.update_value(value, Const.SATURATION_MARGIN))
         cv2.createTrackbar("Val Margin", self.window,
-                           self.start_state[self.cof.VALUE_MARGIN], self.cof.VAL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.VALUE_MARGIN))
+                           self.start_state[Const.VALUE_MARGIN], Const.VAL_MAX,
+                           lambda value: self.cof.update_value(value, Const.VALUE_MARGIN))
 
         cv2.createTrackbar("Noise", self.window,
-                           self.start_state[self.cof.NOISE], self.cof.NOISE_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.NOISE))
+                           self.start_state[Const.NOISE], Const.NOISE_MAX,
+                           lambda value: self.cof.update_value(value, Const.NOISE))
         cv2.createTrackbar("Fill", self.window,
-                           self.start_state[self.cof.FILL], self.cof.FILL_MAX,
-                           lambda value: self.cof.update_value(value, self.cof.FILL))
+                           self.start_state[Const.FILL], Const.FILL_MAX,
+                           lambda value: self.cof.update_value(value, Const.FILL))
 
         cv2.setMouseCallback(self.window, self.click)
 
@@ -126,14 +127,14 @@ class ObjectFinder:
 
     def update_trackbars(self):
         current_state = self.cof.get_state()
-        cv2.setTrackbarPos("Hue", self.window, current_state[self.cof.HUE])
-        cv2.setTrackbarPos("Saturation", self.window, current_state[self.cof.SATURATION])
-        cv2.setTrackbarPos("Value", self.window, current_state[self.cof.VALUE])
-        cv2.setTrackbarPos("Hue Margin", self.window, current_state[self.cof.HUE_MARGIN])
-        cv2.setTrackbarPos("Sat Margin", self.window, current_state[self.cof.SATURATION_MARGIN])
-        cv2.setTrackbarPos("Val Margin", self.window, current_state[self.cof.VALUE_MARGIN])
-        cv2.setTrackbarPos("Noise", self.window, current_state[self.cof.NOISE])
-        cv2.setTrackbarPos("Fill", self.window, current_state[self.cof.FILL])
+        cv2.setTrackbarPos("Hue", self.window, current_state[Const.HUE])
+        cv2.setTrackbarPos("Saturation", self.window, current_state[Const.SATURATION])
+        cv2.setTrackbarPos("Value", self.window, current_state[Const.VALUE])
+        cv2.setTrackbarPos("Hue Margin", self.window, current_state[Const.HUE_MARGIN])
+        cv2.setTrackbarPos("Sat Margin", self.window, current_state[Const.SATURATION_MARGIN])
+        cv2.setTrackbarPos("Val Margin", self.window, current_state[Const.VALUE_MARGIN])
+        cv2.setTrackbarPos("Noise", self.window, current_state[Const.NOISE])
+        cv2.setTrackbarPos("Fill", self.window, current_state[Const.FILL])
 
     def click(self, event, x, y, flags, param):
         self.hovered_x = x
@@ -262,7 +263,7 @@ class ObjectFinder:
             text=info
         )
 
-        slot_info = f"Color State [{self.cof.current_state_index}]"
+        slot_info = f"Color State [{self.cof.saved_state}]"
         DaVinci.draw_text_box(
             image=stacked,
             text=slot_info,
@@ -402,7 +403,7 @@ class ObjectFinder:
 
             move_arm_goal.place_pose.position.x = place_translation[0]
             move_arm_goal.place_pose.position.y = place_translation[1]
-            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.04
+            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.02
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
         #

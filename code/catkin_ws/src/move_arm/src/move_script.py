@@ -120,21 +120,21 @@ class MoveArmActionServer(object):
         robot = moveit_commander.RobotCommander()
         # print(robot.get_current_state())
         # # Create a MoveGroupCommander for the arm
-        group_name = "panda_arm"  # Specify the group name of the arm
+        group_name = "panda_manipulator"  # Specify the group name of the arm
         # # group_name = "panda_arm"
         group = moveit_commander.MoveGroupCommander(group_name)
         ready_state = group.get_current_joint_values()
         # Plan and execute the arm movement to the target pose
 
         group.set_planner_id("RRTConnectkConfigDefault")
-        velocity_scaling_argument = 0.2
-        acceleration_scaling_argument = 0.2
+        velocity_scaling_argument = 0.1
+        acceleration_scaling_argument = 0.1
         group.set_max_velocity_scaling_factor(velocity_scaling_argument)
-        group.set_max_vacceleration_scaling_factor(acceleration_scaling_argument)
+        group.set_max_acceleration_scaling_factor(acceleration_scaling_argument)
 
         group.set_joint_value_target(ready_state)
         plan = group.plan()
-        plan2 = group.retime_trajectory(robot.get_current_state(), plan, velocity_scaling_argument)
+        # plan2 = group.retime_trajectory(robot.get_current_state(), plan, velocity_scaling_argument)
 
 
 
@@ -166,7 +166,7 @@ class MoveArmActionServer(object):
 
         goal = GripperCommandGoal()
         goal.command.position = joint_state
-        goal.command.max_effort = 50
+        goal.command.max_effort = 100.0
 
         client.send_goal(goal, done_cb=self.mini_goal_callback)
 

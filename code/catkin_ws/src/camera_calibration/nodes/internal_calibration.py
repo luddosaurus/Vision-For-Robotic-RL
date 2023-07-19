@@ -1,5 +1,5 @@
 #! /usr/bin/env python3.8
-# /home/oskarlarsson/PycharmProjects/Vision-For-Robotic-RL/venv/bin/python
+
 
 import rospy
 from sensor_msgs.msg import Image
@@ -15,12 +15,13 @@ from camera_calibration.utils.extract_realsense_parameters import ExtractParamet
 from camera_calibration.utils.JSONHelper import JSONHelper
 from camera_calibration.params.aruco_dicts import ARUCO_DICT
 from camera_calibration.utils.DaVinci import DaVinci
+from camera_calibration.params.calibration import extrinsic_calibration_results_path
 
 CALIB_DATA_NAME = "calib_data_1280"
 
 
 class InternalCalibrator(object):
-    def __init__(self, camera_name=None, factory_settings=None, board_name=None, image_topic=None):
+    def __init__(self, camera_name=None, factory_settings=None, board_name=None, image_topic=None, save_directory=None):
 
         # Setup board and charuco data
         self.type = None
@@ -51,6 +52,7 @@ class InternalCalibrator(object):
 
         self.saved_images = list()
         self.calibration_results = None
+        self.save_directory = save_directory
 
     def setup_board(self, board_parameters):
         self.type = board_parameters['type']
@@ -89,7 +91,8 @@ class InternalCalibrator(object):
                "[s]ave " \
                "[u]ndo " \
                "[r]un " \
-               "[c]ollect"
+               "[c]ollect " \
+                "[l]oad"
         DaVinci.draw_text_box_in_corner(
             image=image,
             text=info,
@@ -121,12 +124,18 @@ class InternalCalibrator(object):
         elif key == ord('r') and len(self.saved_images) >= 1:
             self.run_calibration()
             print(f'Camera matrix:\n{self.calibration_results[1]}\nDistortion:\n{self.calibration_results[2].flatten()}')
-        elif key == ord('s') and self.calibration_results is not None:
-            JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
-                                       distortion=self.calibration_results[2].flatten(),
-                                       image_shape=original_image.shape)
+        elif key == ord('s'):
+            if self.calibration_results is not None:
+                JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
+                                           distortion=self.calibration_results[2].flatten(),
+                                           image_shape=original_image.shape)
+            if self.save_directory is not None:
+                self.save_images()
+
         elif key == ord('u') and len(self.saved_images) >= 1:
             self.saved_images = self.saved_images[:-1]
+        elif key == ord('l') and self.save_directory is not None:
+            self.load_images()
 
     def run_calibration(self):
         if self.type == 'checkerboard':
@@ -137,6 +146,33 @@ class InternalCalibrator(object):
     def calibrate_charuco(self):
         corners, ids, size = self.find_charuco_corners()
         return self.calibrate_camera(corners, ids, size)
+
+    def save_images(self):
+        save_path = extrinsic_calibration_results_path + 'intrinsic/' + self.save_directory
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        for i, image in enumerate(self.saved_images):
+            image_path = os.path.join(save_path, f'image_{i}.png')
+            cv2.imwrite(image_path, image)
+
+    def load_images(self):
+        save_path = extrinsic_calibration_results_path + 'intrinsic/' + self.save_directory
+        if not os.path.exists(save_path):
+            print(f"Error: No dir {save_path}")
+            return
+
+        files = os.listdir(save_path)
+
+        image_files = [file for file in files if file.endswith(".png")]
+
+        for image_file in image_files:
+            image_path = os.path.join(save_path, image_file)
+            image = cv2.imread(image_path)
+
+            if image is not None:
+                self.saved_images.append(image)
+            else:
+                print(f"No image {image_file}")
 
     def find_charuco_corners(self):
         """
@@ -295,12 +331,12 @@ class InternalCalibrator(object):
 def main():
     config_file = rospy.get_param(param_name='internal_calibration_node/config')
 
-    camera_name, factory_settings, board_name, image_topic = JSONHelper.get_internal_calibration_parameters(
+    camera_name, factory_settings, board_name, image_topic, save_directory = JSONHelper.get_internal_calibration_parameters(
         config_file)
 
     rospy.init_node('internal_calibration_node')
     internal_calibrator = InternalCalibrator(camera_name=camera_name, factory_settings=factory_settings,
-                                             board_name=board_name, image_topic=image_topic)
+                                             board_name=board_name, image_topic=image_topic, save_directory=save_directory)
     # internal_calibrator = InternalCalibrator(charuco_board_shape=CHESSBOARD_DIM, charuco_marker_size=0.31,
     #                                          charuco_square_size=0.4, dict_type=cv2.aruco.DICT_5X5_100)
 

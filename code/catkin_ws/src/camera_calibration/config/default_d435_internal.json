@@ -1,20 +1,23 @@
 {
   "camera_name": "d435",
-  "factory_settings": [
-    [
-      "fx",
-      "fy"
+  "factory_settings": {
+    "focal_point": [
+      616.68,
+      617.031
     ],
-    [
-      "cx",
-      "cy"
+    "center_point": [
+      314.182,
+      249.473
     ],
-    [
-      "dist0",
-      "dist1",
-      "...distN"
+    "distortion": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     ]
-  ],
+  },
   "board_name": "large",
-  "image_topic": "/camera/color/image_raw"
+  "image_topic": "/cam_wrist/color/image_raw",
+  "save_directory": "test_dir"
 }
