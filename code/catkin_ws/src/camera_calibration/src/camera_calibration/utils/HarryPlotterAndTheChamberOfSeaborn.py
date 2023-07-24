@@ -68,6 +68,17 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
+    def plot_line(data_frame, x="Distance", y="Category", title="Line Plot"):
+        plt.figure()
+
+        sns.lineplot(data=data_frame, x=x, y=y)
+
+        plt.title(title)
+        plt.xlabel(x)
+        plt.ylabel(y)
+        plt.show()
+
+    @staticmethod
     def plot_distance_density(frame, cols=["Translation X", "Translation Y", "Translation Z"]):
         data = frame[cols].abs()
 

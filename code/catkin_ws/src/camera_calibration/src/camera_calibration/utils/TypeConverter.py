@@ -212,32 +212,33 @@ class TypeConverter:
         return matrices
 
     @staticmethod
-    def convert_to_dataframe(sample_transforms):
-        # Convert dict of [category, list(stamped_transform)]
-        # to panda frame [category,
-        # translationX, translationY, translationZ,
-        # rotationX, rotationY, rotationZ , rotationW]
+    def convert_to_dataframe(pose_dict, category='Category'):
+        """
+        @param category: Name of category
+        @param pose_dict: Convert dict of key[category], value[list(rotation, translation)]
+        @return: Panda Frame of [Category, Translation XYZ, Rotation XYZW]
+        """
 
         data = []
 
-        for sample_category, poses in sample_transforms.items():
-            for r_vec, t_vec in poses:
-                r_vec = TypeConverter.matrix_to_quaternion_vector(r_vec)
-                if t_vec is not None and r_vec is not None:
-                    t_vec = np.array(t_vec).flatten()
+        for sample_category, poses in pose_dict.items():
+            for rotation, translation in poses:
+                rotation = TypeConverter.matrix_to_quaternion_vector(rotation)
+                if translation is not None and rotation is not None:
+                    translation = np.array(translation).flatten()
                 else:
-                    t_vec = np.zeros((1, 3)).flatten()
-                    r_vec = np.zeros((1, 4)).flatten()
-                    r_vec[3] = 1.0
+                    translation = np.zeros((1, 3)).flatten()
+                    rotation = np.zeros((1, 4)).flatten()
+                    rotation[3] = 1.0
 
                 data.append([
                     sample_category,
-                    t_vec[0], t_vec[1], t_vec[2],
-                    r_vec[-0], r_vec[1], r_vec[2], r_vec[3]
+                    translation[0], translation[1], translation[2],
+                    rotation[-0], rotation[1], rotation[2], rotation[3]
                 ])
 
         df = pd.DataFrame(data, columns=[
-            'Category',
+            category,
             'Translation X', 'Translation Y', 'Translation Z',
             'Rotation X', 'Rotation Y', 'Rotation Z', 'Rotation W'
         ])
