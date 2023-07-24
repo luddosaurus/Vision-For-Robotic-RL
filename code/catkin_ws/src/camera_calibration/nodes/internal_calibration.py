@@ -183,7 +183,7 @@ class InternalCalibrator(object):
                 self.saved_images.append(im)
                 self.run_calibration()
                 calib_results_far.append(self.calibration_results)
-            self.factory_settings = None
+
             self.saved_images = []
             for im in plot_images[int(len(plot_images) / 2):]:
                 self.saved_images.append(im)
