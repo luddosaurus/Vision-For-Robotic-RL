@@ -10,12 +10,15 @@ import cv2
 import os
 import numpy as np
 
+from random import shuffle
+
 from camera_calibration.utils.ARHelper import ARHelper
 from camera_calibration.utils.extract_realsense_parameters import ExtractParameters
 from camera_calibration.utils.JSONHelper import JSONHelper
 from camera_calibration.params.aruco_dicts import ARUCO_DICT
 from camera_calibration.utils.DaVinci import DaVinci
 from camera_calibration.params.calibration import extrinsic_calibration_results_path
+from camera_calibration.utils.HarryPlotterAndTheChamberOfSeaborn import HarryPlotter
 
 CALIB_DATA_NAME = "calib_data_1280"
 
@@ -53,6 +56,9 @@ class InternalCalibrator(object):
         self.saved_images = list()
         self.calibration_results = None
         self.save_directory = save_directory
+        self.plot_images = list()
+
+        self.copy_originals = []
 
     def setup_board(self, board_parameters):
         self.type = board_parameters['type']
@@ -92,7 +98,7 @@ class InternalCalibrator(object):
                "[u]ndo " \
                "[r]un " \
                "[c]ollect " \
-                "[l]oad"
+               "[l]oad"
         DaVinci.draw_text_box_in_corner(
             image=image,
             text=info,
@@ -123,7 +129,8 @@ class InternalCalibrator(object):
             # self.run_calibration()
         elif key == ord('r') and len(self.saved_images) >= 1:
             self.run_calibration()
-            print(f'Camera matrix:\n{self.calibration_results[1]}\nDistortion:\n{self.calibration_results[2].flatten()}')
+            print(
+                f'Camera matrix:\n{self.calibration_results[1]}\nDistortion:\n{self.calibration_results[2].flatten()}')
         elif key == ord('s'):
             if self.calibration_results is not None:
                 JSONHelper.save_intrinsics(camera_name=self.camera_name, camera_matrix=self.calibration_results[1],
@@ -136,6 +143,54 @@ class InternalCalibrator(object):
             self.saved_images = self.saved_images[:-1]
         elif key == ord('l') and self.save_directory is not None:
             self.load_images()
+        elif key == ord('p'):
+            self.saved_images = self.copy_originals.copy()
+            plot_images = self.saved_images.copy()
+            self.saved_images = []
+            calib_results = []
+            for im in plot_images:
+                self.saved_images.append(im)
+                self.run_calibration()
+                calib_results.append(self.calibration_results[1])
+            print('plotting!')
+            HarryPlotter.plot_scatter_image_count(calib_results, plot_images[0].shape)
+        elif key == ord('o'):
+            self.saved_images = self.copy_originals.copy()
+            plot_images = self.saved_images.copy()
+            self.saved_images = []
+            calib_results_1 = []
+            calib_results_2 = []
+            for im in plot_images:
+                self.saved_images.append(im)
+                self.run_calibration()
+                calib_results_1.append(self.calibration_results)
+            self.factory_settings = None
+            self.saved_images = []
+            for im in plot_images:
+                self.saved_images.append(im)
+                self.run_calibration()
+                calib_results_2.append(self.calibration_results)
+            print('plotting!')
+            HarryPlotter.plot_intrinsic_guess(calib_results_1, calib_results_2, plot_images[0].shape)
+        elif key == ord('i'):
+            self.saved_images = self.copy_originals.copy()
+            # shuffle(self.saved_images)
+            plot_images = self.saved_images.copy()
+            self.saved_images = []
+            calib_results_far = []
+            calib_results_near = []
+            for im in plot_images[:int(len(plot_images) / 2)]:
+                self.saved_images.append(im)
+                self.run_calibration()
+                calib_results_far.append(self.calibration_results)
+            self.factory_settings = None
+            self.saved_images = []
+            for im in plot_images[int(len(plot_images) / 2):]:
+                self.saved_images.append(im)
+                self.run_calibration()
+                calib_results_near.append(self.calibration_results)
+            print('plotting!')
+            HarryPlotter.plot_intrinsic_guess(calib_results_far, calib_results_near, plot_images[0].shape)
 
     def run_calibration(self):
         if self.type == 'checkerboard':
@@ -173,6 +228,7 @@ class InternalCalibrator(object):
                 self.saved_images.append(image)
             else:
                 print(f"No image {image_file}")
+        self.copy_originals = self.saved_images.copy()
 
     def find_charuco_corners(self):
         """
@@ -231,7 +287,7 @@ class InternalCalibrator(object):
                                                                  board=self.board, imageSize=image_size,
                                                                  cameraMatrix=camera_matrix_init,
                                                                  distCoeffs=dist_coeffs_init, flags=flags, criteria=(
-            cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
+                cv2.TERM_CRITERIA_EPS & cv2.TERM_CRITERIA_COUNT, 10000, 1e-9))
 
         # (reprojection_error, camera_matrix, distortion,
         #  rotation_vectors, translation_vectors,
@@ -308,7 +364,6 @@ class InternalCalibrator(object):
 
                 # cv2.waitKey(1000)
 
-
         cv2.destroyAllWindows()
 
         ############## CALIBRATION #######################################################
@@ -321,11 +376,9 @@ class InternalCalibrator(object):
                                                                                             distCoeffs=dist_coeffs_init,
                                                                                             flags=flags)
 
-
         self.calibration_results = (reprojection_error, camera_matrix, distortion)
 
         return reprojection_error
-
 
 
 def main():
@@ -336,7 +389,8 @@ def main():
 
     rospy.init_node('internal_calibration_node')
     internal_calibrator = InternalCalibrator(camera_name=camera_name, factory_settings=factory_settings,
-                                             board_name=board_name, image_topic=image_topic, save_directory=save_directory)
+                                             board_name=board_name, image_topic=image_topic,
+                                             save_directory=save_directory)
     # internal_calibrator = InternalCalibrator(charuco_board_shape=CHESSBOARD_DIM, charuco_marker_size=0.31,
     #                                          charuco_square_size=0.4, dict_type=cv2.aruco.DICT_5X5_100)
 

@@ -2,7 +2,7 @@
   "board_name": "printed_charuco",
   "camera_name": "oskar_webcam",
   "mode": "eye_to_hand",
-  "camera_topic": "/webcam",
+  "camera_topic": "/webcam/color/image_raw",
   "memory_size": 30,
   "load_data_directory": "wip_calc",
   "save_data_directory": "testing_mean"

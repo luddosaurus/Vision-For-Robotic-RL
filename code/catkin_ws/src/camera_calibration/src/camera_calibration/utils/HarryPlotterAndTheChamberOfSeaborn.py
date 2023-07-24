@@ -5,7 +5,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-plt.switch_backend('agg')
+
+# plt.switch_backend('agg')
 
 
 class HarryPlotter:
@@ -158,4 +159,104 @@ class HarryPlotter:
         plt.title("Stacked Histogram")
 
         # Show the plot
+        plt.show()
+
+    @staticmethod
+    def plot_scatter_image_count(error_list, im_shape):
+        fx = []
+        fy = []
+        cx = []
+        cy = []
+        for instance in error_list:
+            fx.append(instance[0][0])
+            fy.append(instance[1][1])
+            cx.append(instance[0][2])
+            cy.append(instance[1][2])
+
+        figure, axis = plt.subplots(2, 2)
+        axis[0, 0].plot(fx, label='fx')
+        axis[0, 0].title.set_text('fx')
+        axis[0, 0].set_ylim([0, max(im_shape)])
+        axis[0, 1].plot(fy, label='fy')
+        axis[0, 1].title.set_text('fy')
+        axis[0, 1].set_ylim([0, max(im_shape)])
+        axis[1, 0].plot(cx, label='cx')
+        axis[1, 0].title.set_text('cx')
+        axis[1, 0].set_ylim([0, max(im_shape)])
+        axis[1, 1].plot(cy, label='cy')
+        axis[1, 1].title.set_text('cy')
+        axis[1, 1].set_ylim([0, min(im_shape[:2])])
+
+        # plt.figure()
+
+        # sns.lineplot(fx)
+        # sns.lineplot(fy)
+        # sns.lineplot(cx)
+        # sns.lineplot(cy)
+
+        plt.show()
+
+    @staticmethod
+    def plot_intrinsic_guess(error_list_1, error_list_2, im_shape):
+
+        rpe_1 = []
+        fx_1 = []
+        fy_1 = []
+        cx_1 = []
+        cy_1 = []
+        dist_1 = []
+        for instance in error_list_1:
+            fx_1.append(instance[1][0][0])
+            fy_1.append(instance[1][1][1])
+            cx_1.append(instance[1][0][2])
+            cy_1.append(instance[1][1][2])
+            rpe_1.append(instance[0])
+            dist_1.append(instance[2])
+        rpe_2 = []
+        fx_2 = []
+        fy_2 = []
+        cx_2 = []
+        cy_2 = []
+        dist_2 = []
+        for instance in error_list_2:
+            fx_2.append(instance[1][0][0])
+            fy_2.append(instance[1][1][1])
+            cx_2.append(instance[1][0][2])
+            cy_2.append(instance[1][1][2])
+            rpe_2.append(instance[0])
+            dist_2.append(instance[2])
+        plt.plot(rpe_1)
+        plt.plot(rpe_2)
+        figure, axis = plt.subplots(2, 3)
+        axis[0, 0].plot(fx_1, label='guess')
+        axis[0, 0].plot(fx_2, label='no guess')
+        axis[0, 0].title.set_text('fx')
+        
+        # axis[0, 0].set_ylim([0, max(im_shape)])
+        axis[0, 1].plot(fy_1, label='guess')
+        axis[0, 1].plot(fy_2, label='no guess')
+        axis[0, 1].title.set_text('fy')
+        # axis[0, 1].set_ylim([0, max(im_shape) + 100])
+        axis[1, 0].plot(cx_1, label='guess')
+        axis[1, 0].plot(cx_2, label='no guess')
+        axis[1, 0].title.set_text('cx')
+        # axis[1, 0].set_ylim([0, max(im_shape)])
+        axis[1, 1].plot(cy_1, label='guess')
+        axis[1, 1].plot(cy_2, label='no guess')
+        axis[1, 1].title.set_text('cy')
+        # axis[1, 1].set_ylim([0, max(im_shape)])
+
+        axis[0, 2].plot(rpe_1, label='guess')
+        axis[0, 2].plot(rpe_2, label='no guess')
+        axis[0, 2].title.set_text('rpe')
+        # axis[0, 2].set_ylim([0, max(im_shape)])
+
+        # axis[1, 2].plot(dist_1, label='guess')
+        # axis[1, 2].plot(dist_2, label='no guess')
+        # axis[1, 2].title.set_text('distortion')
+        # # axis[1, 1].set_ylim([0, max(im_shape)])
+
+        # sns.lineplot(error_list_1)
+        # sns.lineplot(error_list_2)
+        # plt.legend('first', 'second')
         plt.show()
