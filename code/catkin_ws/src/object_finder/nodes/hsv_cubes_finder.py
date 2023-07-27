@@ -75,8 +75,6 @@ class ObjectFinder:
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-
-
         self.scale = 0.5
         self.roi_size = 9
 
@@ -167,13 +165,20 @@ class ObjectFinder:
         # Find 3D point
         # cv2.imshow('test', aligned_input_depth)
         if self.center_x is not None and aligned_input_depth is not None and self.center_y is not None:
+
             depth_array = np.array(aligned_input_depth, dtype=np.float32)
             # print(depth_array.shape)
             if self.center_x <= depth_array.shape[1] and self.center_y <= depth_array.shape[0]:
+                # print(aligned_input_depth[self.center_y][self.center_x])
+                # print(type(aligned_input_depth[self.center_y][self.center_x]))
                 # print(self.center_x, depth_array.shape[1])
-                depth = depth_array[self.center_y][self.center_x] / 1000
+                print(np.min(depth_array[self.center_y - 20:self.center_y + 20,
+                          self.center_x - 20:self.center_x + 20]) / 1000)
+                depth = np.min(depth_array[self.center_y - 20:self.center_y + 20,
+                          self.center_x - 20:self.center_x + 20]) / 1000
 
                 # todo find depth of coordinate (x,y)
+                # print(depth)
                 position = self.cof.pixel_to_3d_coordinate((self.center_x, self.center_y), depth, self.intrinsic_matrix)
                 # print(position)
                 pose_info = f"x{position[0]:.2f} : y{position[1]:.2f}, z{position[2]:.2f}"
