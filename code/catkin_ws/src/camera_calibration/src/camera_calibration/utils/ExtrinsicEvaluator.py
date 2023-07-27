@@ -16,10 +16,9 @@ class ExtrinsicEvaluator:
         self.distortion = distortion
         self.camera2charuco = camera2charuco
         self.hand2world = hand2world
-        self.extrinsic_solver = EyeHandSolver(
-            transforms_hand2world=self.hand2world,
-            transform_camera2charuco=self.camera2charuco
-        )
+        self.extrinsic_solver = EyeHandSolver(transforms_hand2world=self.hand2world,
+                                              transforms_camera2charuco=self.camera2charuco
+                                              )
 
     def __solve_all_combos(self):
         # Solve all versions
@@ -45,7 +44,7 @@ class ExtrinsicEvaluator:
         frame_samples = TypeConverter.convert_to_dataframe(pose_dict, category='Sample Sizes')
 
         # Plot
-        self.plot2d(frame_samples, x='Sample Sizes', title=title)
+        ExtrinsicEvaluator.__plot2d(frame_samples, x='Sample Sizes', title=title)
 
     def __evaluate_random_average(self, title):
 
@@ -58,10 +57,10 @@ class ExtrinsicEvaluator:
         frame_samples.rename(columns={'Samples': 'Average for Sample Size'}, inplace=True)
 
         # Plot
-        self.__plot2d(frame_samples, x='Average for Sample Size', title=title)
+        ExtrinsicEvaluator.__plot2d(frame_samples, x='Average for Sample Size', title=title)
 
     @staticmethod
-    def __plot2d(frame, x, title="",):
+    def __plot2d(frame, x, title="", ):
         HarryPlotter.plot_line(frame, y='Translation X', x=x)
         HarryPlotter.plot_line(frame, y='Translation Y', x=x)
         HarryPlotter.plot_line(frame, y='Translation Z', x=x)

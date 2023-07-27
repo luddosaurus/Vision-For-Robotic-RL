@@ -21,7 +21,7 @@ class EyeHandSolver(object):
             cv2.CALIB_HAND_EYE_ANDREFF,
             cv2.CALIB_HAND_EYE_DANIILIDIS
         ]
-        self.num_images_to_capture = len(self.transforms_camera2charuco)
+        self.num_images_to_capture = len(transforms_camera2charuco)
         self.transforms_hand2world = transforms_hand2world
         self.transforms_camera2charuco = transforms_camera2charuco
 
@@ -92,8 +92,8 @@ class EyeHandSolver(object):
             solve_method = self.methods[0]
         if start_sample_size is None:
             half_size = int(self.num_images_to_capture / 2)
-            start_sample_size = half_size if half_size >= 3 else 3
-
+            # start_sample_size = half_size if half_size >= 3 else 3
+            start_sample_size = 3
         solve_method = self.methods[solve_method]
         poses = dict()
         list_size = len(self.transforms_camera2charuco)

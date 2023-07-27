@@ -165,10 +165,9 @@ class ExtrinsicEstimator(object):
                 self.transforms_hand2world = self.transforms_hand2world[:-1]
 
         elif key == ord('e') and len(self.transforms_camera2charuco) >= 3:  # Run
-            self.eye_hand_solver = EyeHandSolver(
-                transforms_hand2world=self.transforms_hand2world,
-                transforms_camera2charuco=self.transforms_camera2charuco
-            )
+            self.eye_hand_solver = EyeHandSolver(transforms_hand2world=self.transforms_hand2world,
+                                                 transforms_camera2charuco=self.transforms_camera2charuco
+                                                 )
             self.publish_all_methods()
             self.evaluate()
 
@@ -344,6 +343,9 @@ class ExtrinsicEstimator(object):
             title="Image Count"
         )
 
+        evaluator.evaluate2d(evaluation_type=ExtrinsicEvaluator.TYPE_RANDOM_AVG,
+                             title="Image Count")
+
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)
         # print(mean_translation, mean_rotation)
@@ -357,7 +359,7 @@ if __name__ == '__main__':
 
     config_file = rospy.get_param(param_name='hand_eye_node/config')
 
-    board_name, camera_name, mode, camera_topic, memory_size, load_data_directory, save_data_directory = JSONHelper\
+    board_name, camera_name, mode, camera_topic, memory_size, load_data_directory, save_data_directory = JSONHelper \
         .get_extrinsic_calibration_parameters(config_file)
     rospy.init_node('hand_eye_node')
 

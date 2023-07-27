@@ -4,6 +4,6 @@
   "mode": "eye_to_hand",
   "camera_topic": "/webcam/color/image_raw",
   "memory_size": 30,
-  "load_data_directory": "wip_calc",
+  "load_data_directory": "image_count",
   "save_data_directory": "testing_mean"
 }
