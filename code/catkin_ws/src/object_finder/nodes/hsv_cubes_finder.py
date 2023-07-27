@@ -47,6 +47,15 @@ class ObjectFinder:
         self.cv_bridge = CvBridge()
         self.depth_image = None
 
+        self.center_x = None
+        self.center_y = None
+        self.center_z = None
+
+        self.hovered_x = None
+        self.hovered_y = None
+
+        self.position = None
+
         self.camera_name = camera_topic
 
         # todo get camera pose in world frame
@@ -66,14 +75,7 @@ class ObjectFinder:
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        self.center_x = None
-        self.center_y = None
-        self.center_z = None
 
-        self.hovered_x = None
-        self.hovered_y = None
-
-        self.position = None
 
         self.scale = 0.5
         self.roi_size = 9
@@ -406,8 +408,8 @@ class ObjectFinder:
             move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.02
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
-        #
-        # self.action_client.wait_for_result()
+
+        self.action_client.wait_for_result()
         # print(self.action_client.get_state())
 
     def feedback_callback(self, m):
