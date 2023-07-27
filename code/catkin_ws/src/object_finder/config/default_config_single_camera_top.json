@@ -1,0 +1,9 @@
+{
+  "find_pose": true,
+  "camera_topic": [
+    "cam_top"
+  ],
+  "camera_intrinsics": [
+    "cam_top_default"
+  ]
+}

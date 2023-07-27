@@ -38,6 +38,7 @@ class ExtrinsicEstimator(object):
 
         self.camera_matrix = np.array(camera_intrinsics['camera_matrix'])
         self.distortion = np.array(camera_intrinsics['distortion'])
+        self.expected_resolution = camera_intrinsics['resolution']
         print(self.camera_matrix, self.distortion)
 
         self.transform_memory = []
@@ -98,6 +99,12 @@ class ExtrinsicEstimator(object):
 
         except CvBridgeError as e:
             print(e)
+
+        if self.current_image.shape[0] != self.expected_resolution[1] or self.current_image.shape[1] != \
+                self.expected_resolution[0]:
+            print(
+                f'Missmatch between image shape and camera matrix. Expected {self.expected_resolution} but got ({self.current_image.shape[1]}, {self.current_image.shape[0]})')
+            rospy.signal_shutdown('Missmatch resolution')
 
         self.collect_camera_target_transform()
 
@@ -199,11 +206,12 @@ class ExtrinsicEstimator(object):
 
         elif key == ord('s'):  # Save
             if self.toggle_marker_calibration:
-                print('saving!')
+                print('saving dynamic estimate!')
                 JSONHelper.save_live_estimate_result(eye_in_hand=self.eye_in_hand, estimate=self.live_estimate_result,
                                                      data_points=self.marker_mode_memory,
                                                      directory_name=self.save_directory)
             else:
+                print('saving calibrated estimate!')
                 JSONHelper.save_extrinsic_data(eye_in_hand=self.eye_in_hand,
                                                camera2target=self.transforms_camera2charuco,
                                                hand2world=self.transforms_hand2world, estimates=self.camera_estimates,
