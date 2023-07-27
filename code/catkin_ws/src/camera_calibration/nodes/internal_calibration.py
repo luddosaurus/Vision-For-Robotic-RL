@@ -116,7 +116,7 @@ class InternalCalibrator(object):
             text = "Reprojection Error: :.3f".format(self.calibration_results[0])
             DaVinci.draw_text_box_in_corner(image=image, text=f'Reprojection Error: {self.calibration_results[0]:.3f}',
                                             position='top_right', thickness=1, font_scale=0.8)
-        resized_image = image  # DaVinci.resize(image.copy())
+        resized_image = DaVinci.pad_image_cv(image)  # DaVinci.resize(image.copy())
 
         cv2.imshow('image subscriber', resized_image)
 
