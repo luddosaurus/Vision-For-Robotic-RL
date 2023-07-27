@@ -141,10 +141,10 @@ class DaVinci:
     @staticmethod
     def pad_image_cv(image, target_resolution=(720, 1280), color=(0, 0, 0)):
 
-        left_pad = int((target_resolution[0] - image.shape[0]) / 2)
-        right_pad = left_pad
-        top_pad = int((target_resolution[1] - image.shape[1]) / 2)
+        top_pad = int((target_resolution[0] - image.shape[0]) / 2)
         bottom_pad = top_pad
+        left_pad = int((target_resolution[1] - image.shape[1]) / 2)
+        right_pad = left_pad
         padded_image = cv2.copyMakeBorder(image, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT,
                                           value=color)
         return padded_image
