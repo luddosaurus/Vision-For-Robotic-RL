@@ -1,9 +1,10 @@
 {
-  "board_name": "printed_charuco",
+  "board_name": "small",
   "camera_name": "oskar_webcam",
   "mode": "eye_to_hand",
   "camera_topic": "/webcam/color/image_raw",
   "memory_size": 30,
-  "load_data_directory": "image_count",
-  "save_data_directory": "testing_mean"
+  "load_data_directory": "position_shift",
+  "save_data_directory": "position_shift"
 }
+
