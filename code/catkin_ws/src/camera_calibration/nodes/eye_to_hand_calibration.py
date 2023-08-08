@@ -330,6 +330,7 @@ class ExtrinsicEstimator(object):
 
         # Find mean
         self.camera_estimates = TypeConverter.estimates_to_transforms(pose_estimations_methods, self.parent_frame_name)
+
         self.calculate_mean_estimate()
 
         # Publish each method estimation
@@ -345,14 +346,14 @@ class ExtrinsicEstimator(object):
             camera2charuco=self.transforms_camera2charuco,
             hand2world=self.transforms_hand2world
         )
-
+        title = 'Pose Count for Eye in Hand' if self.eye_in_hand else 'Pose Count for Eye to Hand'
         evaluator.evaluate2d(
             evaluation_type=ExtrinsicEvaluator.TYPE_ORDER,
-            title="Image Count"
+            title=title
         )
 
-        evaluator.evaluate2d(evaluation_type=ExtrinsicEvaluator.TYPE_RANDOM_AVG,
-                             title="Image Count")
+        # evaluator.evaluate2d(evaluation_type=ExtrinsicEvaluator.TYPE_RANDOM_AVG,
+        #                      title="Image Count Unordered")
 
     def calculate_mean_estimate(self):
         mean_translation, mean_rotation = MeanHelper.riemannian_mean(self.camera_estimates)

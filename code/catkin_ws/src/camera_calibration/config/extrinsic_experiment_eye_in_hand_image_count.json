@@ -1,9 +1,9 @@
 {
   "board_name": "large",
-  "camera_name": "d435_default_480p",
+  "camera_name": "oskar_webcam",
   "mode": "eye_in_hand",
-  "camera_topic": "/cam_wrist/color/image_raw",
+  "camera_topic": "/webcam/color/image_raw",
   "memory_size": 30,
-  "load_data_directory": null,
+  "load_data_directory": "image_count",
   "save_data_directory": "image_count"
 }

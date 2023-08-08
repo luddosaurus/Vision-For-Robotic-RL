@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 
@@ -5,6 +7,7 @@ from camera_calibration.utils.EyeHandSolver import EyeHandSolver
 from camera_calibration.utils.HarryPlotterAndTheChamberOfSeaborn import HarryPlotter
 from camera_calibration.utils.TypeConverter import TypeConverter
 from camera_calibration.utils.ErrorEstimator import ErrorEstimator
+import cv2
 
 
 class ExtrinsicEvaluator:
@@ -19,6 +22,13 @@ class ExtrinsicEvaluator:
         self.extrinsic_solver = EyeHandSolver(transforms_hand2world=self.hand2world,
                                               transforms_camera2charuco=self.camera2charuco
                                               )
+        self.methods = {
+            cv2.CALIB_HAND_EYE_TSAI: 'Tsai',
+            cv2.CALIB_HAND_EYE_PARK: 'Park',
+            cv2.CALIB_HAND_EYE_HORAUD: 'Horaud',
+            cv2.CALIB_HAND_EYE_ANDREFF: 'Andreff',
+            cv2.CALIB_HAND_EYE_DANIILIDIS: 'Daniilidis'
+        }
 
     def __solve_all_combos(self):
         # Solve all versions
@@ -36,15 +46,18 @@ class ExtrinsicEvaluator:
             print("Unknown evaluation type")
 
     def __evaluate_order(self, title):
+        frames = []
+        for method, method_name in zip(self.methods.keys(), self.methods.values()):
+            # Solve
+            pose_dict = self.extrinsic_solver.solve_sample_sizes(solve_method=method)
 
-        # Solve
-        pose_dict = self.extrinsic_solver.solve_sample_sizes()
-
-        # Panda Frame [Category, Translation XYZ, Rotation XYZW]
-        frame_samples = TypeConverter.convert_to_dataframe(pose_dict, category='Sample Sizes')
-
-        # Plot
-        ExtrinsicEvaluator.__plot2d(frame_samples, x='Sample Sizes', title=title)
+            # Panda Frame [Category, Translation XYZ, Rotation XYZW]
+            frame_samples = TypeConverter.convert_to_dataframe(pose_dict, category='Sample Sizes')
+            frame_samples['Sample Sizes'] = frame_samples['Sample Sizes'].astype(int)
+            frames.append(frame_samples)
+            # Plot
+            # ExtrinsicEvaluator.__plot2d(frame_samples, x='Sample Sizes', title=f'{title} for {method_name}')
+        ExtrinsicEvaluator.__plot2d_all(frames, x='Sample Sizes', title=title)
 
     def __evaluate_random_average(self, title):
 
@@ -60,10 +73,21 @@ class ExtrinsicEvaluator:
         ExtrinsicEvaluator.__plot2d(frame_samples, x='Average for Sample Size', title=title)
 
     @staticmethod
+    def __plot2d_all(frames, x, title=""):
+        HarryPlotter.plot_lines(frames, y='Translation X', x=x, title=title)
+        HarryPlotter.plot_lines(frames, y='Translation Y', x=x, title=title)
+        HarryPlotter.plot_lines(frames, y='Translation Z', x=x, title=title)
+
+        HarryPlotter.plot_lines(frames, y='Rotation X', x=x, title=title)
+        HarryPlotter.plot_lines(frames, y='Rotation Y', x=x, title=title)
+        HarryPlotter.plot_lines(frames, y='Rotation Z', x=x, title=title)
+        HarryPlotter.plot_lines(frames, y='Rotation W', x=x, title=title)
+
+    @staticmethod
     def __plot2d(frame, x, title="", ):
-        HarryPlotter.plot_line(frame, y='Translation X', x=x)
-        HarryPlotter.plot_line(frame, y='Translation Y', x=x)
-        HarryPlotter.plot_line(frame, y='Translation Z', x=x)
+        HarryPlotter.plot_line(frame, y='Translation X', x=x, title=title)
+        HarryPlotter.plot_line(frame, y='Translation Y', x=x, title=title)
+        HarryPlotter.plot_line(frame, y='Translation Z', x=x, title=title)
 
     @staticmethod
     def __old_plot(frame):

@@ -18,6 +18,6 @@
     ]
   },
   "board_name": "large",
-  "image_topic": "/cam_wrist/color/image_raw",
+  "image_topic": "/webcam/color/image_raw",
   "save_directory": "distance_to_target_more_images_05"
 }

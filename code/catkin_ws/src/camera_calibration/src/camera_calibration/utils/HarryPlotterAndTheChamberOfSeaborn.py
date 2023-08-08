@@ -69,13 +69,60 @@ class HarryPlotter:
 
     @staticmethod
     def plot_line(data_frame, x="Distance", y="Category", title="Line Plot"):
-        plt.figure()
+
+        SMALL_SIZE = 8
+        MEDIUM_SIZE = 10
+        BIGGER_SIZE = 22
+
+        plt.rc('font', size=BIGGER_SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=BIGGER_SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=BIGGER_SIZE)  # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=BIGGER_SIZE)  # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+        fig, ax = plt.subplots()
 
         sns.lineplot(data=data_frame, x=x, y=y)
-
+        ax.set_ylim(data_frame[y].min() * 0.3,
+                    data_frame[y].max() * 1.8)
         plt.title(title)
         plt.xlabel(x)
-        plt.ylabel(y)
+        plt.ylabel(y + ' (m)')
+        plt.show()
+
+    @staticmethod
+    def plot_lines(data_frames, x="Distance", y="Category", title="Line Plot"):
+
+        SMALL_SIZE = 15
+        MEDIUM_SIZE = 18
+        BIGGER_SIZE = 22
+
+        plt.rc('font', size=BIGGER_SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=BIGGER_SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=BIGGER_SIZE)  # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=MEDIUM_SIZE)  # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+        fig, ax = plt.subplots()
+        max_values = []
+        min_values = []
+        legend_counter = 0
+        # colors = ['red', 'blue', 'yellow', 'green', 'pink']
+        for data_frame in data_frames:
+            max_values.append(data_frame[y].max())
+            min_values.append(data_frame[y].min())
+            # sns.lineplot(data=data_frame, x=x, y=y)
+            ax.plot(data_frame[x], data_frame[y])
+            legend_counter += 1
+        ax.set_ylim(min(min_values) - abs(min(min_values) * 0.1),
+                    max(max_values) + abs(max(max_values) * 0.1))
+        plt.title(title)
+        plt.legend(labels=['Tsai', 'Park', 'Horaud', 'Andreff', 'Daniilidis'])
+        plt.xlabel(x)
+        y_label = y + ' (m)' if y[0] == 'T' else y + ' (quaternions)'
+        plt.ylabel(y_label)
         plt.show()
 
     @staticmethod
@@ -295,81 +342,94 @@ class HarryPlotter:
         # axis[2, 2].plot(dist_2_4, label='no guess')
         # axis[1, 2].title.set_text('distortion')
         # # axis[1, 1].set_ylim([0, max(im_shape)])
+
+        SMALL_SIZE = 8
+        MEDIUM_SIZE = 10
+        BIGGER_SIZE = 22
+
+        plt.rc('font', size=BIGGER_SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=BIGGER_SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=BIGGER_SIZE)  # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=BIGGER_SIZE)  # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+        y_span = [i for i in range(1, len(fx_1) + 1)]
         figure, axis = plt.subplots()
-        axis.plot(fx_1, label=label_1)
-        axis.plot(fx_2, label=label_2)
+        axis.plot(y_span, fx_1, label=label_1)
+        axis.plot(y_span, fx_2, label=label_2)
         axis.title.set_text('fx')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(fy_1, label=label_1)
-        axis.plot(fy_2, label=label_2)
+        axis.plot(y_span, fy_1, label=label_1)
+        axis.plot(y_span, fy_2, label=label_2)
         axis.title.set_text('fy')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(cx_1, label=label_1)
-        axis.plot(cx_2, label=label_2)
+        axis.plot(y_span, cx_1, label=label_1)
+        axis.plot(y_span, cx_2, label=label_2)
         axis.title.set_text('cx')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(cy_1, label=label_1)
-        axis.plot(cy_2, label=label_2)
+        axis.plot(y_span, cy_1, label=label_1)
+        axis.plot(y_span, cy_2, label=label_2)
         axis.title.set_text('cy')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(rpe_1, label=label_1)
-        axis.plot(rpe_2, label=label_2)
+        axis.plot(y_span, rpe_1, label=label_1)
+        axis.plot(y_span, rpe_2, label=label_2)
         axis.title.set_text('Reprojection Error')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(dist_1_0, label=label_1)
-        axis.plot(dist_2_0, label=label_2)
+        axis.plot(y_span, dist_1_0, label=label_1)
+        axis.plot(y_span, dist_2_0, label=label_2)
         axis.title.set_text('k1')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(dist_1_1, label=label_1)
-        axis.plot(dist_2_1, label=label_2)
+        axis.plot(y_span, dist_1_1, label=label_1)
+        axis.plot(y_span, dist_2_1, label=label_2)
         axis.title.set_text('k2')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(dist_1_2, label=label_1)
-        axis.plot(dist_2_2, label=label_2)
+        axis.plot(y_span, dist_1_2, label=label_1)
+        axis.plot(y_span, dist_2_2, label=label_2)
         axis.title.set_text('p1')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(dist_1_3, label=label_1)
-        axis.plot(dist_2_3, label=label_2)
+        axis.plot(y_span, dist_1_3, label=label_1)
+        axis.plot(y_span, dist_2_3, label=label_2)
         axis.title.set_text('p2')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
         plt.legend()
         plt.show()
         figure, axis = plt.subplots()
-        axis.plot(dist_1_4, label=label_1)
-        axis.plot(dist_2_4, label=label_2)
+        axis.plot(y_span, dist_1_4, label=label_1)
+        axis.plot(y_span, dist_2_4, label=label_2)
         axis.title.set_text('k3')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
