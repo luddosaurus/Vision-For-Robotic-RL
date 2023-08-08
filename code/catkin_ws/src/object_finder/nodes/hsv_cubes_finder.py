@@ -39,10 +39,15 @@ import pandas as pd
 
 class ObjectFinder:
 
-    def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None):
+    def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None, distortion=None):
         # print(pose_estimate)
+        self.world_to_aruco = None
+        self.aruco_rotation = None
+        self.aruco_translation = None
+        self.detect_aruco = False
         self.pose_estimate = pose_estimate
         self.intrinsic_matrix = intrinsic_matrix
+        self.distortion = distortion
         self.cof = ColorObjectFinder()
         self.cv_bridge = CvBridge()
         self.depth_image = None
@@ -173,9 +178,9 @@ class ObjectFinder:
                 # print(type(aligned_input_depth[self.center_y][self.center_x]))
                 # print(self.center_x, depth_array.shape[1])
                 print(np.min(depth_array[self.center_y - 20:self.center_y + 20,
-                          self.center_x - 20:self.center_x + 20]) / 1000)
+                             self.center_x - 20:self.center_x + 20]) / 1000)
                 depth = np.min(depth_array[self.center_y - 20:self.center_y + 20,
-                          self.center_x - 20:self.center_x + 20]) / 1000
+                               self.center_x - 20:self.center_x + 20]) / 1000
 
                 # todo find depth of coordinate (x,y)
                 # print(depth)
@@ -284,6 +289,14 @@ class ObjectFinder:
                 position="top_right"
             )
 
+        if self.detect_aruco:
+            self.estimate_aruco_pose()
+            TFPublish.publish_static_transform(publisher=self.center_broadcaster,
+                                               parent_name=self.camera_name,
+                                               child_name=f'ArUco',
+                                               rotation=self.aruco_rotation,
+                                               translation=self.aruco_translation)
+
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
         # cv2.imshow('test', self.depth_image)
@@ -307,7 +320,8 @@ class ObjectFinder:
         #         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
         #             print(f"No transform found between 'world' and 'cube'.")
         #     self.call_move_arm(world_to_cube)
-
+        elif key == ord('a'):
+            self.detect_aruco = True
         elif key == ord('u'):  # Pick up pose
             self.world_to_cube_pickup = None
             print('Waiting for transform world to cube...')
@@ -329,7 +343,17 @@ class ObjectFinder:
             print(self.world_to_cube_place)
 
         elif key == ord('m'):
-            if self.world_to_cube_pickup is not None:
+            if self.detect_aruco and self.aruco_translation is not None and self.aruco_rotation is not None:
+                self.world_to_aruco = None
+                print('Waiting for transform world to aruco...')
+                while self.world_to_aruco is None:
+                    try:
+                        self.world_to_aruco = self.tf_buffer.lookup_transform('world', 'ArUco', rospy.Time())
+                    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                        pass
+                print(self.world_to_cube_place)
+                self.call_move_arm(self.world_to_aruco, self.world_to_aruco)
+            elif self.world_to_cube_pickup is not None:
                 self.call_move_arm(self.world_to_cube_pickup, self.world_to_cube_place)
 
         elif key == ord('s'):
@@ -373,6 +397,31 @@ class ObjectFinder:
             df_s.hist('sat', ax=axes[1], bins=255)
             df_v.hist('val', ax=axes[2], bins=255)
             plt.show()
+
+    def estimate_aruco_pose(self):
+        marker_size_m = 0.1
+        # arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        # arucoParams = cv2.aruco.DetectorParameters()
+        gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
+        cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+        parameters = cv2.aruco.DetectorParameters_create()
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
+
+        if len(corners) > 0:
+            for i in range(0, len(ids)):
+                rotation_vector, translation_vector, marker_points = cv2.aruco.estimatePoseSingleMarkers(corners[i],
+                                                                                                         marker_size_m,
+                                                                                                         self.intrinsic_matrix,
+                                                                                                         self.distortion)
+
+                cv2.drawFrameAxes(self.current_image, self.intrinsic_matrix, self.distortion, rotation_vector,
+                                  translation_vector,
+                                  marker_size_m / 2)
+                self.aruco_translation = translation_vector
+                self.aruco_rotation = rotation_vector
+        else:
+            self.aruco_translation = None
+            self.aruco_rotation = None
 
     def plot_3d(self, dataframe):
         import matplotlib.cm as cm
@@ -436,14 +485,16 @@ class ObjectFinder:
 def load_intrinsics(topics, intrinsic_names):
     print("ArUcoFinder launched with internal parameters:")
     camera_matrices = dict()
+    distortions = dict()
     for camera, topic in zip(intrinsic_names, topics):
         camera_intrinsics = JSONHelper.get_camera_intrinsics(camera)
         camera_matrix = np.array(camera_intrinsics['camera_matrix'])
         distortion = np.array(camera_intrinsics['distortion'])
 
         camera_matrices[topic] = camera_matrix
+        distortions[topic] = distortion
         print(camera_matrix, distortion)
-    return camera_matrices
+    return camera_matrices, distortions
 
 
 if __name__ == '__main__':
@@ -454,18 +505,20 @@ if __name__ == '__main__':
 
     config_file_path = path + config_file_name
 
-    parameters = JSONHelper.read_json(config_file_path)
-    find_pose = parameters['find_pose']
-    topics = parameters['camera_topic']
-    intrinsic_names = parameters['camera_intrinsics']
+    config_parameters = JSONHelper.read_json(config_file_path)
+    find_pose = config_parameters['find_pose']
+    topics = config_parameters['camera_topic']
+    intrinsic_names = config_parameters['camera_intrinsics']
 
     intrinsics = None
+    distortions = None
     if find_pose:
-        intrinsics = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
+        intrinsics, distortions = load_intrinsics(topics=topics, intrinsic_names=intrinsic_names)
 
     # todo make sure topics ans intrinsics are aligned
     object_finder = ObjectFinder(
-        pose_estimate=find_pose, camera_topic=topics[0], intrinsic_matrix=intrinsics[topics[0]]
+        pose_estimate=find_pose, camera_topic=topics[0], intrinsic_matrix=intrinsics[topics[0]],
+        distortion=distortions[topics[0]]
     )
 
     # Update Freq
