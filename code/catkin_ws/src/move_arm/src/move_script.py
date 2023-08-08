@@ -22,6 +22,7 @@ from my_robot_msgs.msg import MoveArmAction, MoveArmFeedback, MoveArmResult
 class MoveArmActionServer(object):
 
     def __init__(self):
+        self.pickup_point_rotation = None
         self.feedback = MoveArmFeedback()
         self.result = MoveArmResult()
         self.action_server = actionlib.SimpleActionServer('pick_and_place', MoveArmAction, self.goal_callback, False)
@@ -36,6 +37,10 @@ class MoveArmActionServer(object):
     def goal_callback(self, goal):
         self.pickup_point_translation = [goal.pickup_pose.position.x, goal.pickup_pose.position.y,
                                          goal.pickup_pose.position.z]
+        if goal.place_pose is None:
+            self.pickup_point_rotation = [goal.pickup_pose.rotation.x, goal.pickup_pose.position.y,
+                                          goal.pickup_pose.position.z]
+            self.move_to_target()
         self.place_point_translation = [goal.place_pose.position.x, goal.place_pose.position.y,
                                         goal.place_pose.position.z]
 
@@ -64,7 +69,6 @@ class MoveArmActionServer(object):
 
         self.action_server.set_succeeded(self.result)
 
-
     def create_pose(self, translation, rotation):
         # Create a Pose object
         pose = Pose()
@@ -92,8 +96,59 @@ class MoveArmActionServer(object):
     #     # goal_pub.publish(goal_msg)
     #     self.action_client.send_goal(goal_msg, feedback_cb=self.feedback_callback)
 
-    def grip(self, translation, rotation, joint_state, open_before_move=False):
+    def move_to_target(self):
+        translation_elevated_z = self.pickup_point_translation[:2] + ([self.pickup_point_translation[2] + 0.1])
+        target_pose = self.create_pose(translation_elevated_z, self.pickup_point_rotation)
+        target_pose_grip = self.create_pose(self.pickup_point_translation, self.pickup_point_rotation)
 
+        # Initialize ROS node
+
+        # Initialize MoveIt commander
+        moveit_commander.roscpp_initialize(sys.argv)
+
+        # Create a RobotCommander instance to get information about the robot
+        robot = moveit_commander.RobotCommander()
+        # print(robot.get_current_state())
+        # # Create a MoveGroupCommander for the arm
+        group_name = "panda_manipulator"  # Specify the group name of the arm
+        # # group_name = "panda_arm"
+        group = moveit_commander.MoveGroupCommander(group_name)
+        ready_state = group.get_current_joint_values()
+        # Plan and execute the arm movement to the target pose
+
+        group.set_planner_id("RRTConnectkConfigDefault")
+        velocity_scaling_argument = 0.1
+        acceleration_scaling_argument = 0.1
+        group.set_max_velocity_scaling_factor(velocity_scaling_argument)
+        group.set_max_acceleration_scaling_factor(acceleration_scaling_argument)
+
+        group.set_joint_value_target(ready_state)
+        plan = group.plan()
+        # plan2 = group.retime_trajectory(robot.get_current_state(), plan, velocity_scaling_argument)
+
+        group.set_pose_target(target_pose)  # approach pose
+        success, plan, some_float, some_val = group.plan()
+
+        time.sleep(1)
+
+        group.execute(plan, wait=True)
+        group.stop()
+        # group.go(wait=True)
+        group.clear_pose_targets()
+
+        time.sleep(1)
+
+        group.set_pose_target(target_pose_grip)  # grasp pose
+        success, plan, some_float, some_val = group.plan()
+
+        group.execute(plan, wait=True)
+        group.stop()
+        # group.go(wait=True)
+        group.clear_pose_targets()
+
+        time.sleep(1)
+
+    def grip(self, translation, rotation, joint_state, open_before_move=False):
         if open_before_move:
             client = actionlib.SimpleActionClient('/franka_gripper/gripper_action', GripperCommandAction)
 
@@ -135,8 +190,6 @@ class MoveArmActionServer(object):
         group.set_joint_value_target(ready_state)
         plan = group.plan()
         # plan2 = group.retime_trajectory(robot.get_current_state(), plan, velocity_scaling_argument)
-
-
 
         group.set_pose_target(target_pose)  # approach pose
         success, plan, some_float, some_val = group.plan()
@@ -184,7 +237,6 @@ class MoveArmActionServer(object):
         group.go(ready_state, wait=True)
         group.stop()
         group.clear_pose_targets()
-
 
         # DONT USE THIS
         # # Instantiate a GripperCommander object for the gripper

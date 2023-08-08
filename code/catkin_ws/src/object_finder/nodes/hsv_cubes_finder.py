@@ -440,7 +440,9 @@ class ObjectFinder:
 
     def call_move_arm(self, pick_pose, place_pose):
         pick_pose_translation = pick_pose.transform.translation
+        pick_pose_rotation = pick_pose.transform.rotation
         pick_translation = [pick_pose_translation.x, pick_pose_translation.y, pick_pose_translation.z]
+        pick_rotation = [pick_pose_rotation.x, pick_pose_rotation.y, pick_pose_rotation.z, pick_pose_rotation.w]
         random_y = np.random.uniform(-0.3, 0.4)
         random_x = np.random.uniform(0.3, 0.45)
         place_translation = pick_translation[:1] + [random_y] + pick_translation[2:]
@@ -449,7 +451,18 @@ class ObjectFinder:
         move_arm_goal.pickup_pose.position.x = pick_translation[0]
         move_arm_goal.pickup_pose.position.y = pick_translation[1]
         move_arm_goal.pickup_pose.position.z = pick_translation[2]
-        if place_pose is None:
+
+        move_arm_goal.pickup_pose.orientation.x = pick_rotation[0]
+        move_arm_goal.pickup_pose.orientation.y = pick_rotation[1]
+        move_arm_goal.pickup_pose.orientation.z = pick_rotation[2]
+        move_arm_goal.pickup_pose.orientation.w = pick_rotation[3]
+
+        if self.detect_aruco:
+            move_arm_goal.pickup_pose.position.z += 0.1
+            move_arm_goal.place_pose = None
+            self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
+
+        elif place_pose is None:
             move_arm_goal.place_pose.position.x = random_x
             move_arm_goal.place_pose.position.y = random_y
             move_arm_goal.place_pose.position.z = pick_translation[2]
