@@ -41,29 +41,30 @@ class MoveArmActionServer(object):
             self.pickup_point_rotation = [goal.pickup_pose.rotation.x, goal.pickup_pose.position.y,
                                           goal.pickup_pose.position.z]
             self.move_to_target()
-        self.place_point_translation = [goal.place_pose.position.x, goal.place_pose.position.y,
-                                        goal.place_pose.position.z]
+        else:
+            self.place_point_translation = [goal.place_pose.position.x, goal.place_pose.position.y,
+                                            goal.place_pose.position.z]
 
-        rotation = [1.0, 0., 0., 0.]
-        # rotation_90 = [0.7071, 0.7071, 0., 0.]
-        # translation = [0.3, -0.2, 0.005]
-        # translation_goal = [0.3, 0.2, 0.005]
-        # # joint_state_close = [0.01, 0.01]
-        # # joint_state_open = [0.03, 0.03]
-        joint_state_close = 0.005
-        joint_state_open = 0.03
-        #
-        # # - Translation: [0.268, 0.252, 0.247]
-        #
-        # # Move the arm to the specified XYZ coordinates
-        #
-        self.grip(self.pickup_point_translation, rotation, joint_state_close, open_before_move=True)
-        # rospy.Rate(1).sleep()
-        # move_arm_to_coordinate(translation_ready, rotation)
-        # rospy.Rate(1).sleep()
-        self.grip(self.place_point_translation, rotation, joint_state_open)
+            rotation = [1.0, 0., 0., 0.]
+            # rotation_90 = [0.7071, 0.7071, 0., 0.]
+            # translation = [0.3, -0.2, 0.005]
+            # translation_goal = [0.3, 0.2, 0.005]
+            # # joint_state_close = [0.01, 0.01]
+            # # joint_state_open = [0.03, 0.03]
+            joint_state_close = 0.005
+            joint_state_open = 0.03
+            #
+            # # - Translation: [0.268, 0.252, 0.247]
+            #
+            # # Move the arm to the specified XYZ coordinates
+            #
+            self.grip(self.pickup_point_translation, rotation, joint_state_close, open_before_move=True)
+            # rospy.Rate(1).sleep()
+            # move_arm_to_coordinate(translation_ready, rotation)
+            # rospy.Rate(1).sleep()
+            self.grip(self.place_point_translation, rotation, joint_state_open)
 
-        # move_arm_to_coordinate(translation_ready, rotation)
+            # move_arm_to_coordinate(translation_ready, rotation)
 
         self.result.result = String("Success")
 
