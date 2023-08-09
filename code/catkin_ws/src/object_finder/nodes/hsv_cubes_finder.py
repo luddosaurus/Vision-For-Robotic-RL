@@ -251,6 +251,17 @@ class ObjectFinder:
         if self.center_x is not None:
             self.cof.draw_dot(res, self.center_x, self.center_y)
             self.cof.draw_dot(self.depth_image, self.center_x, self.center_y)
+
+        if self.detect_aruco:
+            self.estimate_aruco_pose()
+            if self.aruco_translation is not None and self.aruco_rotation is not None:
+                print(self.aruco_translation)
+                TFPublish.publish_static_transform(publisher=self.center_broadcaster,
+                                                   parent_name=self.camera_name,
+                                                   child_name=f'ArUco',
+                                                   rotation=self.aruco_rotation,
+                                                   translation=self.aruco_translation)
+
         display_image = self.current_image.copy()
         if self.hovered_x is not None:
             display_image = DaVinci.draw_roi_rectangle(image=display_image,
@@ -288,14 +299,6 @@ class ObjectFinder:
                 text=pose_info,
                 position="top_right"
             )
-
-        if self.detect_aruco:
-            self.estimate_aruco_pose()
-            TFPublish.publish_static_transform(publisher=self.center_broadcaster,
-                                               parent_name=self.camera_name,
-                                               child_name=f'ArUco',
-                                               rotation=self.aruco_rotation,
-                                               translation=self.aruco_translation)
 
         cv2.imshow(self.window, cv2.resize(stacked, None, fx=self.scale, fy=self.scale))
         # cv2.imshow(self.window, stacked)
@@ -399,7 +402,7 @@ class ObjectFinder:
             plt.show()
 
     def estimate_aruco_pose(self):
-        marker_size_m = 0.1
+        marker_size_m = 0.035
         # arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         # arucoParams = cv2.aruco.DetectorParameters()
         gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
@@ -417,8 +420,8 @@ class ObjectFinder:
                 cv2.drawFrameAxes(self.current_image, self.intrinsic_matrix, self.distortion, rotation_vector,
                                   translation_vector,
                                   marker_size_m / 2)
-                self.aruco_translation = translation_vector
-                self.aruco_rotation = rotation_vector
+                self.aruco_translation = translation_vector.flatten()
+                self.aruco_rotation = TypeConverter.rotation_vector_to_quaternions(rotation_vector.flatten())
         else:
             self.aruco_translation = None
             self.aruco_rotation = None

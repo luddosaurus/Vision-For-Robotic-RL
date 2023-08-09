@@ -164,6 +164,7 @@ class InternalCalibrator(object):
                 self.saved_images.append(im)
                 self.run_calibration()
                 calib_results_1.append(self.calibration_results)
+            factory_settings_copy = self.factory_settings.copy()
             self.factory_settings = None
             self.saved_images = []
             for im in plot_images:
@@ -171,7 +172,10 @@ class InternalCalibrator(object):
                 self.run_calibration()
                 calib_results_2.append(self.calibration_results)
             print('plotting!')
-            HarryPlotter.plot_intrinsic_guess(calib_results_1, calib_results_2, 'With initial guess',
+            self.factory_settings = factory_settings_copy
+            
+            HarryPlotter.plot_intrinsic_guess(calib_results_1, calib_results_2, self.factory_settings,
+                                              'With initial guess',
                                               'No initial guess')
         elif key == ord('i'):
             self.saved_images = self.copy_originals.copy()
@@ -191,7 +195,8 @@ class InternalCalibrator(object):
                 self.run_calibration()
                 calib_results_near.append(self.calibration_results)
             print('plotting!')
-            HarryPlotter.plot_intrinsic_guess(calib_results_far, calib_results_near, 'Far away', 'Near')
+            HarryPlotter.plot_intrinsic_guess(calib_results_far, calib_results_near, self.factory_settings, 'Far away',
+                                              'Near')
 
     def run_calibration(self):
         if self.type == 'checkerboard':

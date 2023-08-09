@@ -255,7 +255,7 @@ class HarryPlotter:
         plt.show()
 
     @staticmethod
-    def plot_intrinsic_guess(error_list_1, error_list_2, label_1, label_2):
+    def plot_intrinsic_guess(error_list_1, error_list_2, factory_settings, label_1, label_2):
 
         rpe_1 = []
         fx_1 = []
@@ -303,6 +303,16 @@ class HarryPlotter:
             dist_2_2.append(dist[2])
             dist_2_3.append(dist[3])
             dist_2_4.append(dist[4])
+        fx_factory = [factory_settings['focal_point'][0] for i in range(len(fx_1))]
+        fy_factory = [factory_settings['focal_point'][1] for i in range(len(fx_1))]
+        cx_factory = [factory_settings['center_point'][0] for i in range(len(fx_1))]
+        cy_factory = [factory_settings['center_point'][1] for i in range(len(fx_1))]
+        k1_factory = [factory_settings['distortion'][0] for i in range(len(fx_1))]
+        k2_factory = [factory_settings['distortion'][1] for i in range(len(fx_1))]
+        p1_factory = [factory_settings['distortion'][2] for i in range(len(fx_1))]
+        p2_factory = [factory_settings['distortion'][3] for i in range(len(fx_1))]
+        k3_factory = [factory_settings['distortion'][4] for i in range(len(fx_1))]
+
         # plt.plot(rpe_1)
         # plt.plot(rpe_2)
         # figure, axis = plt.subplots(3, 3)
@@ -358,6 +368,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, fx_1, label=label_1)
         axis.plot(y_span, fx_2, label=label_2)
+        axis.plot(y_span, fx_factory, label='Factory settings')
         axis.title.set_text('fx')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -366,6 +377,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, fy_1, label=label_1)
         axis.plot(y_span, fy_2, label=label_2)
+        axis.plot(y_span, fy_factory, label='Factory settings')
         axis.title.set_text('fy')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -374,6 +386,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, cx_1, label=label_1)
         axis.plot(y_span, cx_2, label=label_2)
+        axis.plot(y_span, cx_factory, label='Factory settings')
         axis.title.set_text('cx')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -382,6 +395,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, cy_1, label=label_1)
         axis.plot(y_span, cy_2, label=label_2)
+        axis.plot(y_span, cy_factory, label='Factory settings')
         axis.title.set_text('cy')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -398,6 +412,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, dist_1_0, label=label_1)
         axis.plot(y_span, dist_2_0, label=label_2)
+        axis.plot(y_span, k1_factory, label='Factory settings')
         axis.title.set_text('k1')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -406,6 +421,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, dist_1_1, label=label_1)
         axis.plot(y_span, dist_2_1, label=label_2)
+        axis.plot(y_span, k2_factory, label='Factory settings')
         axis.title.set_text('k2')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -414,6 +430,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, dist_1_2, label=label_1)
         axis.plot(y_span, dist_2_2, label=label_2)
+        axis.plot(y_span, p1_factory, label='Factory settings')
         axis.title.set_text('p1')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -422,6 +439,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, dist_1_3, label=label_1)
         axis.plot(y_span, dist_2_3, label=label_2)
+        axis.plot(y_span, p2_factory, label='Factory settings')
         axis.title.set_text('p2')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
@@ -430,6 +448,7 @@ class HarryPlotter:
         figure, axis = plt.subplots()
         axis.plot(y_span, dist_1_4, label=label_1)
         axis.plot(y_span, dist_2_4, label=label_2)
+        axis.plot(y_span, k3_factory, label='Factory settings')
         axis.title.set_text('k3')
         plt.xlabel('Image count')
         plt.ylabel('Pixels')
