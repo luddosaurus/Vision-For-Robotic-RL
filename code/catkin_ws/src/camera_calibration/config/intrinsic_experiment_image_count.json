@@ -1,5 +1,5 @@
 {
-  "camera_name": "d435",
+  "camera_name": "d435-big-collection",
   "factory_settings": {
     "focal_point": [
       616.68,
@@ -19,5 +19,5 @@
   },
   "board_name": "large",
   "image_topic": "/webcam/color/image_raw",
-  "save_directory": "image_count"
+  "save_directory": "big_collection"
 }

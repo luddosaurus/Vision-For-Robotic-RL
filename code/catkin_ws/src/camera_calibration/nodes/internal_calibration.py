@@ -124,6 +124,9 @@ class InternalCalibrator(object):
 
         if key == ord('q'):
             rospy.signal_shutdown('We are done here')
+        elif key == ord('h'):
+            shuffle(self.saved_images)
+            cv2.imshow('first_image', self.saved_images[0])
         elif key == ord('c') and board_detected:
             self.saved_images.append(original_image)
             # self.run_calibration()
@@ -173,7 +176,7 @@ class InternalCalibrator(object):
                 calib_results_2.append(self.calibration_results)
             print('plotting!')
             self.factory_settings = factory_settings_copy
-            
+
             HarryPlotter.plot_intrinsic_guess(calib_results_1, calib_results_2, self.factory_settings,
                                               'With initial guess',
                                               'No initial guess')
@@ -194,9 +197,18 @@ class InternalCalibrator(object):
                 self.saved_images.append(im)
                 self.run_calibration()
                 calib_results_near.append(self.calibration_results)
+            self.saved_images = []
+            combined_results = []
+            shuffle(plot_images)
+            for im in plot_images[:int(len(plot_images) / 2)]:
+                self.saved_images.append(im)
+                self.run_calibration()
+                combined_results.append(self.calibration_results)
+
             print('plotting!')
-            HarryPlotter.plot_intrinsic_guess(calib_results_far, calib_results_near, self.factory_settings, 'Far away',
-                                              'Near')
+            HarryPlotter.plot_intrinsic_near_far(calib_results_far, calib_results_near, combined_results,
+                                                 self.factory_settings, 'Far away',
+                                                 'Near')
 
     def run_calibration(self):
         if self.type == 'checkerboard':

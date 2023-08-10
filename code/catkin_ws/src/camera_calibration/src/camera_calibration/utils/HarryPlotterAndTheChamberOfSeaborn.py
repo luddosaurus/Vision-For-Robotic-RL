@@ -458,3 +458,245 @@ class HarryPlotter:
         # sns.lineplot(error_list_2)
         # plt.legend('first', 'second')
         plt.show()
+
+    @staticmethod
+    def plot_intrinsic_near_far(error_list_1, error_list_2, combined_results, factory_settings, label_1, label_2):
+
+        rpe_1 = []
+        fx_1 = []
+        fy_1 = []
+        cx_1 = []
+        cy_1 = []
+        dist_1_0 = []
+        dist_1_1 = []
+        dist_1_2 = []
+        dist_1_3 = []
+        dist_1_4 = []
+        for instance in error_list_1:
+            dist = np.array(instance[2]).flatten()
+            fx_1.append(instance[1][0][0])
+            fy_1.append(instance[1][1][1])
+            cx_1.append(instance[1][0][2])
+            cy_1.append(instance[1][1][2])
+            rpe_1.append(instance[0])
+
+            dist_1_0.append(dist[0])
+            dist_1_1.append(dist[1])
+            dist_1_2.append(dist[2])
+            dist_1_3.append(dist[3])
+            dist_1_4.append(dist[4])
+        rpe_2 = []
+        fx_2 = []
+        fy_2 = []
+        cx_2 = []
+        cy_2 = []
+        dist_2_0 = []
+        dist_2_1 = []
+        dist_2_2 = []
+        dist_2_3 = []
+        dist_2_4 = []
+        for instance in error_list_2:
+            dist = np.array(instance[2]).flatten()
+            fx_2.append(instance[1][0][0])
+            fy_2.append(instance[1][1][1])
+            cx_2.append(instance[1][0][2])
+            cy_2.append(instance[1][1][2])
+            rpe_2.append(instance[0])
+
+            dist_2_0.append(dist[0])
+            dist_2_1.append(dist[1])
+            dist_2_2.append(dist[2])
+            dist_2_3.append(dist[3])
+            dist_2_4.append(dist[4])
+
+        rpe_combined = []
+        fx_combined = []
+        fy_combined = []
+        cx_combined = []
+        cy_combined = []
+        dist_0_combined = []
+        dist_1_combined = []
+        dist_2_combined = []
+        dist_3_combined = []
+        dist_4_combined = []
+        for instance in combined_results:
+            dist = np.array(instance[2]).flatten()
+            fx_combined.append(instance[1][0][0])
+            fy_combined.append(instance[1][1][1])
+            cx_combined.append(instance[1][0][2])
+            cy_combined.append(instance[1][1][2])
+            rpe_combined.append(instance[0])
+
+            dist_0_combined.append(dist[0])
+            dist_1_combined.append(dist[1])
+            dist_2_combined.append(dist[2])
+            dist_3_combined.append(dist[3])
+            dist_4_combined.append(dist[4])
+
+        y_span_large = [i + 1 for i in range(len(fx_combined))]
+
+        fx_factory = [factory_settings['focal_point'][0] for i in range(len(y_span_large))]
+        fy_factory = [factory_settings['focal_point'][1] for i in range(len(y_span_large))]
+        cx_factory = [factory_settings['center_point'][0] for i in range(len(y_span_large))]
+        cy_factory = [factory_settings['center_point'][1] for i in range(len(y_span_large))]
+        k1_factory = [factory_settings['distortion'][0] for i in range(len(y_span_large))]
+        k2_factory = [factory_settings['distortion'][1] for i in range(len(y_span_large))]
+        p1_factory = [factory_settings['distortion'][2] for i in range(len(y_span_large))]
+        p2_factory = [factory_settings['distortion'][3] for i in range(len(y_span_large))]
+        k3_factory = [factory_settings['distortion'][4] for i in range(len(y_span_large))]
+
+        # plt.plot(rpe_1)
+        # plt.plot(rpe_2)
+        # figure, axis = plt.subplots(3, 3)
+        # axis[0, 0].plot(fx_1, label='guess')
+        # axis[0, 0].plot(fx_2, label='no guess')
+        # axis[0, 0].title.set_text('fx')
+        # axis[0, 0].legend()
+        #
+        # # axis[0, 0].set_ylim([0, max(im_shape)])
+        # axis[0, 1].plot(fy_1, label='guess')
+        # axis[0, 1].plot(fy_2, label='no guess')
+        # axis[0, 1].title.set_text('fy')
+        # # axis[0, 1].set_ylim([0, max(im_shape) + 100])
+        # axis[1, 0].plot(cx_1, label='guess')
+        # axis[1, 0].plot(cx_2, label='no guess')
+        # axis[1, 0].title.set_text('cx')
+        # # axis[1, 0].set_ylim([0, max(im_shape)])
+        # axis[1, 1].plot(cy_1, label='guess')
+        # axis[1, 1].plot(cy_2, label='no guess')
+        # axis[1, 1].title.set_text('cy')
+        # # axis[1, 1].set_ylim([0, max(im_shape)])
+        #
+        # axis[0, 2].plot(rpe_1, label='guess')
+        # axis[0, 2].plot(rpe_2, label='no guess')
+        # axis[0, 2].title.set_text('rpe')
+        # # axis[0, 2].set_ylim([0, max(im_shape)])
+        #
+        # axis[1, 2].plot(dist_1_0, label='guess')
+        # axis[2, 0].plot(dist_1_1, label='guess')
+        # axis[2, 1].plot(dist_1_2, label='guess')
+        # # axis[2, 2].plot(dist_1_3, label='guess')
+        # axis[2, 2].plot(dist_1_4, label='guess')
+        # axis[1, 2].plot(dist_2_0, label='no guess')
+        # axis[2, 0].plot(dist_2_1, label='no guess')
+        # axis[2, 1].plot(dist_2_2, label='no guess')
+        # # axis[2, 2].plot(dist_2_3, label='no guess')
+        # axis[2, 2].plot(dist_2_4, label='no guess')
+        # axis[1, 2].title.set_text('distortion')
+        # # axis[1, 1].set_ylim([0, max(im_shape)])
+
+        SMALL_SIZE = 8
+        MEDIUM_SIZE = 10
+        BIGGER_SIZE = 22
+
+        plt.rc('font', size=BIGGER_SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=BIGGER_SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=BIGGER_SIZE)  # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=BIGGER_SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=BIGGER_SIZE)  # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+        y_span = [i for i in range(1, len(fx_1) + 1)]
+        figure, axis = plt.subplots()
+        axis.plot(y_span, fx_1, label=label_1)
+        axis.plot(y_span, fx_2, label=label_2)
+        axis.plot(y_span_large, fx_combined, label='Combined near and far')
+        axis.plot(y_span_large, fx_factory, label='Factory settings')
+        axis.title.set_text('fx')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, fy_1, label=label_1)
+        axis.plot(y_span, fy_2, label=label_2)
+        axis.plot(y_span_large, fy_combined, label='Combined near and far')
+        axis.plot(y_span_large, fy_factory, label='Factory settings')
+        axis.title.set_text('fy')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, cx_1, label=label_1)
+        axis.plot(y_span, cx_2, label=label_2)
+        axis.plot(y_span_large, cx_combined, label='Combined near and far')
+        axis.plot(y_span_large, cx_factory, label='Factory settings')
+        axis.title.set_text('cx')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, cy_1, label=label_1)
+        axis.plot(y_span, cy_2, label=label_2)
+        axis.plot(y_span_large, cy_combined, label='Combined near and far')
+        axis.plot(y_span_large, cy_factory, label='Factory settings')
+        axis.title.set_text('cy')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, rpe_1, label=label_1)
+        axis.plot(y_span, rpe_2, label=label_2)
+        axis.plot(y_span_large, rpe_combined, label='Combined near and far')
+        axis.title.set_text('Reprojection Error')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, dist_1_0, label=label_1)
+        axis.plot(y_span, dist_2_0, label=label_2)
+        axis.plot(y_span_large, dist_0_combined, label='Combined near and far')
+        axis.plot(y_span_large, k1_factory, label='Factory settings')
+        axis.title.set_text('k1')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, dist_1_1, label=label_1)
+        axis.plot(y_span, dist_2_1, label=label_2)
+        axis.plot(y_span_large, dist_1_combined, label='Combined near and far')
+        axis.plot(y_span_large, k2_factory, label='Factory settings')
+        axis.title.set_text('k2')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, dist_1_2, label=label_1)
+        axis.plot(y_span, dist_2_2, label=label_2)
+        axis.plot(y_span_large, dist_2_combined, label='Combined near and far')
+        axis.plot(y_span_large, p1_factory, label='Factory settings')
+        axis.title.set_text('p1')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, dist_1_3, label=label_1)
+        axis.plot(y_span, dist_2_3, label=label_2)
+        axis.plot(y_span_large, dist_3_combined, label='Combined near and far')
+        axis.plot(y_span_large, p2_factory, label='Factory settings')
+        axis.title.set_text('p2')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+        plt.show()
+        figure, axis = plt.subplots()
+        axis.plot(y_span, dist_1_4, label=label_1)
+        axis.plot(y_span, dist_2_4, label=label_2)
+        axis.plot(y_span_large, dist_4_combined, label='Combined near and far')
+        axis.plot(y_span_large, k3_factory, label='Factory settings')
+        axis.title.set_text('k3')
+        plt.xlabel('Image count')
+        plt.ylabel('Pixels')
+        plt.legend()
+
+        # sns.lineplot(error_list_1)
+        # sns.lineplot(error_list_2)
+        # plt.legend('first', 'second')
+        plt.show()
