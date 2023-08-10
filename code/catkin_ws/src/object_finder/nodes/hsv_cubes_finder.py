@@ -19,6 +19,7 @@ from utils.Const import Const
 from cv_bridge import CvBridge, CvBridgeError
 
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 
 import tf2_ros
 import actionlib
@@ -177,10 +178,10 @@ class ObjectFinder:
                 # print(aligned_input_depth[self.center_y][self.center_x])
                 # print(type(aligned_input_depth[self.center_y][self.center_x]))
                 # print(self.center_x, depth_array.shape[1])
-                print(np.min(depth_array[self.center_y - 20:self.center_y + 20,
-                             self.center_x - 20:self.center_x + 20]) / 1000)
-                depth = np.min(depth_array[self.center_y - 20:self.center_y + 20,
-                               self.center_x - 20:self.center_x + 20]) / 1000
+                # print(np.min(depth_array[self.center_y - 20:self.center_y + 20,
+                #              self.center_x - 20:self.center_x + 20]) / 1000)
+                depth = np.min(depth_array[self.center_y - 5:self.center_y + 5,
+                               self.center_x - 5:self.center_x + 5]) / 1000
 
                 # todo find depth of coordinate (x,y)
                 # print(depth)
@@ -255,7 +256,7 @@ class ObjectFinder:
         if self.detect_aruco:
             self.estimate_aruco_pose()
             if self.aruco_translation is not None and self.aruco_rotation is not None:
-                print(self.aruco_translation)
+                # print(self.aruco_translation)
                 TFPublish.publish_static_transform(publisher=self.center_broadcaster,
                                                    parent_name=self.camera_name,
                                                    child_name=f'ArUco',
@@ -324,7 +325,16 @@ class ObjectFinder:
         #             print(f"No transform found between 'world' and 'cube'.")
         #     self.call_move_arm(world_to_cube)
         elif key == ord('a'):
-            self.detect_aruco = True
+            self.detect_aruco = not self.detect_aruco
+        elif key == ord('w') and self.detect_aruco:
+            self.world_to_aruco = None
+            print('Waiting for transform world to aruco...')
+            while self.world_to_aruco is None:
+                try:
+                    self.world_to_aruco = self.tf_buffer.lookup_transform('world', 'ArUco', rospy.Time())
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
+            print(self.world_to_aruco)
         elif key == ord('u'):  # Pick up pose
             self.world_to_cube_pickup = None
             print('Waiting for transform world to cube...')
@@ -354,7 +364,7 @@ class ObjectFinder:
                         self.world_to_aruco = self.tf_buffer.lookup_transform('world', 'ArUco', rospy.Time())
                     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                         pass
-                print(self.world_to_cube_place)
+                print(self.world_to_aruco)
                 self.call_move_arm(self.world_to_aruco, self.world_to_aruco)
             elif self.world_to_cube_pickup is not None:
                 self.call_move_arm(self.world_to_cube_pickup, self.world_to_cube_place)
@@ -402,11 +412,11 @@ class ObjectFinder:
             plt.show()
 
     def estimate_aruco_pose(self):
-        marker_size_m = 0.035
+        marker_size_m = 0.1
         # arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         # arucoParams = cv2.aruco.DetectorParameters()
         gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
-        cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
+        cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
         parameters = cv2.aruco.DetectorParameters_create()
         corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
 
@@ -461,8 +471,9 @@ class ObjectFinder:
         move_arm_goal.pickup_pose.orientation.w = pick_rotation[3]
 
         if self.detect_aruco:
-            move_arm_goal.pickup_pose.position.z += 0.1
-            move_arm_goal.place_pose = None
+            move_arm_goal.pickup_pose.position.z += 0.098
+            move_arm_goal.mode = String('aruco')
+            # move_arm_goal.place_pose = None
             self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
 
         elif place_pose is None:
@@ -475,7 +486,7 @@ class ObjectFinder:
 
             move_arm_goal.place_pose.position.x = place_translation[0]
             move_arm_goal.place_pose.position.y = place_translation[1]
-            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2] + 0.02
+            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2]
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
 
