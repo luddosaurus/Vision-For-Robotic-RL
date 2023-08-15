@@ -42,7 +42,7 @@ class ExtrinsicEstimator(object):
         print(self.camera_matrix, self.distortion)
 
         self.transform_memory = []
-
+        self.aruco_mode = False
         # live marker calibration mode
         self.toggle_marker_calibration = False
         self.marker_mode_memory = []
@@ -218,7 +218,14 @@ class ExtrinsicEstimator(object):
                                                directory_name=self.save_directory)
 
         elif key == ord('t'):
+
             self.toggle_marker_calibration = not self.toggle_marker_calibration
+            print(f'Live estimate mode: {self.toggle_marker_calibration}')
+            if not self.toggle_marker_calibration:
+                self.aruco_mode = False
+        elif key == ord('a') and self.toggle_marker_calibration:
+            self.aruco_mode = not self.aruco_mode
+            print(f'Aruco mode: {self.aruco_mode}')
         elif key == ord('p'):
             print(self.get_transform_between(self.Frame.world.name, self.live_camera_estimate_name))
 
@@ -231,24 +238,55 @@ class ExtrinsicEstimator(object):
             self.camera_estimates = TypeConverter.estimates_to_transforms(self.pose_estimations_all_algorithms,
                                                                           self.parent_frame_name)
 
+    def estimate_aruco_pose(self):
+        marker_size_m = 0.1
+        # arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        # arucoParams = cv2.aruco.DetectorParameters()
+        gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
+        cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
+        parameters = cv2.aruco.DetectorParameters_create()
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
+        aruco_translation = None
+        aruco_rotation = None
+        if len(corners) > 0:
+            for i in range(0, len(ids)):
+                rotation_vector, translation_vector, marker_points = cv2.aruco.estimatePoseSingleMarkers(corners[i],
+                                                                                                         marker_size_m,
+                                                                                                         self.camera_matrix,
+                                                                                                         self.distortion)
+
+                cv2.drawFrameAxes(self.current_image, self.camera_matrix, self.distortion, rotation_vector,
+                                  translation_vector,
+                                  marker_size_m / 2)
+                aruco_translation = translation_vector.flatten()
+                # aruco_rotation = TypeConverter.rotation_vector_to_quaternions(rotation_vector.flatten())
+
+        return aruco_translation, aruco_rotation
+
     def collect_camera_target_transform(self):
-        self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
-            image=self.current_image,
-            camera_matrix=self.camera_matrix,
-            dist_coefficients=self.distortion)
+        if not self.aruco_mode:
+            self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
+                image=self.current_image,
+                camera_matrix=self.camera_matrix,
+                dist_coefficients=self.distortion)
+        else:
+            latest_t_vec, latest_r_vec = self.estimate_aruco_pose()
+        
+        if latest_t_vec is not None and latest_r_vec is not None:
 
-        latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
+            latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
 
-        latest_t_vec = np.array(latest_t_vec)
-        latest_r_vec = np.array(latest_r_vec)
-        if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
-            transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
-                                                                   rotation=latest_r_vec,
-                                                                   parent_frame=self.Frame.camera.name,
-                                                                   child_frame=self.Frame.charuco.name)
-            self.transform_memory.append(transform)
-            if len(self.transform_memory) > self.memory_size:
-                self.transform_memory = self.transform_memory[1:]
+            latest_t_vec = np.array(latest_t_vec)
+            latest_r_vec = np.array(latest_r_vec)
+
+            if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
+                transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
+                                                                       rotation=latest_r_vec,
+                                                                       parent_frame=self.Frame.camera.name,
+                                                                       child_frame=self.Frame.charuco.name)
+                self.transform_memory.append(transform)
+                if len(self.transform_memory) > self.memory_size:
+                    self.transform_memory = self.transform_memory[1:]
 
     def save_camera_target_transform(self):
 
@@ -346,7 +384,7 @@ class ExtrinsicEstimator(object):
             camera2charuco=self.transforms_camera2charuco,
             hand2world=self.transforms_hand2world
         )
-        title = 'Pose Count for Eye in Hand' if self.eye_in_hand else 'Pose Count for Eye to Hand'
+        title = 'Pose Count for Eye in Hand - Wrist Camera' if self.eye_in_hand else 'Pose Count for Eye to Hand - Front Camera'
         evaluator.evaluate2d(
             evaluation_type=ExtrinsicEvaluator.TYPE_ORDER,
             title=title

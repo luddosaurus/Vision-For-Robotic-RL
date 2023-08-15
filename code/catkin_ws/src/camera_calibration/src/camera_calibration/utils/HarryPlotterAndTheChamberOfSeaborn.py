@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-plt.switch_backend('agg')
+# plt.switch_backend('agg')
 
 
 class HarryPlotter:
@@ -116,6 +116,10 @@ class HarryPlotter:
             # sns.lineplot(data=data_frame, x=x, y=y)
             ax.plot(data_frame[x], data_frame[y])
             legend_counter += 1
+
+        # y_span = [i for i in range(3, len(data_frames[0][y]))]
+        # data = [1.60998 for i in range(len(y_span) + 3)]
+        # ax.plot(y_span, data)
         ax.set_ylim(min(min_values) - abs(min(min_values) * 0.1),
                     max(max_values) + abs(max(max_values) * 0.1))
         plt.title(title)
