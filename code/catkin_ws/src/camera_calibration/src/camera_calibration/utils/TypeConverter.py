@@ -61,7 +61,8 @@ class TypeConverter:
         inversed_transform = tf.transformations.inverse_matrix(transform)
         translation = tf.transformations.translation_from_matrix(inversed_transform)
         quaternion = tf.transformations.quaternion_from_matrix(inversed_transform)
-        return TypeConverter.vectors_to_stamped_transform(translation, quaternion, child_frame='camera_estimate', parent_frame='charuco')
+        return TypeConverter.vectors_to_stamped_transform(translation, quaternion, child_frame='camera_estimate',
+                                                          parent_frame='charuco')
 
     @staticmethod
     def rotation_vector_to_quaternions(rotation_vector):
@@ -80,7 +81,7 @@ class TypeConverter:
 
     @staticmethod
     def quaternion_to_rotation_vector(quaternions):
-        matrix = tf.transformations.quaternion_matrix(quaternions)
+        matrix = tf.transformations.quaternion_matrix(quaternions)[:3, :3]
         r_vec = cv2.Rodrigues(matrix)
         return r_vec
 

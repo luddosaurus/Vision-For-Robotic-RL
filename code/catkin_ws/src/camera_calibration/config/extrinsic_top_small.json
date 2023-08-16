@@ -1,9 +1,9 @@
 {
   "board_name": "small",
-  "camera_name": "oskar_webcam",
+  "camera_name": "cam_top_default",
   "mode": "eye_to_hand",
-  "camera_topic": "/webcam/color/image_raw",
+  "camera_topic": "/cam_top/color/image_raw",
   "memory_size": 30,
-  "load_data_directory": "top_camera_last",
-  "save_data_directory": "top_camera"
+  "load_data_directory": null,
+  "save_data_directory": "top_camera_2"
 }

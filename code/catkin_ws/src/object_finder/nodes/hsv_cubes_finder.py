@@ -42,7 +42,7 @@ class ObjectFinder:
 
     def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None, distortion=None):
         # print(pose_estimate)
-        self.cube_size = 0.03  # meters
+        self.cube_size = 0.035  # meters
         self.world_to_aruco = None
         self.aruco_rotation = None
         self.aruco_translation = None
@@ -95,6 +95,8 @@ class ObjectFinder:
 
         self.cube_poses = {1: None, 2: None, 3: None, 4: None}
         self.total_height = 0
+
+        self.tower_colors = {}
 
     def create_layout(self):
         cv2.namedWindow(self.window)
@@ -285,15 +287,16 @@ class ObjectFinder:
         info = "[0-9] states, [m]ove to, [q]uit"
         DaVinci.draw_text_box(
             image=stacked,
-            text=info
-        )
-
-        slot_info = f"Color State [{self.cof.saved_state}]"
-        DaVinci.draw_text_box(
-            image=stacked,
-            text=slot_info,
+            text=info,
             position="top_left"
         )
+
+        # slot_info = f"Color State [{self.cof.saved_state}]"
+        # DaVinci.draw_text_box(
+        #     image=stacked,
+        #     text=slot_info,
+        #     position="top_left"
+        # )
 
         if self.pose_estimate and pose_info != "":
             DaVinci.draw_text_box(
@@ -311,11 +314,18 @@ class ObjectFinder:
 
         if key_str.isdigit() and 0 <= int(key_str) <= 9:
             key_number = int(key_str)
-            # self.cof.current_state_index = key_number
+            cube_coordinates = None
+            print('Waiting for transform world to cube...')
+            while cube_coordinates is None:
+                try:
+                    cube_coordinates = self.tf_buffer.lookup_transform('world', 'cube', rospy.Time())
+                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                    pass
+            self.tower_colors[key_number] = cube_coordinates
             # self.update_trackbars()
-            # print(f"Switching to state {key_number}")
-
-            self.get_world_cube_transform(key_number)
+            print(f"Switching to state {key_number}")
+            print(self.tower_colors)
+            # self.get_world_cube_transform(key_number)
 
         # elif key == ord('m'):
         #     world_to_cube = None
@@ -325,6 +335,17 @@ class ObjectFinder:
         #         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
         #             print(f"No transform found between 'world' and 'cube'.")
         #     self.call_move_arm(world_to_cube)
+
+        elif key == ord('f'):
+            self.world_to_cube_pickup = self.tower_colors[1]
+            self.world_to_cube_place = self.tower_colors[3]
+            self.call_move_arm(self.world_to_cube_pickup, self.world_to_cube_place)
+            self.world_to_cube_pickup = self.tower_colors[2]
+            self.tower_colors[3].transform.translation.z = self.tower_colors[3].transform.translation.z + self.tower_colors[1].transform.translation.z
+            self.world_to_cube_place = self.tower_colors[3]
+            self.call_move_arm(self.world_to_cube_pickup, self.world_to_cube_place)
+
+
         elif key == ord('a'):
             self.detect_aruco = not self.detect_aruco
         elif key == ord('w') and self.detect_aruco:
@@ -457,14 +478,15 @@ class ObjectFinder:
         pick_pose_rotation = pick_pose.transform.rotation
         pick_translation = [pick_pose_translation.x, pick_pose_translation.y, pick_pose_translation.z]
         pick_rotation = [pick_pose_rotation.x, pick_pose_rotation.y, pick_pose_rotation.z, pick_pose_rotation.w]
-
-        pick_rotation_angles = TypeConverter.quaternion_to_rotation_vector(pick_rotation)
-
-        # reverse z axis direction
-        pick_rotation_angles[0] += 180
-        pick_rotation_angles[2] += 90
-
-        pick_rotation = TypeConverter.rotation_vector_to_quaternions(pick_rotation_angles)
+        # if self.detect_aruco:
+        #     pick_rotation_angles = TypeConverter.quaternion_to_rotation_vector(pick_rotation)
+        #     print(pick_rotation_angles)
+        #
+        #     # reverse z axis direction
+        #     pick_rotation_angles[0] = pick_rotation_angles[0] + 180
+        #     pick_rotation_angles[2] = pick_rotation_angles[2] + 90
+        #
+        #     pick_rotation = TypeConverter.rotation_vector_to_quaternions(pick_rotation_angles)
 
         random_y = np.random.uniform(-0.3, 0.4)
         random_x = np.random.uniform(0.3, 0.45)
@@ -474,13 +496,6 @@ class ObjectFinder:
         move_arm_goal.pickup_pose.position.x = pick_translation[0]
         move_arm_goal.pickup_pose.position.y = pick_translation[1]
         move_arm_goal.pickup_pose.position.z = pick_translation[2]
-
-        if self.camera_name == 'cam_front':
-            move_arm_goal.pickup_pose.position.x -= self.cube_size / 2
-            move_arm_goal.pickup_pose.position.z += self.cube_size / 2
-        elif self.camera_name == 'cam_top':
-            move_arm_goal.pickup_pose.position.x += self.cube_size / 2
-            move_arm_goal.pickup_pose.position.z += self.cube_size / 2
 
         move_arm_goal.pickup_pose.orientation.x = pick_rotation[0]
         move_arm_goal.pickup_pose.orientation.y = pick_rotation[1]
@@ -503,7 +518,18 @@ class ObjectFinder:
 
             move_arm_goal.place_pose.position.x = place_translation[0]
             move_arm_goal.place_pose.position.y = place_translation[1]
-            move_arm_goal.place_pose.position.z = place_translation[2] + pick_translation[2]
+            move_arm_goal.place_pose.position.z = place_translation[
+                                                      2] + move_arm_goal.pickup_pose.position.z + self.cube_size / 3
+            if self.camera_name == 'cam_front':
+                move_arm_goal.pickup_pose.position.x -= self.cube_size / 2
+                move_arm_goal.pickup_pose.position.z += self.cube_size / 3
+                move_arm_goal.place_pose.position.x -= self.cube_size / 2
+                move_arm_goal.place_pose.position.z += self.cube_size / 3
+            elif self.camera_name == 'cam_top':
+                move_arm_goal.pickup_pose.position.x += self.cube_size / 4
+                move_arm_goal.pickup_pose.position.z += self.cube_size / 3
+                move_arm_goal.place_pose.position.x += self.cube_size / 2
+                move_arm_goal.place_pose.position.z += self.cube_size / 2
 
         self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)
 
@@ -522,7 +548,7 @@ class ObjectFinder:
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 pass
         print(current_cube_transform)
-        print(key)
+        # print(key)
         self.cube_poses[key] = current_cube_transform
 
 

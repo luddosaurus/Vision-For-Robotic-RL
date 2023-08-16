@@ -43,7 +43,7 @@ class MoveArmActionServer(object):
         if goal.mode.data == 'aruco':
             self.pickup_point_rotation = [goal.pickup_pose.orientation.x, goal.pickup_pose.orientation.y,
                                           goal.pickup_pose.orientation.z, goal.pickup_pose.orientation.w]
-            # self.pickup_point_rotation = [1.0, 0., 0., 0.]
+            self.pickup_point_rotation = [1.0, 0., 0., 0.]
             self.move_to_target()
         else:
             self.place_point_translation = [goal.place_pose.position.x, goal.place_pose.position.y,
@@ -187,8 +187,8 @@ class MoveArmActionServer(object):
         # Plan and execute the arm movement to the target pose
 
         group.set_planner_id("RRTConnectkConfigDefault")
-        velocity_scaling_argument = 0.1
-        acceleration_scaling_argument = 0.1
+        velocity_scaling_argument = 0.2
+        acceleration_scaling_argument = 0.2
         group.set_max_velocity_scaling_factor(velocity_scaling_argument)
         group.set_max_acceleration_scaling_factor(acceleration_scaling_argument)
 

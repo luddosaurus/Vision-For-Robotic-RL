@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-# plt.switch_backend('agg')
+plt.switch_backend('agg')
 
 
 class HarryPlotter:

@@ -262,7 +262,7 @@ class ExtrinsicEstimator(object):
                 aruco_translation = translation_vector.flatten()
                 # aruco_rotation = TypeConverter.rotation_vector_to_quaternions(rotation_vector.flatten())
 
-        return aruco_translation, aruco_rotation
+        return aruco_translation, rotation_vector
 
     def collect_camera_target_transform(self):
         if not self.aruco_mode:

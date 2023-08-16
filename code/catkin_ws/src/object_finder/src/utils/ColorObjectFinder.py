@@ -9,15 +9,9 @@ from utils.Const import Const
 
 
 class ColorObjectFinder:
-
-    # hue, sat, val , margin x 3, noise, fill
-    saved_state = [103, 224, 229, 40, 40, 40, 5, 10]
-
-
-
-
-
+    saved_state = [103, 224, 229, 40, 40, 40, 1, 9]
     def __init__(self) -> None:
+        # hue, sat, val , margin x 3, noise, fill
         pass
 
     # Hue (degrees), Sat (percentage), Val (percentage)
@@ -239,7 +233,7 @@ class ColorObjectFinder:
               f'\nmax values:\n{max_values}'
               f'\nmin values:\n{min_values}'
               f'\nmedian:\n{medians}'
-        )
+              )
         # # Remove outliers using z-score
         # z_scores = stats.zscore(hue.flatten())
         # hue = hue.flatten()[np.abs(z_scores) < 1]
@@ -341,4 +335,4 @@ class ColorObjectFinder:
         self.update_value(min(val_diff, Const.VAL_MARGIN_MAX_CLICK), Const.VALUE_MARGIN)
 
     def get_current_state(self):
-        return self.saved_state
+        return self.saved_state.copy()

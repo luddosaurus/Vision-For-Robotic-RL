@@ -22,6 +22,7 @@ from camera_calibration.utils.TFPublish import TFPublish
 class CharucoPublisher(object):
     def __init__(self, board_name, camera_name, camera_topic):
 
+        self.aruco_mode = True
         camera_intrinsics = JSONHelper.get_camera_intrinsics(camera_name)
         board_data = JSONHelper.get_board_parameters(board_name)
 
@@ -61,11 +62,11 @@ class CharucoPublisher(object):
         #                                            parent_name='cam_wrist',
         #                                            child_name='charuco',
         #                                            transform_stamped=self.transform_memory[-1])
-
-        TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
-                                                   parent_name='cam_wrist',
-                                                   child_name='charuco',
-                                                   transform_stamped=self.transform_memory[-1])
+        if len(self.transform_memory) != 0:
+            TFPublish.publish_static_stamped_transform(publisher=self.pub_charuco_position,
+                                                       parent_name='cam_wrist',
+                                                       child_name='charuco',
+                                                       transform_stamped=self.transform_memory[-1])
 
         cv2.imshow('image', self.current_image)
         key = cv2.waitKey(1)
@@ -76,23 +77,53 @@ class CharucoPublisher(object):
 
 
     def collect_camera_target_transform(self):
-        self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
-            image=self.current_image,
-            camera_matrix=self.camera_matrix,
-            dist_coefficients=self.distortion)
+        if self.aruco_mode:
+            latest_t_vec, latest_r_vec = self.estimate_aruco_pose()
+        else:
+            self.current_image, latest_r_vec, latest_t_vec = self.arHelper.estimate_charuco_pose(
+                image=self.current_image,
+                camera_matrix=self.camera_matrix,
+                dist_coefficients=self.distortion)
 
-        latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
+        if latest_t_vec is not None and latest_r_vec is not None:
+            latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)
 
-        latest_t_vec = np.array(latest_t_vec)
-        latest_r_vec = np.array(latest_r_vec)
-        if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
-            transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
-                                                                   rotation=latest_r_vec,
-                                                                   parent_frame="cam_wrist",
-                                                                   child_frame="charuco")
-            self.transform_memory.append(transform)
-            if len(self.transform_memory) > self.memory_size:
-                self.transform_memory = self.transform_memory[1:]
+            latest_t_vec = np.array(latest_t_vec)
+            latest_r_vec = np.array(latest_r_vec)
+            if not np.isnan(latest_r_vec).any() and not np.isnan(latest_t_vec).any():
+                transform = TypeConverter.vectors_to_stamped_transform(translation=latest_t_vec,
+                                                                       rotation=latest_r_vec,
+                                                                       parent_frame="cam_wrist",
+                                                                       child_frame="charuco")
+                self.transform_memory.append(transform)
+                if len(self.transform_memory) > self.memory_size:
+                    self.transform_memory = self.transform_memory[1:]
+                
+    def estimate_aruco_pose(self):
+        marker_size_m = 0.1
+        # arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        # arucoParams = cv2.aruco.DetectorParameters()
+        gray = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
+        cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
+        parameters = cv2.aruco.DetectorParameters_create()
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict, parameters=parameters)
+
+        aruco_translation = None
+        aruco_rotation = None
+
+        if len(corners) > 0:
+            for i in range(0, len(ids)):
+                rotation_vector, translation_vector, marker_points = cv2.aruco.estimatePoseSingleMarkers(corners[i],
+                                                                                                         marker_size_m,
+                                                                                                         self.camera_matrix,
+                                                                                                         self.distortion)
+
+                cv2.drawFrameAxes(self.current_image, self.camera_matrix, self.distortion, rotation_vector,
+                                  translation_vector,
+                                  marker_size_m / 2)
+                aruco_translation = translation_vector.flatten()
+                # aruco_rotation = TypeConverter.rotation_vector_to_quaternions(rotation_vector.flatten())
+        return aruco_translation, rotation_vector
 
     def get_transform_between(self, origin, to):
         try:
