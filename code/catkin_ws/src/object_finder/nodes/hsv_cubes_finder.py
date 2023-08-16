@@ -42,6 +42,7 @@ class ObjectFinder:
 
     def __init__(self, pose_estimate, camera_topic, intrinsic_matrix=None, distortion=None):
         # print(pose_estimate)
+        self.cube_size = 0.03  # meters
         self.world_to_aruco = None
         self.aruco_rotation = None
         self.aruco_translation = None
@@ -456,6 +457,15 @@ class ObjectFinder:
         pick_pose_rotation = pick_pose.transform.rotation
         pick_translation = [pick_pose_translation.x, pick_pose_translation.y, pick_pose_translation.z]
         pick_rotation = [pick_pose_rotation.x, pick_pose_rotation.y, pick_pose_rotation.z, pick_pose_rotation.w]
+
+        pick_rotation_angles = TypeConverter.quaternion_to_rotation_vector(pick_rotation)
+
+        # reverse z axis direction
+        pick_rotation_angles[0] += 180
+        pick_rotation_angles[2] += 90
+
+        pick_rotation = TypeConverter.rotation_vector_to_quaternions(pick_rotation_angles)
+
         random_y = np.random.uniform(-0.3, 0.4)
         random_x = np.random.uniform(0.3, 0.45)
         place_translation = pick_translation[:1] + [random_y] + pick_translation[2:]
@@ -465,13 +475,20 @@ class ObjectFinder:
         move_arm_goal.pickup_pose.position.y = pick_translation[1]
         move_arm_goal.pickup_pose.position.z = pick_translation[2]
 
+        if self.camera_name == 'cam_front':
+            move_arm_goal.pickup_pose.position.x -= self.cube_size / 2
+            move_arm_goal.pickup_pose.position.z += self.cube_size / 2
+        elif self.camera_name == 'cam_top':
+            move_arm_goal.pickup_pose.position.x += self.cube_size / 2
+            move_arm_goal.pickup_pose.position.z += self.cube_size / 2
+
         move_arm_goal.pickup_pose.orientation.x = pick_rotation[0]
         move_arm_goal.pickup_pose.orientation.y = pick_rotation[1]
         move_arm_goal.pickup_pose.orientation.z = pick_rotation[2]
         move_arm_goal.pickup_pose.orientation.w = pick_rotation[3]
 
         if self.detect_aruco:
-            move_arm_goal.pickup_pose.position.z += 0.098
+            move_arm_goal.pickup_pose.position.z += 0.098  # length of pointing object from tcp in meters
             move_arm_goal.mode = String('aruco')
             # move_arm_goal.place_pose = None
             self.action_client.send_goal(move_arm_goal, feedback_cb=self.feedback_callback)

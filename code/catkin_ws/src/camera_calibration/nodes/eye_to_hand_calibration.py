@@ -123,14 +123,15 @@ class ExtrinsicEstimator(object):
                "[r]un_solver " \
                "[e]xtensive_run " \
                "[c]ollect " \
-               "[t]oggle_mode"
+               "[t]oggle_dynamic_estimate " \
+               "[a]ruco_mode_dynamic"
         display_image = DaVinci.pad_image_cv(self.current_image)
         DaVinci.draw_text_box_in_corner(
             image=display_image,
             text=info,
             position="bottom_left",
             thickness=1,
-            font_scale=0.8,
+            font_scale=0.65,
             background=(0, 0, 0)
         )
         DaVinci.draw_text_box_in_corner(
@@ -271,7 +272,7 @@ class ExtrinsicEstimator(object):
                 dist_coefficients=self.distortion)
         else:
             latest_t_vec, latest_r_vec = self.estimate_aruco_pose()
-        
+
         if latest_t_vec is not None and latest_r_vec is not None:
 
             latest_r_vec = TypeConverter.rotation_vector_to_quaternions(latest_r_vec)

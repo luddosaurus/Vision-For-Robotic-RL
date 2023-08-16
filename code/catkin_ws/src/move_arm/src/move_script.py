@@ -43,7 +43,7 @@ class MoveArmActionServer(object):
         if goal.mode.data == 'aruco':
             self.pickup_point_rotation = [goal.pickup_pose.orientation.x, goal.pickup_pose.orientation.y,
                                           goal.pickup_pose.orientation.z, goal.pickup_pose.orientation.w]
-            self.pickup_point_rotation = rotation = [1.0, 0., 0., 0.]
+            # self.pickup_point_rotation = [1.0, 0., 0., 0.]
             self.move_to_target()
         else:
             self.place_point_translation = [goal.place_pose.position.x, goal.place_pose.position.y,
